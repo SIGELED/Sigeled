@@ -9,7 +9,7 @@ const Register = () => {
     email: '',
     contraseña: '',
     confirmarContraseña: '',
-    rol: 'usuario'
+    rol: 'docente'
   });
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -101,7 +101,8 @@ const Register = () => {
             value={userData.rol}
             onChange={handleChange}
           >
-            <option value="usuario">Usuario</option>
+            <option value="docente">Docente</option>
+            <option value="rrhh">RRHH</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
