@@ -5,17 +5,18 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+import Inicio from './pages/Inicio';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app-container">
+        <div className="app-container flex flex-col min-h-screen w-full relative">
           <Navbar />
-          <div className="content">
+          <div className="content flex-1 p-4 w-full max-w-full mx-auto sm:p-6 md:p-8 lg:max-w-[1200px] box-border">
             <Routes>
               {/* Rutas públicas */}
+              <Route path="/" element={<Inicio />}/>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
@@ -30,8 +31,7 @@ function App() {
               />
               
               {/* Redirecciones */}
-              <Route path="/" element={<Navigate to="/login" />} />
-              <Route path="*" element={<Navigate to="/login" />} />
+              <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </div>
         </div>

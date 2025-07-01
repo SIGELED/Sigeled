@@ -26,13 +26,13 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <h2>Iniciar Sesión</h2>
-      {error && <div className="error-message">{error}</div>}
+    <div className="login-container w-[90%] max-w-md mx-auto mt-6 p-6 bg-white rounded-2xl shadow-xl">
+      <h2 className='text-xl font-semibold text-center text-black mb-5'>¡Bienvenido de nuevo!</h2>
+      {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4 break-words">{error}</div>}
       
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
+        <div className="mb-4">
+          <label htmlFor="email" className='block mb-2 font-medium'>Email</label>
           <input
             type="email"
             id="email"
@@ -40,11 +40,12 @@ const Login = () => {
             value={credentials.email}
             onChange={handleChange}
             required
+            className="w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500"
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="contraseña">Contraseña</label>
+        <div className="mb-4">
+          <label htmlFor="contraseña" className='block mb-2 font-medium'>Contraseña</label>
           <input
             type="password"
             id="contraseña"
@@ -52,14 +53,15 @@ const Login = () => {
             value={credentials.contraseña}
             onChange={handleChange}
             required
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           />
         </div>
         
-        <button type="submit">Iniciar Sesión</button>
+        <button type="submit" className='w-full p-3 bg-[#1aab23] text-white rounded-3xl text-base font-medium hover:bg-[#21ca2c] transition-colors mt-4'>Iniciar Sesión</button>
       </form>
       
-      <p>
-        ¿No tienes una cuenta? <a href="/register">Registrarse</a>
+      <p className='mt-4 text-center text-sm'>
+        ¿No tienes una cuenta? <a href="/register" className='text-blue-600 hover:underline'>Registrarse</a>
       </p>
     </div>
   );
