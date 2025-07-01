@@ -12,3 +12,11 @@ export const createUser = async ({ nombre, email, contraseñaHash, rol }) => {
     );
     return res.rows[0];
 };
+
+export const updateUserCV = async (userId, cvPath) => {
+    const res = await db.query(
+        'UPDATE usuarios SET cv = $1 WHERE id = $2 RETURNING *',
+        [cvPath, userId]
+    );
+    return res.rows[0];
+};
