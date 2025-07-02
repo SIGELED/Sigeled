@@ -40,13 +40,13 @@ const Register = () => {
   };
 
   return (
-    <div className="register-container">
-      <h2>Registro de Usuario</h2>
-      {error && <div className="error-message">{error}</div>}
+    <div className="register-container w-[90%] max-w-md mx-auto mt-6 p-6 bg-white rounded-lg shadow-md">
+      <h2 className='text-xl font-semibold text-center text-black mb-5'>Registro de Usuario</h2>
+      {error && <div className="error-message bg-red-100 text-red-800 p-3 rounded mb-4 break-words">{error}</div>}
       
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="nombre">Nombre</label>
+        <div className="form-group mb-4">
+          <label htmlFor="nombre" className='block mb-2 font-medium'>Nombre</label>
           <input
             type="text"
             id="nombre"
@@ -54,11 +54,12 @@ const Register = () => {
             value={userData.nombre}
             onChange={handleChange}
             required
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
+        <div className="form-group mb-4">
+          <label htmlFor="email" className='block mb-2 font-medium'>Email</label>
           <input
             type="email"
             id="email"
@@ -66,11 +67,12 @@ const Register = () => {
             value={userData.email}
             onChange={handleChange}
             required
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="contraseña">Contraseña</label>
+        <div className="form-group mb-4">
+          <label htmlFor="contraseña" className='block mb-2 font-medium'>Contraseña</label>
           <input
             type="password"
             id="contraseña"
@@ -78,11 +80,12 @@ const Register = () => {
             value={userData.contraseña}
             onChange={handleChange}
             required
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="confirmarContraseña">Confirmar Contraseña</label>
+        <div className="form-group mb-4">
+          <label htmlFor="confirmarContraseña" className='block mb-2 font-medium'>Confirmar Contraseña</label>
           <input
             type="password"
             id="confirmarContraseña"
@@ -90,16 +93,18 @@ const Register = () => {
             value={userData.confirmarContraseña}
             onChange={handleChange}
             required
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="rol">Rol</label>
+        <div className="form-group mb-4">
+          <label htmlFor="rol" className='block mb-2 font-medium'>Rol</label>
           <select
             id="rol"
             name="rol"
             value={userData.rol}
             onChange={handleChange}
+            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
           >
             <option value="docente">Docente</option>
             <option value="rrhh">RRHH</option>
@@ -107,11 +112,11 @@ const Register = () => {
           </select>
         </div>
         
-        <button type="submit">Registrarse</button>
+        <button type="submit" className='w-full p-3 bg-[#1aab23] text-white rounded-3xl text-base font-medium hover:bg-[#21ca2c] transition-colors mt-4'>Registrarse</button>
       </form>
       
-      <p>
-        ¿Ya tienes una cuenta? <a href="/login">Iniciar Sesión</a>
+      <p className='mt-4 text-center text-sm'>
+        ¿Ya tienes una cuenta? <a href="/login" className='text-blue-600 hover:underline'>Iniciar Sesión</a>
       </p>
     </div>
   );
