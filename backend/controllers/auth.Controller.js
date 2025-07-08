@@ -1,4 +1,4 @@
-import bcypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { findUserByEmail, createUser } from '../models/userModel.js';
 import db from '../models/db.js';
@@ -7,11 +7,11 @@ export const login = async (req, res) => {
     const { email, contraseña } = req.body;
     try {
         const user = await findUserByEmail(email);
-        if (!user || !bcypt.compareSync(contraseña, user.contraseña)) {
+        if (!user || !bcrypt.compareSync(contraseña, user.contraseña)) {
             return res.status(401).json({ message: 'Credenciales invalidas' });
         }
 
-        const isPasswordValid = await bcypt.compare(contraseña, user.contraseña);
+        const isPasswordValid = await bcrypt.compare(contraseña, user.contraseña);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
@@ -40,7 +40,7 @@ export const register = async (req, res) => {
         }
         const rolPendienteId = rolPendienteRes.rows[0].id;
 
-        const contraseñaHash = bcypt.hashSync(contraseña, 10);
+        const contraseñaHash = bcrypt.hashSync(contraseña, 10);
         const newUser = await createUser({ nombre, email, contraseña: contraseñaHash, rol: rolPendienteId });
 
         const token = jwt.sign({ id: newUser.id, rol: 'pendiente' }, process.env.JWT_SECRET, { expiresIn: '1h' });
