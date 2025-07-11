@@ -34,7 +34,7 @@ export const validarRegistro = (req, res, next) => {
     const rolesValidos = ['docente', 'rrhh', 'administrador'];
     if (!rolesValidos.includes(rol)) {
         return res.status(400).json({ 
-            message: 'El rol debe ser: docente, rrhh o admin' 
+            message: 'El rol debe ser: docente, rrhh o administrador' 
         });
     }
 
