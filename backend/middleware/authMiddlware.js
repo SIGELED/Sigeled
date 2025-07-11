@@ -24,3 +24,12 @@ export const soloDocente = (req, res, next) => {
         return res.status(403).json({ message: 'Acceso solo para docentes' });
     }
 };
+
+// Middleware para permitir solo a usuarios con rol "administrador"
+export const soloAdministrador = (req, res, next) => {
+    if (req.user && req.user.rol === 'administrador') {
+        next();
+    } else {
+        return res.status(403).json({ message: 'Acceso solo para administradores' });
+    }
+};
