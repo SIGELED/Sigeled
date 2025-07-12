@@ -31,7 +31,7 @@ export const validarRegistro = (req, res, next) => {
     }
 
     // Validar que el rol sea válido
-    const rolesValidos = ['docente', 'rrhh', 'admin'];
+    const rolesValidos = ['docente', 'rrhh', 'administrador'];
     if (!rolesValidos.includes(rol)) {
         return res.status(400).json({ 
             message: 'El rol debe ser: docente, rrhh o admin' 

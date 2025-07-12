@@ -6,6 +6,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Inicio from './pages/Inicio';
+import Perfil from './components/Perfil';
 
 function App() {
   return (
@@ -13,12 +14,13 @@ function App() {
       <Router>
         <div className="app-container flex flex-col min-h-screen w-full relative">
           <Navbar />
-          <div className="content flex-1 p-4 w-full max-w-full mx-auto sm:p-6 md:p-8 lg:max-w-[1200px] box-border">
+          <div className="flex-1 w-full box-border">
             <Routes>
               {/* Rutas públicas */}
               <Route path="/" element={<Inicio />}/>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/perfil" element={<Perfil />} />
               
               {/* Ruta protegida */}
               <Route 
