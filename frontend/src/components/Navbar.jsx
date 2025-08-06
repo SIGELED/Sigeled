@@ -26,7 +26,7 @@ const Navbar = () => {
 
         {!user && (
           <div className='absolute left-1/2 transform -translate-x-1/2 flex space-x-4'>
-            <Link to="/login" className='bg-gray-50 text-[#020c14] px-4 py-2 rounded-full font-bold hover:bg-white transition' onClick={() => setMenuOpen(false)}>
+            <Link to="/login" className='bg-gray-50 text-[#020c14] px-4 flex items-center rounded-full font-bold hover:bg-white transition' onClick={() => setMenuOpen(false)}>
               Iniciar Sesión
             </Link>
             <Link to="/register" className='border-2 border-white text-white px-4 py-2 rounded-full font-bold hover:bg-white hover:text-[#020c14] transition' onClick={() => setMenuOpen(false)}>
@@ -41,9 +41,13 @@ const Navbar = () => {
             <Link to="/dashboard" className='bg-blue-600 px-4 py-2 rounded-full font-semibold hover:bg-blue-700 transition' onClick={() => setMenuOpen(false)}>
               Dashboard
             </Link>
-            <button onClick={handleLogout} className='bg-red-600 px-2 rounde-full fon-semibold hover:bg-red-700 transition'>
+            <Link to="/" onClick={handleLogout} className='bg-red-600 px-2 py-2 rounded-full font-semibold hover:bg-red-700 transition hover:cursor-pointer'>
               Cerrar Sesión
-            </button>
+            </Link>
+
+            <Link to="/perfil" className='bg-[#1aab23] px-5 py-2 rounded-full font-semibold hover:bg-[#21ca2c] transition'>
+              Mi Perfil
+            </Link>
           </div>
         )}
       </nav>

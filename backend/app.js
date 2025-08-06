@@ -1,4 +1,3 @@
-
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -18,6 +17,7 @@ app.use('/api/docente', docenteRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/uploads', express.static('uploads'));
+app.use('/api/contratos', contratoRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
