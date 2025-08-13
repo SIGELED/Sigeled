@@ -1,7 +1,9 @@
 // Validaciones para gestión de usuarios
 
+import { getRoleById } from '../models/roleModel.js';
+
 // Validar creación de usuario (solo administradores)
-export const validarCrearUsuario = (req, res, next) => {
+export const validarCrearUsuario = async (req, res, next) => {
     const { nombre, email, contraseña, rol, dni, cuil, domicilio, titulo } = req.body;
 
     // Validar campos requeridos
@@ -33,11 +35,11 @@ export const validarCrearUsuario = (req, res, next) => {
         });
     }
 
-    // Validar que la contraseña contenga al menos una letra mayúscula, una minúscula y un número
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    // Validar que la contraseña contenga al menos una letra mayúscula, una minúscula, un número y un símbolo
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).+$/;
     if (!passwordRegex.test(contraseña)) {
         return res.status(400).json({ 
-            message: 'La contraseña debe contener al menos una letra mayúscula, una minúscula y un número' 
+            message: 'La contraseña debe contener al menos una letra mayúscula, una minúscula, un número y un símbolo' 
         });
     }
 
@@ -59,6 +61,14 @@ export const validarCrearUsuario = (req, res, next) => {
     if (isNaN(rol) || rol <= 0) {
         return res.status(400).json({ 
             message: 'El rol debe ser un ID válido' 
+        });
+    }
+
+    // Validar que el rol exista en la base de datos
+    const role = await getRoleById(rol);
+    if (!role) {
+        return res.status(400).json({ 
+            message: 'El rol proporcionado no existe' 
         });
     }
 
@@ -111,7 +121,7 @@ export const validarActualizarUsuario = (req, res, next) => {
 };
 
 // Validar asignación de rol
-export const validarAsignarRol = (req, res, next) => {
+export const validarAsignarRol = async (req, res, next) => {
     const { roleId } = req.body;
 
     if (!roleId) {
@@ -123,6 +133,14 @@ export const validarAsignarRol = (req, res, next) => {
     if (isNaN(roleId) || roleId <= 0) {
         return res.status(400).json({ 
             message: 'El ID del rol debe ser un número válido' 
+        });
+    }
+
+    // Validar que el rol exista en la base de datos
+    const role = await getRoleById(roleId);
+    if (!role) {
+        return res.status(400).json({ 
+            message: 'El rol proporcionado no existe' 
         });
     }
 
