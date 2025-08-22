@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+
 const Navbar = () => {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -19,11 +20,11 @@ const Navbar = () => {
 
   return (
     <div className='p-4 relative'>
-      <nav className="relative navbar bg-[#020c14] text-white p-7 rounded-[100px] flex items-center justify-between ">
+      <nav className="relative p-10 bg-[#020c14] text-white rounded-[100px] flex items-center justify-between ">
         <div className="navbar-brand flex-shrink-0">
-          <Link to="/" className='text-xl flex font-bold'>SIGELED</Link>
+          
         </div>
-
+        
         {!user && (
           <div className='absolute left-1/2 transform -translate-x-1/2 flex space-x-4'>
             <Link to="/login" className='bg-gray-50 text-[#020c14] px-4 flex items-center rounded-full font-bold hover:bg-white transition' onClick={() => setMenuOpen(false)}>

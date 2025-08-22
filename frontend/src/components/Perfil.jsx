@@ -1,5 +1,4 @@
 import { useState } from "react"
-import BotonPerfil from "./BotonPerfil"
 import { useAuth } from "../context/AuthContext"
 
 export default function Perfil(){
