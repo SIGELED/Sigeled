@@ -3,6 +3,7 @@ import BotonAside from "./BotonAside"
 import { FiHome } from "react-icons/fi";
 import { FiArchive } from "react-icons/fi";
 import { FiClipboard } from "react-icons/fi";
+import logo from "../assets/svg/logoAncho.svg";
 
 export default function Aside() {
     const [activeSection, setActiveSection] = useState("dashboard")
@@ -10,8 +11,8 @@ export default function Aside() {
     return(
         <div className="w-[25%] h-screen flex flex-col items-stretch border-r-gray-500 border-r">
             {/* LOGO */} 
-            <div className="px-6 pt-6 pb-4 flex justify-center mb-10">
-                <img src="" alt="logo" className="h-8"/>
+            <div className=" flex justify-center">
+                <img src={logo} alt="logo" className="h-30 w-30"/>
             </div>
 
             <div className="">
