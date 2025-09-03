@@ -8,13 +8,13 @@ import {
 } from '../controllers/contratoController.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddlware.js';
 
-const router = express.Router();
+const contratoRouter = express.Router();
 
 // CRUD de contratos
-router.get('/', listarContratos);
-router.get('/:id',obtenerContrato); // Temporal, se reemplazará por obtenerContrato
-router.post('/', verificarToken, soloAdministrador, crearContrato);
-router.put('/:id', verificarToken, soloAdministrador, actualizarContrato);
-router.delete('/:id', verificarToken, soloAdministrador, eliminarContrato);
+contratoRouter.get('/', listarContratos);
+contratoRouter.get('/:id',obtenerContrato); // Temporal, se reemplazará por obtenerContrato
+contratoRouter.post('/', verificarToken, soloAdministrador, crearContrato);
+contratoRouter.put('/:id', verificarToken, soloAdministrador, actualizarContrato);
+contratoRouter.delete('/:id', verificarToken, soloAdministrador, eliminarContrato);
 
-export default router;
+export default contratoRouter;
