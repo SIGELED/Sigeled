@@ -1,44 +1,24 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import Navbar from './components/Navbar';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import Inicio from './pages/Inicio';
-import Perfil from './components/Perfil';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import RegistroUsuario from "./components/RegistroUsuario.jsx";
+import AsignarRolUsuario from "./components/AsignarUsuario.jsx";
+import CompletarDatosPersona from "./components/CompletarDatosPersona.jsx";
+import Inicio from "./pages/Inicio.jsx";
+import Navbar from "./components/Navbar.jsx";
 
 function App() {
+  // Simula el token (en producción, obtén el token tras el login/registro)
+  const token = localStorage.getItem("token");
+
   return (
-    <AuthProvider>
-      <Router>
-        <div className="app-container flex flex-col min-h-screen w-full relative">
-          <Navbar />
-          <div className="flex-1 w-full box-border">
-            <Routes>
-              {/* Rutas públicas */}
-              <Route path="/" element={<Inicio />}/>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/perfil" element={<Perfil />} />
-              
-              {/* Ruta protegida */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Redirecciones */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </div>
-        </div>
-      </Router>
-    </AuthProvider>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Inicio />} />
+        <Route path="/registro" element={<RegistroUsuario />} />
+        <Route path="/asignar-rol" element={<AsignarRolUsuario />} />
+        <Route path="/completar-datos" element={<CompletarDatosPersona token={token} />} />
+      </Routes>
+    </Router>
   );
 }
 
