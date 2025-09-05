@@ -2,9 +2,9 @@ import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById }
 
 export const registrarDatosPersona = async (req, res) => {
     try {
-        const { nombre, apellido, fecha_nacimiento, sexo, id_tipo_empleado } = req.body;
+        const { nombre, apellido, fecha_nacimiento, sexo} = req.body;
         const id_usuario = req.user.id_usuario; // Extraído del token
-        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo, id_tipo_empleado });
+        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo });
         await vincularPersonaUsuario(persona.id_persona, id_usuario);
         res.status(201).json(persona);
     } catch (error) {

@@ -22,7 +22,7 @@ app.use('/api/roles', roleRouter);
 app.use('/uploads', express.static('uploads'));
 app.use('/api/contratos', contratoRouter);
 app.use('/api/persona-doc', personaDocRouster);
-app.use('/api/personas', personaRouter);
+app.use('/api/persona', personaRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
