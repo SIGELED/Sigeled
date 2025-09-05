@@ -5,7 +5,7 @@ import {
   crearContrato,
   actualizarContrato,
   eliminarContrato
-} from '../controllers/contratoController.js';
+} from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddlware.js';
 
 const contratoRouter = express.Router();

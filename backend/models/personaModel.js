@@ -21,3 +21,11 @@ export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, 
     );
     return res.rows[0];
 };
+
+export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
+    const res = await db.query(
+        `INSERT INTO personas_usuarios (id_persona, id_usuario) VALUES ($1, $2) RETURNING *`,
+        [id_persona, id_usuario]
+    );
+    return res.rows[0];
+};
