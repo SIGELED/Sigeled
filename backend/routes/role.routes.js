@@ -4,19 +4,21 @@ import {
     getRoleById, 
     createRole, 
     updateRole, 
-    deleteRole 
+    deleteRole ,
+    getRolesByUserId, 
+    assignRoleToUser
 } from '../models/roleModel.js';
 import { verificarToken, permitirRoles } from '../middleware/authMiddlware.js';
 import { validarCrearRol, validarActualizarRol } from '../validators/roleValidator.js';
 
-const router = express.Router();
+const roleRouter = express.Router();
 
 // Todas las rutas requieren autenticación y rol de administrador
-router.use(verificarToken);
-router.use(permitirRoles('administrador'));
+roleRouter.use(verificarToken);
+roleRouter.use(permitirRoles('administrador'));
 
 // Obtener todos los roles
-router.get('/', async (req, res) => {
+roleRouter.get('/', async (req, res) => {
     try {
         const roles = await getAllRoles();
         res.json(roles);
@@ -27,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // Obtener rol por ID
-router.get('/:id', async (req, res) => {
+roleRouter.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const role = await getRoleById(id);
@@ -44,7 +46,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Crear nuevo rol
-router.post('/', validarCrearRol, async (req, res) => {
+roleRouter.post('/', validarCrearRol, async (req, res) => {
     try {
         const newRole = await createRole(req.body);
         res.status(201).json({
@@ -58,7 +60,7 @@ router.post('/', validarCrearRol, async (req, res) => {
 });
 
 // Actualizar rol
-router.put('/:id', validarActualizarRol, async (req, res) => {
+roleRouter.put('/:id', validarActualizarRol, async (req, res) => {
     try {
         const { id } = req.params;
         const updatedRole = await updateRole(id, req.body);
@@ -78,7 +80,7 @@ router.put('/:id', validarActualizarRol, async (req, res) => {
 });
 
 // Eliminar rol
-router.delete('/:id', async (req, res) => {
+roleRouter.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const deletedRole = await deleteRole(id);
@@ -101,5 +103,29 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ message: 'Error del servidor' });
     }
 });
+// Obtener roles de un usuario
+roleRouter.get('/usuario/:id_usuario', async (req, res) => {
+    try {
+        const { id_usuario } = req.params;
+        const roles = await getRolesByUserId(id_usuario);
+        res.json(roles);
+    } catch (error) {
+        console.error('Error al obtener roles de usuario:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
 
-export default router; 
+// Asignar rol a usuario
+roleRouter.post('/usuario/asignar', async (req, res) => {
+    try {
+        const { id_usuario, id_rol, asignado_por } = req.body;
+        const result = await assignRoleToUser(id_usuario, id_rol, asignado_por);
+        res.status(201).json(result);
+    } catch (error) {
+        console.error('Error al asignar rol:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
+
+
+export default roleRouter; 

@@ -1,60 +1,36 @@
 import db from './db.js';
 
+// Buscar usuario por email
 export const findUserByEmail = async (email) => {
-    // Trae el usuario junto con el nombre del rol
     const res = await db.query(
-        `SELECT u.*, r.nombre AS nombre_rol
-         FROM usuarios u
-         JOIN roles r ON u.rol = r.id
-         WHERE u.email = $1`,
+        `SELECT * FROM usuarios WHERE email = $1`,
         [email]
     );
     return res.rows[0];
 };
 
-export const createUser = async (userData) => {
-    // userData debe incluir: nombre, email, password, rol (id del rol), y otros campos necesarios
-    const { nombre, email, password, rol, ...otrosCampos } = userData;
-    // Ajusta los campos y valores según tu tabla usuarios
-    const campos = ['nombre', 'email', 'password', 'rol'];
-    const valores = [nombre, email, password, rol];
-    // Agrega dinámicamente otros campos si existen
-    Object.entries(otrosCampos).forEach(([key, value]) => {
-        campos.push(key);
-        valores.push(value);
-    });
-    const placeholders = campos.map((_, idx) => `$${idx + 1}`).join(', ');
-    const query = `INSERT INTO usuarios (${campos.join(', ')}) VALUES (${placeholders}) RETURNING *;`;
-    const result = await db.query(query, valores);
-    return result.rows[0];
-};
-
-export const getUserById = async (id) => {
-    // Trae el usuario junto con el nombre del rol
+// Crear usuario
+export const createUser = async ({ email, password_hash }) => {
     const res = await db.query(
-        `SELECT u.*, r.nombre AS nombre_rol
-         FROM usuarios u
-         JOIN roles r ON u.rol = r.id
-         WHERE u.id = $1`,
-        [id]
+        `INSERT INTO usuarios (email, password_hash) VALUES ($1, $2) RETURNING *`,
+        [email, password_hash]
     );
     return res.rows[0];
 };
 
-export const getAllUsers = async () => {
-    // Trae todos los usuarios junto con el nombre del rol
+// Buscar usuario por id
+export const getUserById = async (id_usuario) => {
     const res = await db.query(
-        `SELECT u.*, r.nombre AS nombre_rol
-         FROM usuarios u
-         JOIN roles r ON u.rol = r.id`
+        `SELECT * FROM usuarios WHERE id_usuario = $1`,
+        [id_usuario]
+    );
+    return res.rows[0];
+};
+
+// Obtener todos los usuarios
+export const getAllUsers = async () => {
+    const res = await db.query(
+        `SELECT * FROM usuarios`
     );
     return res.rows;
-};
-
-export const updateUserCV = async (userId, cvPath) => {
-    const res = await db.query(
-        'UPDATE usuarios SET cv = $1 WHERE id = $2 RETURNING *',
-        [cvPath, userId]
-    );
-    return res.rows[0];
 };
