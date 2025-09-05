@@ -15,7 +15,7 @@ function App() {
           <div className="flex-1 w-full box-border">
             <Routes>
               {/* Rutas públicas */}
-              <Route path="/" element={<Dashboard />}/>
+              <Route path="/" element={<Inicio />}/>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/perfil" element={<Perfil />} />

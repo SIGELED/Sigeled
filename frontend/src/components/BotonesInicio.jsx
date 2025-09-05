@@ -27,10 +27,23 @@ const Navbar = () => {
         
         {!user && (
           <div className='absolute left-1/2 transform -translate-x-1/2 flex space-x-4'>
-            <Link to="/login" className='bg-gray-50 text-[#020c14] px-4 flex items-center rounded-full font-bold hover:bg-white transition' onClick={() => setMenuOpen(false)}>
+            <Link to="/login" className='inline-flex items-center justify-center
+                h-16 px-10
+                rounded-full font-black
+                text-[2rem] leading-none whitespace-nowrap
+                bg-gray-50 text-[#020c14]
+                border-2 border-transparent
+                hover:bg-white transition' onClick={() => setMenuOpen(false)}>
               Iniciar Sesión
             </Link>
-            <Link to="/register" className='border-2 border-white text-white px-4 py-2 rounded-full font-bold hover:bg-white hover:text-[#020c14] transition' onClick={() => setMenuOpen(false)}>
+            <Link to="/register" className='inline-flex items-center justify-center
+                h-16 px-10
+                rounded-full font-black
+                text-[2rem] leading-none whitespace-nowrap
+                bg-transparent text-white
+                border-2 border-white
+                hover:bg-white hover:text-[#020c14] transition
+                ' onClick={() => setMenuOpen(false)}>
               Registrarse
             </Link>
           </div>

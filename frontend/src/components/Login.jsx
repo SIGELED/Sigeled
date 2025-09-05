@@ -26,43 +26,47 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container w-[90%] max-w-md mx-auto mt-6 p-6 bg-white rounded-2xl shadow-xl">
-      <h2 className='text-xl font-semibold text-center text-black mb-5'>¡Bienvenido de nuevo!</h2>
-      {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4 break-words">{error}</div>}
+    <div className='flex justify-end w-screen h-screen'>
+    <div className="w-[45%] h-screen flex flex-col justify-center p-6 pl-20 pr-20">
+      <h1 className='text-6xl font-semibold text-start text-[#19F124] mb-5'>Iniciar Sesión</h1>
+      {error && <div className="p-3 mb-4 text-red-800 break-words bg-red-100 rounded">{error}</div>}
       
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className='block mb-2 font-medium'>Email</label>
+          <label htmlFor="email" className='block mb-2 font-medium'></label>
           <input
             type="email"
             id="email"
             name="email"
+            placeholder='juanqi3489@gmail.com'
             value={credentials.email}
             onChange={handleChange}
             required
-            className="w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500"
+            className="w-full text-white pl-5 p-3 bg-[#0E1F30] rounded-xl mb-2 text-3xl focus:outline-none"
           />
         </div>
         
-        <div className="mb-4">
-          <label htmlFor="contraseña" className='block mb-2 font-medium'>Contraseña</label>
+        <div className="mb-5">
+          <label htmlFor="contraseña" className='block mb-2 font-black' ></label>
           <input
             type="password"
             id="contraseña"
             name="contraseña"
+            placeholder='● ● ● ● ● ●● ● ● '
             value={credentials.contraseña}
             onChange={handleChange}
             required
-            className='w-full p-3 border border-gray-300 rounded text-base focus:outline-none focus:border-blue-500'
+            className='w-full text-white pl-5 p-3 bg-[#0E1F30] rounded-xl text-3xl focus:outline-none'
           />
         </div>
+        <p className='mt-4 mr-4 text-[1.2rem] text-white text-end'>
+          ¿No tienes una cuenta? <a href="/register" className=' text-[#1cff28] font-black hover:underline'>Registrarse</a>
+        </p>
         
-        <button type="submit" className='w-full p-3 bg-[#1aab23] text-white rounded-3xl text-base font-medium hover:bg-[#21ca2c] transition-colors mt-4'>Iniciar Sesión</button>
+        <button type="submit" className='w-full p-3 bg-transparent border-3 border-[#19F124] text-[#19F124] rounded-full text-3xl font-black hover:bg-[#19F124] hover:text-[#020c14] cursor-pointer transition-colors mt-12 '>Ingresar</button>
       </form>
-      
-      <p className='mt-4 text-center text-sm'>
-        ¿No tienes una cuenta? <a href="/register" className='text-blue-600 hover:underline'>Registrarse</a>
-      </p>
+
+    </div>
     </div>
   );
 };
