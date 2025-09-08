@@ -49,6 +49,7 @@ export const subirArchivo = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
 // Listar estados de verificación
 export const listarEstadosVerificacion = async (req, res) => {
     try {
