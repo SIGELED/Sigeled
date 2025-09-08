@@ -11,8 +11,8 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app-container flex flex-col min-h-screen w-full relative">
-          <div className="flex-1 w-full box-border">
+        <div className="relative flex flex-col w-full min-h-screen app-container">
+          <div className="box-border flex-1 w-full">
             <Routes>
               {/* Rutas públicas */}
               <Route path="/" element={<Inicio />}/>

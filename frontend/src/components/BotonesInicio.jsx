@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-
-const Navbar = () => {
+const BotonesInicio = () => {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
@@ -19,14 +18,14 @@ const Navbar = () => {
   };
 
   return (
-    <div className='p-4 relative'>
+    <div className='relative p-4'>
       <nav className="relative p-10 bg-[#020c14] text-white rounded-[100px] flex items-center justify-between ">
-        <div className="navbar-brand flex-shrink-0">
+        <div className="flex-shrink-0 navbar-brand">
           
         </div>
         
         {!user && (
-          <div className='absolute left-1/2 transform -translate-x-1/2 flex space-x-4'>
+          <div className='absolute flex space-x-4 transform -translate-x-1/2 left-1/2'>
             <Link to="/login" className='inline-flex items-center justify-center
                 h-16 px-10
                 rounded-full font-black
@@ -50,12 +49,12 @@ const Navbar = () => {
         )}
 
         {user && (
-          <div className='flex space-x-4 items-center'>
+          <div className='flex items-center space-x-4'>
             <span className='hidden-sm:inline'>Bienvenido, {user.nombre || user.email}</span>
-            <Link to="/dashboard" className='bg-blue-600 px-4 py-2 rounded-full font-semibold hover:bg-blue-700 transition' onClick={() => setMenuOpen(false)}>
+            <Link to="/dashboard" className='px-4 py-2 font-semibold transition bg-blue-600 rounded-full hover:bg-blue-700' onClick={() => setMenuOpen(false)}>
               Dashboard
             </Link>
-            <Link to="/" onClick={handleLogout} className='bg-red-600 px-2 py-2 rounded-full font-semibold hover:bg-red-700 transition hover:cursor-pointer'>
+            <Link to="/" onClick={handleLogout} className='px-2 py-2 font-semibold transition bg-red-600 rounded-full hover:bg-red-700 hover:cursor-pointer'>
               Cerrar Sesión
             </Link>
 
@@ -69,4 +68,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default BotonesInicio;
