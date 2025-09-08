@@ -19,6 +19,8 @@ export default function RegistroUsuario() {
     }
     setMensaje(data.message || JSON.stringify(data));
   };
+  // Aplica color blanco a los textos de inputs e instrucciones
+  const inputStyle = { color: '#fff' };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm mx-auto mt-20">
@@ -30,6 +32,7 @@ export default function RegistroUsuario() {
         onChange={(e) => setEmail(e.target.value)}
         required
         className="border px-2 py-1 rounded"
+      style={inputStyle}
       />
       <input
         type="password"
@@ -38,6 +41,7 @@ export default function RegistroUsuario() {
         onChange={(e) => setPassword(e.target.value)}
         required
         className="border px-2 py-1 rounded"
+      style={inputStyle}
       />
       <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
         Registrarse

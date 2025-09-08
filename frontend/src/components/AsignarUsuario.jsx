@@ -18,13 +18,16 @@ export default function AsignarRolUsuario() {
     setMensaje(data.message || JSON.stringify(data));
   };
 
+  // Aplica color blanco a los textos de inputs e instrucciones
+  const inputStyle = { color: '#fff' };
+  const labelStyle = { color: '#fff' };
   return (
     <form onSubmit={handleSubmit}>
-      <input placeholder="ID Usuario" value={id_usuario} onChange={e => setIdUsuario(e.target.value)} />
-      <input placeholder="ID Rol" value={id_rol} onChange={e => setIdRol(e.target.value)} />
-      <input placeholder="Asignado por (ID admin)" value={asignado_por} onChange={e => setAsignadoPor(e.target.value)} />
-      <button type="submit">Asignar Rol</button>
-      <div>{mensaje}</div>
+      <input placeholder="ID Usuario" value={id_usuario} onChange={e => setIdUsuario(e.target.value)} style={inputStyle} />
+      <input placeholder="ID Rol" value={id_rol} onChange={e => setIdRol(e.target.value)} style={inputStyle} />
+      <input placeholder="Asignado por (ID admin)" value={asignado_por} onChange={e => setAsignadoPor(e.target.value)} style={inputStyle} />
+      <button type="submit" style={labelStyle}>Asignar Rol</button>
+      <div style={labelStyle}>{mensaje}</div>
     </form>
   );
 }

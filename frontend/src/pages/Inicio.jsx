@@ -13,3 +13,5 @@ export default function Inicio() {
         </div>
     );
 }
+    // Aplica color blanco a los textos de inputs e instrucciones
+    const inputStyle = { color: '#fff' };

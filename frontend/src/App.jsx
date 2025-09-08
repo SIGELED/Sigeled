@@ -8,6 +8,8 @@ import Navbar from "./components/Navbar.jsx";
 function App() {
   // Simula el token (en producción, obtén el token tras el login/registro)
   const token = localStorage.getItem("token");
+   // Aplica color blanco a los textos de inputs e instrucciones
+   const inputStyle = { color: '#fff' };
 
   return (
     <Router>
