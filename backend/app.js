@@ -3,12 +3,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/authrRoutes.js';
-import docenteRoutes from './routes/docenteRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import roleRoutes from './routes/roleRoutes.js';
-import contratoRoutes from './routes/contratoRoutes.js';
-import authRouter from './routes/authr.routes.js';
+import authRouter from './routes/auth.routes.js';
 import docenteRouter from './routes/docente.routes.js';
 import userRouter from './routes/user.routes.js';
 import roleRouter from './routes/role.routes.js';
@@ -20,11 +15,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/auth', authRoutes);
-app.use('/api/docente', docenteRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/contratos', contratoRoutes);
 app.use('/api/auth', authRouter);
 app.use('/api/docente', docenteRouter);
 app.use('/api/users', userRouter);
