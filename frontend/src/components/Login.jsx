@@ -65,7 +65,7 @@ const Login = () => {
               />
             </div>
             <p className='mt-4 mr-4 text-[1.2rem] text-white text-end'>
-              ¿No tienes una cuenta? <a href="/register" className=' text-[#1cff28] font-black hover:underline'>Registrarse</a>
+              ¿No tienes una cuenta? <a href="/register" className='text-[#1cff28] font-black hover:underline'>Registrarse</a>
             </p>
             
             <button type="submit" className='w-full p-3 bg-transparent border-3 border-[#19F124] text-[#19F124] rounded-full text-3xl font-black hover:bg-[#19F124] hover:text-[#020c14] cursor-pointer transition-colors mt-12 '>Ingresar</button>
