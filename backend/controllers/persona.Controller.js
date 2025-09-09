@@ -1,10 +1,10 @@
 import { createArchivo } from '../models/archivoModel.js';
 import { createHash } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { getIdentificacionByPersona, createIdentificacion} from '../models/personaIdentModel.js';
+import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
-import {getTitulosByPersona, createTitulo} from '../models/personaTituModel.js';
-import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
+import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById, actualizarTipoEmpleado } from '../models/personaModel.js';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -60,15 +60,33 @@ export const listarEstadosVerificacion = async (req, res) => {
     }
 };
 
+// Registro de datos personales y vinculación automática
 export const registrarDatosPersona = async (req, res) => {
     try {
-        const { nombre, apellido, fecha_nacimiento, sexo} = req.body;
+        const { nombre, apellido, fecha_nacimiento, sexo } = req.body;
         const id_usuario = req.user.id_usuario; // Extraído del token
+
+        // Crear persona sin tipo de empleado
         const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo });
+
+        // Vincular automáticamente usuario y persona
         await vincularPersonaUsuario(persona.id_persona, id_usuario);
+
         res.status(201).json(persona);
     } catch (error) {
         res.status(500).json({ message: 'Error al registrar datos personales' });
+    }
+};
+
+// Endpoint para que RRHH/Administrativo asigne tipo de empleado
+export const asignarTipoEmpleado = async (req, res) => {
+    try {
+        const { id_persona, id_tipo_empleado } = req.body;
+        // Solo RRHH/Administrativo debe acceder a este endpoint (proteger en la ruta)
+        await actualizarTipoEmpleado(id_persona, id_tipo_empleado);
+        res.json({ message: 'Tipo de empleado asignado correctamente' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al asignar tipo de empleado' });
     }
 };
 
@@ -220,4 +238,4 @@ export const crearTitulo = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-}
+};

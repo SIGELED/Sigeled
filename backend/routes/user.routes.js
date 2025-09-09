@@ -14,15 +14,114 @@ const userRouter = express.Router();
 // Todas las rutas requieren autenticación
 userRouter.use(verificarToken);
 
-// Rutas solo para administradores
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Obtener todos los usuarios (solo administradores)
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios
+ */
 userRouter.get('/', permitirRoles('administrador'), getUsers);
+
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Crear nuevo usuario (solo administradores)
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Usuario creado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       500:
+ *         description: Error del servidor
+ */
 userRouter.post('/', permitirRoles('administrador'), validarCrearUsuario, createUserController);
+
+/**
+ * @swagger
+ * /api/users/{id_usuario}:
+ *   delete:
+ *     summary: Desactivar usuario (solo administradores)
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_usuario
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Usuario desactivado
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
 userRouter.delete('/:id_usuario', permitirRoles('administrador'), deactivateUser);
 
-// Rutas para usuarios autenticados (ver su propio perfil)
-userRouter.get('/profile', getUser); // El usuario ve su propio perfil
+/**
+ * @swagger
+ * /api/users/profile:
+ *   get:
+ *     summary: Obtener perfil del usuario autenticado
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Perfil del usuario
+ *       500:
+ *         description: Error del servidor
+ */
+userRouter.get('/profile', getUser);
 
-// Obtener roles de un usuario
+/**
+ * @swagger
+ * /api/users/{id_usuario}/roles:
+ *   get:
+ *     summary: Obtener roles de un usuario
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_usuario
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de roles del usuario
+ *       500:
+ *         description: Error del servidor
+ */
 userRouter.get('/:id_usuario/roles', getUserRoles);
 
 export default userRouter;

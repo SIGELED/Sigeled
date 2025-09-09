@@ -17,7 +17,19 @@ const roleRouter = express.Router();
 roleRouter.use(verificarToken);
 roleRouter.use(permitirRoles('administrador'));
 
-// Obtener todos los roles
+/**
+ * @swagger
+ * /api/roles:
+ *   get:
+ *     summary: Obtener todos los roles
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de roles
+ */
 roleRouter.get('/', async (req, res) => {
     try {
         const roles = await getAllRoles();
@@ -28,7 +40,27 @@ roleRouter.get('/', async (req, res) => {
     }
 });
 
-// Obtener rol por ID
+/**
+ * @swagger
+ * /api/roles/{id}:
+ *   get:
+ *     summary: Obtener rol por ID
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Rol encontrado
+ *       404:
+ *         description: Rol no encontrado
+ */
 roleRouter.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -45,7 +77,32 @@ roleRouter.get('/:id', async (req, res) => {
     }
 });
 
-// Crear nuevo rol
+/**
+ * @swagger
+ * /api/roles:
+ *   post:
+ *     summary: Crear nuevo rol
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Rol creado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       500:
+ *         description: Error del servidor
+ */
 roleRouter.post('/', validarCrearRol, async (req, res) => {
     try {
         const newRole = await createRole(req.body);
@@ -59,7 +116,38 @@ roleRouter.post('/', validarCrearRol, async (req, res) => {
     }
 });
 
-// Actualizar rol
+/**
+ * @swagger
+ * /api/roles/{id}:
+ *   put:
+ *     summary: Actualizar rol
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rol actualizado exitosamente
+ *       404:
+ *         description: Rol no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
 roleRouter.put('/:id', validarActualizarRol, async (req, res) => {
     try {
         const { id } = req.params;
@@ -79,7 +167,31 @@ roleRouter.put('/:id', validarActualizarRol, async (req, res) => {
     }
 });
 
-// Eliminar rol
+/**
+ * @swagger
+ * /api/roles/{id}:
+ *   delete:
+ *     summary: Eliminar rol
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Rol eliminado exitosamente
+ *       404:
+ *         description: Rol no encontrado
+ *       400:
+ *         description: No se puede eliminar rol con usuarios asignados
+ *       500:
+ *         description: Error del servidor
+ */
 roleRouter.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -103,7 +215,28 @@ roleRouter.delete('/:id', async (req, res) => {
         res.status(500).json({ message: 'Error del servidor' });
     }
 });
-// Obtener roles de un usuario
+
+/**
+ * @swagger
+ * /api/roles/usuario/{id_usuario}:
+ *   get:
+ *     summary: Obtener roles de un usuario
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_usuario
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de roles del usuario
+ *       500:
+ *         description: Error del servidor
+ */
 roleRouter.get('/usuario/:id_usuario', async (req, res) => {
     try {
         const { id_usuario } = req.params;
@@ -115,7 +248,34 @@ roleRouter.get('/usuario/:id_usuario', async (req, res) => {
     }
 });
 
-// Asignar rol a usuario
+/**
+ * @swagger
+ * /api/roles/usuario/asignar:
+ *   post:
+ *     summary: Asignar rol a usuario
+ *     tags:
+ *       - Roles
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_usuario:
+ *                 type: integer
+ *               id_rol:
+ *                 type: integer
+ *               asignado_por:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Rol asignado exitosamente
+ *       500:
+ *         description: Error del servidor
+ */
 roleRouter.post('/usuario/asignar', async (req, res) => {
     try {
         const { id_usuario, id_rol, asignado_por } = req.body;
@@ -127,5 +287,4 @@ roleRouter.post('/usuario/asignar', async (req, res) => {
     }
 });
 
-
-export default roleRouter; 
+export default roleRouter;
