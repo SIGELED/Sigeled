@@ -1,5 +1,5 @@
 import { archivoValidator } from '../middleware/archivoValidator.js';
-import { subirArchivo } from '../controllers/persona.Controller.js';
+import { subirArchivo, asignarTipoEmpleado, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
@@ -14,10 +14,9 @@ import {
     obtenerDomicilios,
     crearDomicilio,
     obtenerTitulos,
-    crearTitulo,
-    listarEstadosVerificacion
+    crearTitulo
 } from '../controllers/persona.Controller.js';
-import { verificarToken } from '../middleware/authMiddlware.js';
+import { verificarToken, soloRRHH } from '../middleware/authMiddlware.js';
 
 const personaRouter = express.Router();
 
@@ -145,7 +144,37 @@ personaRouter.get('/:id_persona', obtenerPersona);
  *       200:
  *         description: Lista de estados de verificación
  */
-personaRouter.get('/estados-verificacion', listarEstadosVerificacion);
+personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+
+/**
+ * @swagger
+ * /api/persona/asignar-tipo:
+ *   put:
+ *     summary: Asignar tipo de empleado a una persona (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_persona:
+ *                 type: integer
+ *               id_tipo_empleado:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Tipo de empleado asignado correctamente
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error interno
+ */
+personaRouter.put('/asignar-tipo', soloRRHH, asignarTipoEmpleado);
 
 /**
  * @swagger

@@ -46,3 +46,11 @@ export const validarLogin = (req, res, next) => {
 
     next();
 };
+
+export const soloRRHH = (req, res, next) => {
+    if (req.user && (req.user.rol === 'rrhh' || req.user.rol === 'administrador')) {
+        return next();
+    }
+    return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador'
+    });
+};
