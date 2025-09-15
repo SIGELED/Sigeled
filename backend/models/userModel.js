@@ -1,22 +1,36 @@
 import db from './db.js';
 
+// Buscar usuario por email
 export const findUserByEmail = async (email) => {
-    const res = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    return res.rows[0];
-};
-
-export const createUser = async ({ nombre, email, contraseñaHash, rol }) => {
     const res = await db.query(
-        'INSERT INTO usuarios (nombre, email, contraseña, rol) VALUES ($1, $2, $3, $4) RETURNING *',
-        [nombre, email, contraseñaHash, rol]
+        `SELECT * FROM usuarios WHERE email = $1`,
+        [email]
     );
     return res.rows[0];
 };
 
-export const updateUserCV = async (userId, cvPath) => {
+// Crear usuario
+export const createUser = async ({ email, password_hash }) => {
     const res = await db.query(
-        'UPDATE usuarios SET cv = $1 WHERE id = $2 RETURNING *',
-        [cvPath, userId]
+        `INSERT INTO usuarios (email, password_hash) VALUES ($1, $2) RETURNING *`,
+        [email, password_hash]
     );
     return res.rows[0];
+};
+
+// Buscar usuario por id
+export const getUserById = async (id_usuario) => {
+    const res = await db.query(
+        `SELECT * FROM usuarios WHERE id_usuario = $1`,
+        [id_usuario]
+    );
+    return res.rows[0];
+};
+
+// Obtener todos los usuarios
+export const getAllUsers = async () => {
+    const res = await db.query(
+        `SELECT * FROM usuarios`
+    );
+    return res.rows;
 };

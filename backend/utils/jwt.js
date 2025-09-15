@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.JWT_SECRET || 'miRORO_FIRORO';
+const SECRET = process.env.JWT_ACCESS_SECRET || 'miRORO_FIRORO';
 
 export const crearToken = (usuario) => {
     return jwt.sign(
