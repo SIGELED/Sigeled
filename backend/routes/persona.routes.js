@@ -4,6 +4,7 @@ import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
 import { validationResult } from 'express-validator';
+import { manejarErroresValidacion } from '../middleware/personaMiddleware.js';  
 import express from 'express';
 import {
     registrarDatosPersona,
@@ -17,6 +18,8 @@ import {
     crearTitulo
 } from '../controllers/persona.Controller.js';
 import { verificarToken, soloRRHH } from '../middleware/authMiddlware.js';
+import { buscarPersonasAvanzado } from '../controllers/persona.Controller.js';
+
 
 const personaRouter = express.Router();
 
@@ -352,13 +355,37 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  */
 personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValidacion, crearTitulo);
 
-// Middleware para manejar errores de validación
-function manejarErroresValidacion(req, res, next) {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
-    next();
-}
+/**
+ * @swagger
+ * /api/persona/buscar:
+ *   get:
+ *     summary: Buscador avanzado de personal (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: nombre
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: apellido
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: dni
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: tipo_empleado
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resultados del buscador avanzado
+ */
+personaRouter.get('/buscar', soloRRHH, buscarPersonasAvanzado);
+
 
 export default personaRouter;

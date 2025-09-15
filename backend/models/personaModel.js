@@ -6,6 +6,38 @@ export const getAllPersonas = async () => {
     return res.rows;
 };
 
+// Buscador avanzado de personas
+export const getPersonasFiltros = async (filtros) => {
+    let query = 'SELECT * FROM personas WHERE 1=1';
+    const params = [];
+    let idx = 1;
+
+    if (filtros.nombre) {
+        query += ` AND LOWER(nombre) LIKE LOWER($${idx})`;
+        params.push(`%${filtros.nombre}%`);
+        idx++;
+    }
+    if (filtros.apellido) {
+        query += ` AND LOWER(apellido) LIKE LOWER($${idx})`;
+        params.push(`%${filtros.apellido}%`);
+        idx++;
+    }
+    if (filtros.dni) {
+        query += ` AND dni = $${idx}`;
+        params.push(filtros.dni);
+        idx++;
+    }
+    if (filtros.tipo_empleado) {
+        query += ` AND id_tipo_empleado = $${idx}`;
+        params.push(filtros.tipo_empleado);
+        idx++;
+    }
+
+    const res = await db.query(query, params);
+    return res.rows;
+};
+
+
 // Obtener persona por ID
 export const getPersonaById = async (id_persona) => {
     const res = await db.query('SELECT * FROM personas WHERE id_persona = $1', [id_persona]);

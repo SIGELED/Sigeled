@@ -1,8 +1,12 @@
-# Backend Sigeled - Sistema de Gestión de Contratos
+# SIGELED - Backend
+
+Sistema de Gestión Integral de Legajos Digitales para Personal Docente y No Docente
+
+---
 
 ## 🚀 Configuración Inicial
 
-### 1. Crear archivo .env
+### 1. Crear archivo `.env`
 Crea un archivo `.env` en la carpeta `backend` con el siguiente contenido:
 
 ```env
@@ -10,12 +14,14 @@ DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/sigeled_db
 JWT_SECRET=tu_clave_secreta_muy_larga_y_segura_para_jwt_tokens
 PORT=4000
 NODE_ENV=development
+SUPABASE_URL=tu_url_supabase
+SUPABASE_SERVICE_ROLE=tu_token_supabase
 ```
 
 ### 2. Configurar Base de Datos
-1. Crear la base de datos PostgreSQL
-2. Ejecutar el script de roles: `database/roles.sql`
-3. Asegurarse de que la tabla `usuarios` tenga los campos necesarios
+- Crear la base de datos PostgreSQL
+- Ejecutar los scripts de tablas y roles necesarios
+- Verifica que las tablas principales (`usuarios`, `personas`, `contratos`, `roles`, etc.) estén creadas
 
 ### 3. Instalar Dependencias
 ```bash
@@ -27,197 +33,166 @@ npm install
 node scripts/createAdmin.js
 ```
 
-**Credenciales del administrador:**
+**Credenciales por defecto:**
 - Email: `admin@sigeled.com`
 - Contraseña: `Admin123!`
+> Cambia la contraseña después del primer inicio de sesión.
 
-⚠️ **IMPORTANTE:** Cambia la contraseña después del primer inicio de sesión.
+---
 
-## 📋 Estructura de Roles
+## 📁 Estructura de Carpetas
 
-### Roles Disponibles:
-1. **pendiente** - Usuario recién registrado (asignado automáticamente)
-2. **administrador** - Acceso total al sistema (Monjes)
-3. **coordinador** - Gestiona plantillas y contratos (4 personas)
-4. **docente** - Profesor contratado
-5. **empleado_rrhh** - Solo lectura de contratos
-6. **empleado_economia** - Gestión financiera y resoluciones
-7. **supervisor** - Nivel intermedio
+- **controllers/**: Lógica de negocio y endpoints REST
+- **middleware/**: Autenticación, autorización, validación de archivos
+- **models/**: Acceso y lógica de base de datos
+- **routes/**: Definición de rutas y endpoints
+- **validators/**: Validaciones de datos
+- **uploads/**: Archivos subidos (si no usas Supabase)
+- **utils/**: Utilidades generales (JWT, etc.)
+- **scripts/**: Scripts auxiliares (ej. crear admin)
 
-### Permisos por Rol:
+---
 
-#### Administrador
-- ✅ Gestión completa de usuarios y roles
-- ✅ Acceso total a contratos
-- ✅ Gestión de docentes, coordinadores, empleados
-- ✅ Acceso a economía y reportes
+## 🧩 Funcionalidades Principales
 
-#### Coordinador
-- ✅ Crear y editar contratos
-- ✅ Gestionar docentes y plantillas
-- ✅ Ver reportes y materias
-- ❌ No puede gestionar usuarios
+### 1. **Autenticación y Usuarios**
+- Registro y login de usuarios (`auth.routes.js`)
+- Asignación y gestión de roles (`role.routes.js`)
+- CRUD de usuarios (`user.routes.js`)
+- Protección de rutas con JWT y roles (`authMiddlware.js`)
 
-#### Docente
-- ✅ Ver su propio perfil y contratos
-- ✅ Subir CV
-- ✅ Ver remuneración
-- ❌ Acceso limitado a su información
+### 2. **Gestión de Personas**
+- Registro y vinculación automática de datos personales (`persona.routes.js`)
+- Asignación de tipo de empleado (solo RRHH/Admin)
+- Buscador avanzado de personal (solo RRHH/Admin)
+- Consulta y actualización de legajos
 
-#### Empleado RRHH
-- ✅ Ver contratos (solo lectura)
-- ✅ Ver docentes y reportes
-- ❌ No puede modificar datos
+### 3. **Documentos, Domicilios, Identificaciones, Títulos**
+- Registro y consulta de documentos personales, domicilios, identificaciones y títulos
+- Subida de archivos comprobatorios (validación de tipo/tamaño)
+- Estados de verificación para cada documento (pendiente, aprobado, rechazado)
+- Evita duplicados (ej. DNI/título)
 
-#### Empleado Economía
-- ✅ Ver contratos y remuneraciones
-- ✅ Gestionar resoluciones y pagos
-- ✅ Ver reportes
-- ❌ No puede gestionar usuarios
+### 4. **Contratos**
+- Registro, consulta, actualización y eliminación de contratos
+- Solo administradores pueden modificar contratos
 
-## 🔐 Endpoints de Autenticación
+### 5. **Roles y Permisos**
+- CRUD de roles y asignación a usuarios
+- Middleware para proteger rutas según rol (`authMiddlware.js`, `soloRRHH`)
 
-### POST `/api/auth/login`
-```json
-{
-  "email": "usuario@ejemplo.com",
-  "contraseña": "Contraseña123"
-}
-```
+### 6. **Auditoría y Trazabilidad**
+- Registro histórico de cambios y acciones relevantes (auditoría)
+- Consulta de historial por entidad
 
-### POST `/api/auth/register`
-```json
-{
-  "nombre": "Juan Pérez",
-  "email": "juan@ejemplo.com",
-  "contraseña": "Contraseña123"
-}
-```
-*Nota: Los nuevos usuarios se registran con rol "pendiente"*
+### 7. **Documentación de la API**
+- Swagger disponible en `/api-docs` para probar y consultar todos los endpoints
 
-## 👥 Endpoints de Gestión de Usuarios
+---
 
-### Solo Administradores:
+## 🔎 Buscador Avanzado
 
-#### GET `/api/users/users`
-Obtener todos los usuarios
+- Endpoint: `GET /api/persona/buscar`
+- Parámetros: `nombre`, `apellido`, `dni`, `tipo_empleado`
+- Solo accesible para RRHH/Admin
+- Permite filtrar y buscar personal por múltiples campos
 
-#### GET `/api/users/users/pending`
-Obtener usuarios pendientes de asignación de rol
+---
 
-#### POST `/api/users/users`
-Crear nuevo usuario
-```json
-{
-  "nombre": "María García",
-  "email": "maria@ejemplo.com",
-  "contraseña": "Contraseña123",
-  "rol": 3,
-  "dni": "12345678",
-  "cuil": "20-12345678-9",
-  "domicilio": "Calle 123",
-  "titulo": "Ingeniera"
-}
-```
+## 📝 Auditoría y Registro Histórico
 
-#### PATCH `/api/users/users/:userId/role`
-Asignar/cambiar rol de usuario
-```json
-{
-  "roleId": 3
-}
-```
+- Cada cambio relevante en datos personales, documentos, contratos, etc. queda registrado en la tabla de auditoría
+- Endpoint para consultar historial: `GET /api/persona/{id_persona}/historial` (solo RRHH/Admin)
 
-#### PUT `/api/users/users/:id`
-Actualizar usuario
+---
 
-#### DELETE `/api/users/users/:id`
-Desactivar usuario
+## 🔐 Seguridad y Permisos
 
-### Para Usuarios Autenticados:
+- Todas las rutas sensibles están protegidas por JWT
+- Endpoints administrativos requieren rol RRHH o Administrador
+- Los usuarios solo pueden modificar/consultar su propia información y documentos
+- Validación de archivos y datos en todos los endpoints
 
-#### GET `/api/users/profile`
-Ver perfil propio
+---
 
-#### PUT `/api/users/profile`
-Actualizar perfil propio
+## 📋 Ejemplo de Flujo
 
-## 🎭 Endpoints de Gestión de Roles
+1. **Registro de usuario:**  
+   POST a `/api/auth/register` con email y contraseña
 
-### Solo Administradores:
+2. **Login:**  
+   POST a `/api/auth/login` con email y contraseña  
+   Recibes un JWT para autenticación
 
-#### GET `/api/roles`
-Obtener todos los roles
+3. **Completar datos personales:**  
+   POST a `/api/persona` con nombre, apellido, fecha de nacimiento y sexo  
+   El backend vincula automáticamente el usuario y la persona
 
-#### GET `/api/roles/:id`
-Obtener rol por ID
+4. **Subir documentos/archivos:**  
+   POST a `/api/persona/{id_persona}/archivo` con el archivo comprobatorio  
+   POST a `/api/persona/{id_persona}/identificacion` para DNI, etc.
 
-#### POST `/api/roles`
-Crear nuevo rol
-```json
-{
-  "nombre": "nuevo_rol",
-  "descripcion": "Descripción del rol",
-  "permisos": {
-    "ver_contratos": true,
-    "crear_contratos": false
-  }
-}
-```
+5. **Asignar tipo de empleado:**  
+   PUT a `/api/persona/asignar-tipo` (solo RRHH/Admin)
 
-#### PUT `/api/roles/:id`
-Actualizar rol
+6. **Aprobar/rechazar documentos:**  
+   PUT a `/api/persona-ident/estado` (solo RRHH/Admin)
 
-#### DELETE `/api/roles/:id`
-Eliminar rol
+7. **Consultar estados de verificación:**  
+   GET a `/api/persona/estados-verificacion` (solo RRHH/Admin)
 
-## 🔒 Middleware de Autorización
+8. **Buscador avanzado:**  
+   GET a `/api/persona/buscar?nombre=...&apellido=...&dni=...&tipo_empleado=...` (solo RRHH/Admin)
 
-### Verificar Token
-```javascript
-import { verificarToken } from '../middleware/authMiddlware.js';
-router.use(verificarToken);
-```
+9. **Consultar historial de cambios:**  
+   GET a `/api/persona/{id_persona}/historial` (solo RRHH/Admin)
 
-### Permitir Roles Específicos
-```javascript
-import { permitirRoles } from '../middleware/authMiddlware.js';
-router.get('/admin', permitirRoles('administrador'), adminController);
-```
+10. **Gestionar contratos, roles y usuarios:**  
+    CRUD en `/api/contratos`, `/api/roles`, `/api/users` (solo administradores)
 
-## 📝 Validaciones
+---
 
-### Contraseñas Seguras
-- Mínimo 8 caracteres
-- Al menos una letra mayúscula
-- Al menos una letra minúscula
-- Al menos un número
+## 📑 Documentación y Pruebas
 
-### DNI y CUIL
-- DNI: 7 u 8 dígitos
-- CUIL: Formato XX-XXXXXXXX-X
+- Accede a [http://localhost:4000/api-docs](http://localhost:4000/api-docs) para ver y probar todos los endpoints con Swagger
 
-## 🚨 Seguridad
-
-1. **JWT Tokens** con expiración de 1 hora
-2. **Contraseñas hasheadas** con bcrypt
-3. **Validación de entrada** en todos los endpoints
-4. **Autorización por roles** en rutas sensibles
-5. **Soft delete** para usuarios (no se eliminan permanentemente)
+---
 
 ## 🐛 Solución de Problemas
 
-### Error: "Cannot find package 'dotenv'"
-```bash
-npm install dotenv
-```
+- **Error: "Cannot find package 'dotenv'"**  
+  Ejecuta: `npm install dotenv`
 
-### Error: "No se encontró el rol 'administrador'"
-Ejecuta primero el script de roles: `database/roles.sql`
+- **Error de conexión a base de datos**  
+  Verifica que el archivo `.env` tenga la URL correcta de la base de datos
 
-### Error de conexión a base de datos
-Verifica que el archivo `.env` tenga la URL correcta de la base de datos
+- **Error de permisos o roles**  
+  Verifica que el usuario tenga el rol adecuado y que el middleware esté correctamente aplicado
 
-## 📞 Soporte
+---
 
-Para problemas técnicos, revisa los logs del servidor y verifica la configuración de la base de datos. 
+## 👨‍💻 Notas para desarrolladores
+
+- **Backend:RORI**  
+  - Los modelos usan SQL parametrizado para evitar inyecciones
+  - Los controladores registran auditoría en cada cambio relevante
+  - Los middlewares permiten extender fácilmente la lógica de permisos
+
+- **Frontend:JUANQ**  
+  - Consulta la documentación Swagger para saber qué datos enviar y recibir en cada endpoint
+  - Usa JWT en el header `Authorization` para acceder a rutas protegidas
+  - Los endpoints de autogestión y consulta están listos para integración
+
+---
+
+## ❗️ ¿Qué falta por agregar?
+
+- Filtros avanzados en el buscador (por fecha, estado, etc.)
+- Endpoints para informes y estadísticas
+- Módulo para legajos de alumnos
+- Integración con sistemas externos (API REST, webhooks, etc.)
+- Auditoría más detallada (logs de acceso, cambios en documentos, etc.)
+
+---
+
+**Cualquier duda pregunten**

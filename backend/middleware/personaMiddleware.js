@@ -21,3 +21,12 @@ export function autorizarVerificacion(req, res, next) {
   }
   return res.status(403).json({ error: 'Solo RRHH o Administrativo pueden verificar datos.' });
 }
+
+// Middleware para manejar errores de validación
+function manejarErroresValidacion(req, res, next) {
+    const errores = validationResult(req);
+    if (!errores.isEmpty()) {
+        return res.status(400).json({ errores: errores.array() });
+    }
+    next();
+}

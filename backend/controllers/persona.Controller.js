@@ -5,6 +5,7 @@ import { getIdentificacionByPersona, createIdentificacion } from '../models/pers
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
 import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById, actualizarTipoEmpleado } from '../models/personaModel.js';
+import { getPersonasFiltros } from '../models/personaModel.js';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -97,6 +98,22 @@ export const listarPersonas = async (req, res) => {
         res.json(personas);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener personas' });
+    }
+};
+
+export const buscarPersonasAvanzado = async (req, res) => {
+    try {
+        const { nombre, apellido, dni, tipo_empleado } = req.query;
+        const filtros = {};
+        if (nombre) filtros.nombre = nombre;
+        if (apellido) filtros.apellido = apellido;
+        if (dni) filtros.dni = dni;
+        if (tipo_empleado) filtros.tipo_empleado = tipo_empleado;
+
+        const resultados = await buscarPersonasPorFiltros(filtros);
+        res.json(resultados);
+    } catch (error) {
+        res.status(500).json({ message: 'Error en el buscador avanzado', detalle: error.message });
     }
 };
 
