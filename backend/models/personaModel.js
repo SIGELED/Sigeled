@@ -61,3 +61,9 @@ export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
     );
     return res.rows[0];
 };
+
+// Actualizar tipo de empleado de una persona
+export const actualizarTipoEmpleado = async (id_persona, id_tipo_empleado) => {
+    const query = 'UPDATE personas SET id_tipo_empleado = $1 WHERE id_persona = $2';
+    await db.query(query, [id_tipo_empleado, id_persona]);
+};

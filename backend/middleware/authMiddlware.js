@@ -42,3 +42,11 @@ export const soloAdministrador = (req, res, next) => {
         return res.status(403).json({ message: 'Acceso solo para administradores' });
     }
 };
+
+// Middleware para permitir solo a usuarios con rol "rrhh" o "administrador"
+export const soloRRHH = (req, res, next) => {
+    if (req.user && (req.user.rol === 'rrhh' || req.user.rol === 'administrador')) {
+        return next();
+    }
+    return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador' });
+};

@@ -23,10 +23,11 @@ export function autorizarVerificacion(req, res, next) {
 }
 
 // Middleware para manejar errores de validación
-function manejarErroresValidacion(req, res, next) {
+export const manejarErroresValidacion = (req, res, next) => {
     const errores = validationResult(req);
     if (!errores.isEmpty()) {
         return res.status(400).json({ errores: errores.array() });
     }
     next();
-}
+};
+
