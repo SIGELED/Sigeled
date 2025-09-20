@@ -1,4 +1,4 @@
-import { archivoValidator } from '../middleware/archivoValidator.js';
+import { archivoValidator } from '../middleware/archivoMiddleware.js';
 import { subirArchivo, asignarTipoEmpleado, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
@@ -17,7 +17,7 @@ import {
     obtenerTitulos,
     crearTitulo
 } from '../controllers/persona.Controller.js';
-import { verificarToken, soloRRHH } from '../middleware/authMiddlware.js';
+import { verificarToken, soloRRHH } from '../middleware/authMiddleware.js';
 import { buscarPersonasAvanzado } from '../controllers/persona.Controller.js';
 
 

@@ -4,7 +4,7 @@ import {
     obtenerPersonaDocumento,
     crearPersonaDocumento
 } from '../controllers/personaDoc.Controller.js';
-import { verificarToken } from '../middleware/authMiddlware.js';
+import { verificarToken } from '../middleware/authMiddleware.js';
 
 const personaDocRouter = express.Router();
 

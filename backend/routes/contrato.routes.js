@@ -6,7 +6,7 @@ import {
   actualizarContrato,
   eliminarContrato
 } from '../controllers/contrato.Controller.js';
-import { verificarToken, soloAdministrador } from '../middleware/authMiddlware.js';
+import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const contratoRouter = express.Router();
 

@@ -27,11 +27,7 @@ export const getPersonasFiltros = async (filtros) => {
         params.push(filtros.dni);
         idx++;
     }
-    if (filtros.tipo_empleado) {
-        query += ` AND id_tipo_empleado = $${idx}`;
-        params.push(filtros.tipo_empleado);
-        idx++;
-    }
+
 
     const res = await db.query(query, params);
     return res.rows;
@@ -45,11 +41,11 @@ export const getPersonaById = async (id_persona) => {
 };
 
 // Crear persona
-export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, id_tipo_empleado }) => {
+export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, telefono }) => {
     const res = await db.query(
-        `INSERT INTO personas (nombre, apellido, fecha_nacimiento, sexo, id_tipo_empleado)
+        `INSERT INTO personas (nombre, apellido, fecha_nacimiento, sexo, telefono)
          VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [nombre, apellido, fecha_nacimiento, sexo, id_tipo_empleado]
+        [nombre, apellido, fecha_nacimiento, sexo, telefono]
     );
     return res.rows[0];
 };
@@ -63,7 +59,7 @@ export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
 };
 
 // Actualizar tipo de empleado de una persona
-export const actualizarTipoEmpleado = async (id_persona, id_tipo_empleado) => {
+export const actualizarTipoEmpleado = async (id_persona, telefono) => {
     const query = 'UPDATE personas SET id_tipo_empleado = $1 WHERE id_persona = $2';
     await db.query(query, [id_tipo_empleado, id_persona]);
 };

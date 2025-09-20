@@ -8,7 +8,7 @@ import {
     getRolesByUserId, 
     assignRoleToUser
 } from '../models/roleModel.js';
-import { verificarToken, permitirRoles } from '../middleware/authMiddlware.js';
+import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
 import { validarCrearRol, validarActualizarRol } from '../validators/roleValidator.js';
 
 const roleRouter = express.Router();

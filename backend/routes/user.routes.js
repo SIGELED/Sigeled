@@ -6,7 +6,7 @@ import {
     deactivateUser,
     getUserRoles
 } from '../controllers/user.Controller.js';
-import { verificarToken, permitirRoles } from '../middleware/authMiddlware.js';
+import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
 import { validarCrearUsuario, validarActualizarUsuario } from '../validators/userValidator.js';
 
 const userRouter = express.Router();
