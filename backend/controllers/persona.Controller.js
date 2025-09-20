@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
-import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById, actualizarTipoEmpleado } from '../models/personaModel.js';
-import { getPersonasFiltros } from '../models/personaModel.js';
+import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -79,15 +79,14 @@ export const registrarDatosPersona = async (req, res) => {
     }
 };
 
-// Endpoint para que RRHH/Administrativo asigne tipo de empleado
-export const asignarTipoEmpleado = async (req, res) => {
+export const asignarPerfil = async (req, res) => {
     try {
-        const { id_persona, id_tipo_empleado } = req.body;
-        // Solo RRHH/Administrativo debe acceder a este endpoint (proteger en la ruta)
-        await actualizarTipoEmpleado(id_persona, id_tipo_empleado);
-        res.json({ message: 'Tipo de empleado asignado correctamente' });
+        const { id_persona, id_perfil } = req.body;
+        const usuario_asignador = req.user.id_usuario;
+        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuario_asignador);
+        res.status(201).json({ message: 'Perfil asignado correctamente', resultado });
     } catch (error) {
-        res.status(500).json({ message: 'Error al asignar tipo de empleado' });
+        res.status(500).json({ message: 'Error al asignar perfil', detalle: error.message });
     }
 };
 
@@ -101,17 +100,37 @@ export const listarPersonas = async (req, res) => {
     }
 };
 
-export const buscarPersonasAvanzado = async (req, res) => {
+export const obtenerPerfilesPersona = async (req, res) => {
     try {
-        const { nombre, apellido, dni, tipo_empleado } = req.query;
+        const { id_persona } = req.params;
+        const perfiles = await getPerfilesDePersona(id_persona);
+        res.json(perfiles);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener perfiles', detalle: error.message });
+    }
+};
+
+export const buscarPorDNI = async (req, res) => {
+    try {
+        const { dni } = req.query;
+        if (!dni) return res.status(400).json({ message: 'Debe indicar el DNI' });
+        const personas = await buscarPersonaPorDNI(dni);
+        res.json(personas);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al buscar por DNI', detalle: error.message });
+    }
+};
+
+export const buscadorAvanzado = async (req, res) => {
+    try {
+        const { nombre, apellido, dni, perfil } = req.query;
         const filtros = {};
         if (nombre) filtros.nombre = nombre;
         if (apellido) filtros.apellido = apellido;
         if (dni) filtros.dni = dni;
-        if (tipo_empleado) filtros.tipo_empleado = tipo_empleado;
-
-        const resultados = await buscarPersonasPorFiltros(filtros);
-        res.json(resultados);
+        if (perfil) filtros.perfil = perfil;
+        const personas = await getPersonasFiltros(filtros);
+        res.json(personas);
     } catch (error) {
         res.status(500).json({ message: 'Error en el buscador avanzado', detalle: error.message });
     }
