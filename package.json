@@ -1,0 +1,43 @@
+{
+  "name": "sigeled",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "commit": "cz"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SIGELED/Sigeled.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SIGELED/Sigeled/issues"
+  },
+  "homepage": "https://github.com/SIGELED/Sigeled#readme",
+  "devDependencies": {
+    "commitizen": "^4.3.1",
+    "cz-git": "^1.12.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-git"
+    },
+    "cz-git": {
+      "messages": {
+        "type": "Tipo de cambio:",
+        "scope": "Alcance (scope) — ej: backend, frontend:",
+        "subject": "Resumen corto (imperativo):",
+        "body": "Detalles (opcional):",
+        "breaking": "¿Hay BREAKING CHANGE? Describe:",
+        "footer": "Issues a cerrar (ej: Closes #123):"
+      },
+      "scopes": ["backend", "frontend", "api", "ui", "docs", "build", "ci"],
+      "allowCustomScopes": true,
+      "enableMultipleScopes": true
+    }
+  }
+}
