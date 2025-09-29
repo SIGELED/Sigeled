@@ -9,7 +9,8 @@ export const verificarToken = (req, res, next) => {
     }
     try {
         const decoded = verificarTokenJWT(token.replace('Bearer ', ''));
-        req.user = decoded;
+        req.user = decoded; // Ahora incluye { id_usuario, email, rol }
+        console.log('Usuario autenticado:', decoded); // ← LOG temporal para verificar
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Token inválido' });

@@ -16,12 +16,28 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
+        // OBTENER LOS ROLES DEL USUARIO
+        const userRoles = await getUserRoles(user.id_usuario);
+        const rolPrincipal = userRoles.length > 0 ? userRoles[0].nombre : 'usuario';
+
         const token = jwt.sign(
-            { id: user.id_usuario, email: user.email },
+            { 
+                id_usuario: user.id_usuario, // ← Cambié 'id' por 'id_usuario' para consistencia
+                email: user.email,
+                rol: rolPrincipal // ← Ahora sí incluye el rol real de la BD
+            },
             process.env.JWT_ACCESS_SECRET,
             { expiresIn: '1h' }
         );
-        res.json({ token, user: { id: user.id_usuario, email: user.email } });
+
+        res.json({ 
+            token, 
+            user: { 
+                id_usuario: user.id_usuario, 
+                email: user.email, 
+                rol: rolPrincipal // ← También enviamos el rol al frontend
+            } 
+        });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });
