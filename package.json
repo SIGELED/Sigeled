@@ -35,9 +35,22 @@
         "breaking": "¿Hay BREAKING CHANGE? Describe:",
         "footer": "Issues a cerrar (ej: Closes #123):"
       },
-      "scopes": ["backend", "frontend", "api", "ui", "docs", "build", "ci"],
+      "scopes": [
+        "backend",
+        "frontend",
+        "api",
+        "ui",
+        "docs",
+        "build",
+        "ci"
+      ],
       "allowCustomScopes": true,
       "enableMultipleScopes": true
     }
+  },
+  "dependencies": {
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7"
   }
 }

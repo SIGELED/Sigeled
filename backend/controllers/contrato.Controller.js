@@ -34,15 +34,25 @@ export async function obtenerContrato(req, res) {
   }
 }
 
-// POST /api/contratos
 export async function crearContrato(req, res) {
   try {
     const data = req.body;
+    console.log('Datos recibidos:', data); // Add this for debugging
+    
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ 
+        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
+      });
+    }
+    
     const contrato = await createContrato(data);
     res.status(201).json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: 'Error al crear contrato' });
+    console.error('Error al crear contrato:', error);
+    res.status(400).json({ 
+      error: 'Error al crear contrato',
+      details: error.message 
+    });
   }
 }
 
