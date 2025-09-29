@@ -1,7 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { generarTokenJWT } from '../utils/jwt.js';
 import { findUserByEmail, createUser } from '../models/userModel.js';
-import db from '../models/db.js';
+import { getRolesByUserId} from '../models/roleModel.js';
+
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -17,25 +19,21 @@ export const login = async (req, res) => {
         }
 
         // OBTENER LOS ROLES DEL USUARIO
-        const userRoles = await getUserRoles(user.id_usuario);
+        const userRoles = await getRolesByUserId(user.id_usuario);
         const rolPrincipal = userRoles.length > 0 ? userRoles[0].nombre : 'usuario';
 
-        const token = jwt.sign(
-            { 
-                id_usuario: user.id_usuario, // ← Cambié 'id' por 'id_usuario' para consistencia
-                email: user.email,
-                rol: rolPrincipal // ← Ahora sí incluye el rol real de la BD
-            },
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: '1h' }
-        );
+        const token = generarTokenJWT({
+            id_usuario: user.id_usuario,
+            email: user.email,
+            rol: rolPrincipal
+        });
 
         res.json({ 
             token, 
             user: { 
                 id_usuario: user.id_usuario, 
                 email: user.email, 
-                rol: rolPrincipal // ← También enviamos el rol al frontend
+                rol: rolPrincipal
             } 
         });
     } catch (error) {

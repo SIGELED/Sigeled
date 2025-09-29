@@ -13,7 +13,7 @@ import personaRouter from './routes/persona.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 
-// Configuración básica de Swagger
+// Configuración COMPLETA de Swagger con autenticación
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -27,16 +27,31 @@ const swaggerDefinition = {
       description: 'Servidor local',
     },
   ],
+  // ← ESTO ES LO QUE FALTABA
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT'
+      }
+    }
+  },
+  security: [
+    {
+      bearerAuth: []
+    }
+  ]
 };
 
 const options = {
   swaggerDefinition,
-  apis: ['./routes/*.js'], // Documenta todas las rutas
+  apis: ['./routes/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
-const app = express(); // debe ir antes de usar app.use
+const app = express();
 
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 

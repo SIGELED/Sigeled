@@ -1,25 +1,33 @@
 import jwt from 'jsonwebtoken';
 import { verificarTokenJWT } from '../utils/jwt.js';
 
-// Middleware para verificar el token JWT
 export const verificarToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) {
+    const authHeader = req.headers['authorization'];
+    console.log('Header authorization recibido:', authHeader); // LOG temporal
+    
+    if (!authHeader) {
         return res.status(401).json({ message: 'Token no proporcionado' });
     }
+
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    console.log('Token extraído:', token); // LOG temporal
+
     try {
-        const decoded = verificarTokenJWT(token.replace('Bearer ', ''));
+        const decoded = verificarTokenJWT(token);
+        console.log('Token decodificado:', decoded); // LOG temporal
         req.user = decoded; // Ahora incluye { id_usuario, email, rol }
-        console.log('Usuario autenticado:', decoded); // ← LOG temporal para verificar
         next();
     } catch (error) {
+        console.log('Error al verificar token:', error.message); // LOG temporal
         return res.status(401).json({ message: 'Token inválido' });
     }
 };
 
-// Middleware para permitir solo a usuarios con rol específico
 export const permitirRoles = (...roles) => (req, res, next) => {
-    if (req.user && roles.includes(req.user.rol)) {
+    console.log('Roles permitidos:', roles);
+    console.log('Rol del usuario:', req.user?.rol);
+    
+    if (req.user && roles.some(rol => rol.toLowerCase() === req.user.rol.toLowerCase())) {
         next();
     } else {
         return res.status(403).json({ message: 'Acceso denegado: permisos insuficientes' });
