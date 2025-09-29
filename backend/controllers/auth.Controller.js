@@ -1,7 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { generarTokenJWT } from '../utils/jwt.js';
 import { findUserByEmail, createUser } from '../models/userModel.js';
-import db from '../models/db.js';
+import { getRolesByUserId} from '../models/roleModel.js';
+
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -16,12 +18,24 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
-        const token = jwt.sign(
-            { id: user.id_usuario, email: user.email },
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: '1h' }
-        );
-        res.json({ token, user: { id: user.id_usuario, email: user.email } });
+        // OBTENER LOS ROLES DEL USUARIO
+        const userRoles = await getRolesByUserId(user.id_usuario);
+        const rolPrincipal = userRoles.length > 0 ? userRoles[0].nombre : 'usuario';
+
+        const token = generarTokenJWT({
+            id_usuario: user.id_usuario,
+            email: user.email,
+            rol: rolPrincipal
+        });
+
+        res.json({ 
+            token, 
+            user: { 
+                id_usuario: user.id_usuario, 
+                email: user.email, 
+                rol: rolPrincipal
+            } 
+        });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });

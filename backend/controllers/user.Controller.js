@@ -5,6 +5,7 @@ import { getRolesByUserId } from '../models/roleModel.js';
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
     try {
+        console.log('Usuario que hace la petición:', req.user); // LOG temporal
         const users = await getAllUsers();
         res.json(users);
     } catch (error) {
