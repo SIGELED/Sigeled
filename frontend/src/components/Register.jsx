@@ -6,11 +6,9 @@ import logo from "../assets/svg/logoLetras.svg";
 
 const Register = () => {
   const [userData, setUserData] = useState({
-    nombre: "",
     email: "",
-    contraseña: "",
-    confirmarContraseña: "",
-    rol: "docente",
+    password: "",
+    confirmarPassword: "",
   });
   const [error, setError] = useState("");
   const { login } = useAuth();
@@ -23,13 +21,13 @@ const Register = () => {
     e.preventDefault();
     setError("");
 
-    if (userData.contraseña !== userData.confirmarContraseña) {
+    if (userData.password !== userData.confirmarPassword) {
       setError("Las contraseñas no coinciden");
       return;
     }
 
     try {
-      const { confirmarContraseña, ...dataToSubmit } = userData;
+      const { confirmarPassword, ...dataToSubmit } = userData;
       const response = await authService.register(dataToSubmit);
       login(response.data.user, response.data.token);
       navigate("/dashboard");
@@ -59,18 +57,6 @@ const Register = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <label htmlFor="nombre" className="sr-only">Nombre</label>
-            <input
-              id="nombre"
-              name="nombre"
-              type="text"
-              value={userData.nombre}
-              onChange={handleChange}
-              required
-              placeholder="Nombre"
-              className="w-full h-14 px-5 bg-[#0E1F30] text-white placeholder-white/50 rounded-xl text-2xl leading-none outline-none focus:ring-2 focus:ring-[#19F124]/60"
-              autoComplete="name"
-            />
 
             <label htmlFor="email" className="sr-only">Email</label>
             <input
@@ -85,12 +71,12 @@ const Register = () => {
               autoComplete="email"
             />
 
-            <label htmlFor="contraseña" className="sr-only">Contraseña</label>
+            <label htmlFor="password" className="sr-only">Contraseña</label>
             <input
-              id="contraseña"
-              name="contraseña"
+              id="password"
+              name="password"
               type="password"
-              value={userData.contraseña}
+              value={userData.password}
               onChange={handleChange}
               required
               placeholder="Contraseña"
@@ -98,12 +84,12 @@ const Register = () => {
               autoComplete="new-password"
             />
 
-            <label htmlFor="confirmarContraseña" className="sr-only">Confirmar contraseña</label>
+            <label htmlFor="confirmarPassword" className="sr-only">Confirmar contraseña</label>
             <input
-              id="confirmarContraseña"
-              name="confirmarContraseña"
+              id="confirmarPassword"
+              name="confirmarPassword"
               type="password"
-              value={userData.confirmarContraseña}
+              value={userData.confirmarPassword}
               onChange={handleChange}
               required
               placeholder="Confirmar contraseña"
@@ -111,19 +97,13 @@ const Register = () => {
               autoComplete="new-password"
             />
 
-            <div>
-              <label htmlFor="rol" className="block mb-2 text-white">Rol</label>
-              <select
-                id="rol"
-                name="rol"
-                value={userData.rol}
-                onChange={handleChange}
-                className="w-full h-14 px-5 bg-[#0E1F30] text-white rounded-xl text-2xl leading-none outline-none focus:ring-2 focus:ring-[#19F124]/60"
-              >
-                <option className="text-white" value="docente">Docente</option>
-                <option className="text-white" value="rrhh">RRHH</option>
-                <option className="text-white" value="admin">Administrador</option>
-              </select>
+            <div className="flex items-center justify-between">
+              <span className="text-xl text-white/80">
+                ¿Ya tienes una una cuenta?{" "}
+                <Link to="/login" className="text-[#19F124] font-semibold hover:underline">
+                  Iniciar Sesión
+                </Link>
+              </span>
             </div>
 
             <button
@@ -134,12 +114,7 @@ const Register = () => {
             </button>
           </form>
 
-          <p className="mt-6 text-white text-center text-[1.1rem]">
-            ¿Ya tienes una cuenta?{" "}
-            <Link to="/login" className="text-[#19F124] mt-2 font-black hover:underline">
-              Iniciar Sesión
-            </Link>
-          </p>
+          
         </div>
       </div>
     </div>

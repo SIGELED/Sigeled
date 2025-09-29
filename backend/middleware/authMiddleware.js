@@ -18,7 +18,7 @@ export const verificarToken = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol específico
 export const permitirRoles = (...roles) => (req, res, next) => {
-    if (req.user && roles.includes(req.user.rol)) {
+    if (req.user && req.user.roles && req.user.roles.some(rol => roles.includes(rol))) {
         next();
     } else {
         return res.status(403).json({ message: 'Acceso denegado: permisos insuficientes' });
@@ -36,9 +36,17 @@ export const soloDocente = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol "administrador"
 export const soloAdministrador = (req, res, next) => {
-    if (req.user && req.user.rol === 'administrador') {
+    if (req.user && req.user.rol === 'ADMIN') {
         next();
     } else {
         return res.status(403).json({ message: 'Acceso solo para administradores' });
     }
+};
+
+// Middleware para permitir solo a usuarios con rol "rrhh" o "administrador"
+export const soloRRHH = (req, res, next) => {
+    if (req.user && (req.user.rol === 'RRHH' || req.user.rol === 'ADMIN')) {
+        return next();
+    }
+    return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador' });
 };

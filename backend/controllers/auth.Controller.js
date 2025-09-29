@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { findUserByEmail, createUser } from '../models/userModel.js';
+import { getRolesByUserId } from '../models/roleModel.js';
 import db from '../models/db.js';
 
 export const login = async (req, res) => {
@@ -16,12 +17,15 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
+        const roles = await getRolesByUserId(user.id_usuario);
+        const roleNames = roles.map(rol => rol.codigo.toUpperCase());
+
         const token = jwt.sign(
-            { id: user.id_usuario, email: user.email },
+            { id: user.id_usuario, email: user.email, roles:roleNames },
             process.env.JWT_ACCESS_SECRET,
             { expiresIn: '1h' }
         );
-        res.json({ token, user: { id: user.id_usuario, email: user.email } });
+        res.json({ token, user: { id: user.id_usuario, email: user.email, roles:roleNames } });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });

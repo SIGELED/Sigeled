@@ -1,9 +1,9 @@
-import { archivoValidator } from '../middleware/archivoValidator.js';
-import { subirArchivo, asignarTipoEmpleado, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
+import { archivoValidator } from '../middleware/archivoMiddleware.js';
+import { subirArchivo, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
-import { validationResult } from 'express-validator';
+import {manejarErroresValidacion} from '../middleware/personaMiddleware.js';
 import express from 'express';
 import {
     registrarDatosPersona,
@@ -14,9 +14,13 @@ import {
     obtenerDomicilios,
     crearDomicilio,
     obtenerTitulos,
-    crearTitulo
+    crearTitulo,
+    asignarPerfil,
+    obtenerPerfilesPersona,
+    buscarPorDNI,
+    buscadorAvanzado
 } from '../controllers/persona.Controller.js';
-import { verificarToken, soloRRHH } from '../middleware/authMiddlware.js';
+import { verificarToken, soloRRHH } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
 
@@ -37,7 +41,7 @@ personaRouter.use(verificarToken);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -122,7 +126,7 @@ personaRouter.get('/', listarPersonas);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Datos de la persona
@@ -148,37 +152,7 @@ personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
 
 /**
  * @swagger
- * /api/persona/asignar-tipo:
- *   put:
- *     summary: Asignar tipo de empleado a una persona (solo RRHH/Admin)
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               id_persona:
- *                 type: integer
- *               id_tipo_empleado:
- *                 type: integer
- *     responses:
- *       200:
- *         description: Tipo de empleado asignado correctamente
- *       403:
- *         description: Acceso denegado
- *       500:
- *         description: Error interno
- */
-personaRouter.put('/asignar-tipo', soloRRHH, asignarTipoEmpleado);
-
-/**
- * @swagger
- * /api/persona/{id_persona/identificacion}:
+ * /api/persona/{id_persona}/identificacion:
  *   get:
  *     summary: Obtener identificaciones de una persona
  *     tags:
@@ -190,7 +164,7 @@ personaRouter.put('/asignar-tipo', soloRRHH, asignarTipoEmpleado);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Lista de identificaciones
@@ -211,7 +185,7 @@ personaRouter.get('/:id_persona/identificacion', obtenerIdentificacion);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -247,7 +221,7 @@ personaRouter.post('/:id_persona/identificacion', identificacionValidator, manej
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Lista de domicilios
@@ -268,7 +242,7 @@ personaRouter.get('/:id_persona/domicilio', obtenerDomicilios);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -306,7 +280,7 @@ personaRouter.post('/:id_persona/domicilio', domicilioValidator, manejarErroresV
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Lista de títulos
@@ -327,7 +301,7 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -352,13 +326,152 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  */
 personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValidacion, crearTitulo);
 
-// Middleware para manejar errores de validación
-function manejarErroresValidacion(req, res, next) {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
-    next();
-}
+/**
+ * @swagger
+ * /api/persona/buscar:
+ *   get:
+ *     summary: Buscador avanzado de personal (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: nombre
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: apellido
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: dni
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: perfil
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resultados del buscador avanzado
+ */
+personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
+/**
+ * @swagger
+ * /api/persona/buscar:
+ *   get:
+ *     summary: Buscador avanzado de personal (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: nombre
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: apellido
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: dni
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: perfil
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resultados del buscador avanzado
+ */
+
+
+// Asignar perfil a persona (solo RRHH/Admin)
+personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
+
+/**
+ * @swagger
+ * /api/persona/asignar-perfil:
+ *   post:
+ *     summary: Asignar un perfil a una persona (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_persona:
+ *                 type: string
+ *                 format: uuid
+ *               id_perfil:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Perfil asignado correctamente
+ *       400:
+ *         description: Datos faltantes o inválidos
+ *       500:
+ *         description: Error interno
+ */
+
+// Obtener perfiles vigentes de una persona
+personaRouter.get('/:id_persona/perfiles', obtenerPerfilesPersona);
+
+/**
+ * @swagger
+ * /api/persona/{id_persona}/perfiles:
+ *   get:
+ *     summary: Obtener perfiles vigentes de una persona
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles vigentes
+ *       404:
+ *         description: Persona no encontrada
+ */
+
+// Buscar persona por DNI
+personaRouter.get('/buscar-por-dni', soloRRHH, buscarPorDNI);
+
+/**
+ * @swagger
+ * /api/persona/buscar-por-dni:
+ *   get:
+ *     summary: Buscar persona por DNI (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: dni
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Persona encontrada
+ *       404:
+ *         description: No se encontró persona con ese DNI
+ */
 
 export default personaRouter;
+

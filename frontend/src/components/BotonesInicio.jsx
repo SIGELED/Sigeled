@@ -4,18 +4,10 @@ import { useAuth } from '../context/AuthContext';
 
 const BotonesInicio = () => {
   const { user, logout } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
 
-  const handleLogout = () => {
-    logout();
-  };
 
-  const isDashboard = location.pathname.startsWith("/dashboard")
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
+  const isDashboard = location.pathname.startsWith("/dashboard");
 
   return (
     <div className='relative p-4'>
@@ -48,18 +40,11 @@ const BotonesInicio = () => {
           </div>
         )}
 
-        {user && (
+        {user &&(
           <div className='flex items-center space-x-4'>
-            <span className='hidden-sm:inline'>Bienvenido, {user.nombre || user.email}</span>
-            <Link to="/dashboard" className='px-4 py-2 font-semibold transition bg-blue-600 rounded-full hover:bg-blue-700' onClick={() => setMenuOpen(false)}>
-              Dashboard
-            </Link>
-            <Link to="/" onClick={handleLogout} className='px-2 py-2 font-semibold transition bg-red-600 rounded-full hover:bg-red-700 hover:cursor-pointer'>
-              Cerrar Sesión
-            </Link>
-
-            <Link to="/perfil" className='bg-[#1aab23] px-5 py-2 rounded-full font-semibold hover:bg-[#21ca2c] transition'>
-              Mi Perfil
+            <span>Bienvenido de vuelta, {user.email}</span>
+            <Link to="/dashboard" className='px-4 py-2 transition bg-blue-600 rounded-full font semibold hover:bg-blue-00'>
+            Ir al Dashboard
             </Link>
           </div>
         )}

@@ -1,6 +1,6 @@
 import express from 'express';
 import { upload, uploadCV } from '../controllers/docente.Controller.js';
-import { verificarToken, soloDocente } from '../middleware/authMiddlware.js';
+import { verificarToken, soloDocente } from '../middleware/authMiddleware.js';
 import { validarArchivoCV } from '../validators/docenteValidator.js';
 
 const docenteRouter = express.Router();

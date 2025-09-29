@@ -6,7 +6,7 @@ import {
     deactivateUser,
     getUserRoles
 } from '../controllers/user.Controller.js';
-import { verificarToken, permitirRoles } from '../middleware/authMiddlware.js';
+import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
 import { validarCrearUsuario, validarActualizarUsuario } from '../validators/userValidator.js';
 
 const userRouter = express.Router();
@@ -27,7 +27,7 @@ userRouter.use(verificarToken);
  *       200:
  *         description: Lista de usuarios
  */
-userRouter.get('/', permitirRoles('administrador'), getUsers);
+userRouter.get('/', permitirRoles('ADMIN'), getUsers);
 
 /**
  * @swagger
@@ -57,7 +57,7 @@ userRouter.get('/', permitirRoles('administrador'), getUsers);
  *       500:
  *         description: Error del servidor
  */
-userRouter.post('/', permitirRoles('administrador'), validarCrearUsuario, createUserController);
+userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserController);
 
 /**
  * @swagger
@@ -82,7 +82,7 @@ userRouter.post('/', permitirRoles('administrador'), validarCrearUsuario, create
  *       500:
  *         description: Error del servidor
  */
-userRouter.delete('/:id_usuario', permitirRoles('administrador'), deactivateUser);
+userRouter.delete('/:id_usuario', permitirRoles('ADMIN'), deactivateUser);
 
 /**
  * @swagger
