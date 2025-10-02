@@ -43,11 +43,18 @@ const Anio = sequelize.define('Anio', {
   descripcion: DataTypes.STRING,
 }, { tableName: 'anio' });
 
+
 const ContratoProfesor = sequelize.define('ContratoProfesor', {
   id_contrato_profesor: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
   id_persona: { type: DataTypes.UUID, allowNull: false },
   id_profesor: { type: DataTypes.UUID, allowNull: false },
-  id_periodo: { type: DataTypes.UUID, allowNull: false },
+  id_periodo: { 
+    type: DataTypes.INTEGER, 
+    allowNull: false,
+    validate: {
+      isIn: [[1, 2]]  // Solo permite 1 o 2
+    }
+  },
   horas_semanales: DataTypes.INTEGER,
   horas_mensuales: DataTypes.INTEGER,
   fecha_inicio: DataTypes.DATE,

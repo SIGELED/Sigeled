@@ -2,7 +2,7 @@ import express from 'express';
 import {
   listarContratos,
   obtenerContrato,
-  crearContrato,
+  crearContratoHandler,
   actualizarContrato,
   eliminarContrato,
   buscarPersonaPorDni,
@@ -13,6 +13,9 @@ import {
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const contratoRouter = express.Router();
+
+// Aplicar middleware de autenticación a todas las rutas
+contratoRouter.use(verificarToken);
 
 /**
  * @swagger
@@ -32,12 +35,18 @@ const contratoRouter = express.Router();
  *     responses:
  *       200:
  *         description: Lista de contratos obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Contrato'
  *       401:
  *         description: No autorizado
  *       403:
  *         description: Acceso denegado, se requiere rol de administrador
  */
-contratoRouter.get('/', verificarToken, soloAdministrador, listarContratos);
+contratoRouter.get('/', soloAdministrador, listarContratos);
 
 /**
  * @swagger
@@ -57,62 +66,24 @@ contratoRouter.get('/', verificarToken, soloAdministrador, listarContratos);
  *     responses:
  *       200:
  *         description: Contrato encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Contrato'
  *       404:
  *         description: Contrato no encontrado
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/:id', verificarToken, soloAdministrador, obtenerContrato);
+contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
 
-
+// In contrato.routes.js, add this before the route definition
 /**
  * @swagger
- * components:
- *   schemas:
- *     Contrato:
- *       type: object
- *       required:
- *         - fecha_inicio
- *         - id_profesor
- *         - id_materia
- *         - horas_semanales
- *         - monto_hora
- *       properties:
- *         fecha_inicio:
- *           type: string
- *           format: date
- *           example: "2025-01-01"
- *         fecha_fin:
- *           type: string
- *           format: date
- *           example: "2025-12-31"
- *           nullable: true
- *         id_profesor:
- *           type: integer
- *           example: 1
- *         id_materia:
- *           type: integer
- *           example: 1
- *         horas_semanales:
- *           type: number
- *           format: float
- *           example: 20
- *         monto_hora:
- *           type: number
- *           format: float
- *           example: 500
- *         observaciones:
- *           type: string
- *           nullable: true
- *           example: "Contrato temporal"
- */
-
-/**
- * @swagger
- * /api/contratos:
+ * /api/contratos/profesor/crear:
  *   post:
- *     summary: Crea un nuevo contrato
  *     tags: [Contratos]
+ *     summary: Crear un nuevo contrato de profesor
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -120,7 +91,51 @@ contratoRouter.get('/:id', verificarToken, soloAdministrador, obtenerContrato);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Contrato'
+ *             type: object
+ *             required:
+ *               - id_persona
+ *               - id_profesor
+ *               - id_materia
+ *               - id_periodo
+ *               - horas_semanales
+ *               - horas_mensuales
+ *               - monto_hora
+ *               - fecha_inicio
+ *               - fecha_fin
+ *             properties:
+ *               id_persona:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_profesor:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_materia:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_periodo:
+ *                 type: integer
+ *                 example: 1
+ *               horas_semanales:
+ *                 type: integer
+ *                 example: 20
+ *               horas_mensuales:
+ *                 type: integer
+ *                 example: 80
+ *               monto_hora:
+ *                 type: number
+ *                 format: float
+ *                 example: 500.00
+ *               fecha_inicio:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *               fecha_fin:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-12-31"
  *     responses:
  *       201:
  *         description: Contrato creado exitosamente
@@ -129,25 +144,13 @@ contratoRouter.get('/:id', verificarToken, soloAdministrador, obtenerContrato);
  *             schema:
  *               $ref: '#/components/schemas/Contrato'
  *       400:
- *         description: Datos de entrada no válidos
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Error al crear contrato"
- *                 details:
- *                   type: string
- *                   example: "Mensaje detallado del error"
+ *         description: Error en la solicitud o datos inválidos
  *       401:
  *         description: No autorizado
- *       403:
- *         description: Acceso denegado, se requiere rol de administrador
+ *       500:
+ *         description: Error del servidor
  */
-contratoRouter.post('/', verificarToken, soloAdministrador, crearContrato);
-
+contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearNuevoContratoProfesor);
 
 /**
  * @swagger
@@ -169,16 +172,22 @@ contratoRouter.post('/', verificarToken, soloAdministrador, crearContrato);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Contrato'
+ *             $ref: '#/components/schemas/ContratoInput'
  *     responses:
  *       200:
  *         description: Contrato actualizado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Contrato'
  *       400:
  *         description: Datos de entrada no válidos
  *       401:
  *         description: No autorizado
+ *       404:
+ *         description: Contrato no encontrado
  */
-contratoRouter.put('/:id', verificarToken, soloAdministrador, actualizarContrato);
+contratoRouter.put('/:id', soloAdministrador, actualizarContrato);
 
 /**
  * @swagger
@@ -200,13 +209,116 @@ contratoRouter.put('/:id', verificarToken, soloAdministrador, actualizarContrato
  *         description: Contrato eliminado exitosamente
  *       401:
  *         description: No autorizado
+ *       404:
+ *         description: Contrato no encontrado
  */
-contratoRouter.delete('/:id', verificarToken, soloAdministrador, eliminarContrato);
+contratoRouter.delete('/:id', soloAdministrador, eliminarContrato);
 
-// Nuevas rutas para el flujo de contratos (actualizadas)
-contratoRouter.get('/persona/dni/:dni', verificarToken, buscarPersonaPorDni); // Buscar por DNI
-contratoRouter.get('/profesor/:idPersona/detalles', verificarToken, obtenerDetallesProfesor); // Detalles profesor
-contratoRouter.get('/materias', verificarToken, listarMateriasPorCarreraAnio); // Filtrar materias
-contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearNuevoContratoProfesor); // Crear contrato profesor
+// Rutas adicionales para el flujo de contratos
+
+/**
+ * @swagger
+ * /api/contratos/persona/dni/{dni}:
+ *   get:
+ *     summary: Busca una persona por su DNI
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: dni
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: DNI de la persona a buscar
+ *     responses:
+ *       200:
+ *         description: Persona encontrada
+ *       404:
+ *         description: Persona no encontrada
+ *       401:
+ *         description: No autorizado
+ */
+contratoRouter.get('/persona/dni/:dni', soloAdministrador, buscarPersonaPorDni);
+
+/**
+ * @swagger
+ * /api/contratos/profesor/{idPersona}/detalles:
+ *   get:
+ *     summary: Obtiene los detalles de un profesor
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: idPersona
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la persona (profesor)
+ *     responses:
+ *       200:
+ *         description: Detalles del profesor
+ *       404:
+ *         description: Profesor no encontrado
+ *       401:
+ *         description: No autorizado
+ */
+contratoRouter.get('/profesor/:idPersona/detalles', soloAdministrador, obtenerDetallesProfesor);
+
+/**
+ * @swagger
+ * /api/contratos/materias:
+ *   get:
+ *     summary: Obtiene las materias por carrera y año
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: idCarrera
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la carrera
+ *       - in: query
+ *         name: idAnio
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del año
+ *     responses:
+ *       200:
+ *         description: Lista de materias
+ *       400:
+ *         description: Parámetros inválidos
+ *       401:
+ *         description: No autorizado
+ */
+contratoRouter.get('/materias', soloAdministrador, listarMateriasPorCarreraAnio);
+
+/**
+ * @swagger
+ * /api/contratos/profesor/crear:
+ *   post:
+ *     summary: Crea un nuevo contrato de profesor
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ContratoProfesorInput'
+ *     responses:
+ *       201:
+ *         description: Contrato de profesor creado exitosamente
+ *       400:
+ *         description: Datos de entrada no válidos
+ *       401:
+ *         description: No autorizado
+ */
+contratoRouter.post('/profesor/crear', soloAdministrador, crearNuevoContratoProfesor);
 
 export default contratoRouter;

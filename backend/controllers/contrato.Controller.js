@@ -7,8 +7,8 @@ import {
   getPersonaByDni,
   getProfesorDetalles,
   getMateriasByCarreraAnio,
-  crearContratoProfesor,
-} from '../models/contratoModel.js';
+  crearContratoProfesor
+} from '../models/contratoQueries.js';
 
 // GET /api/contratos
 export async function listarContratos(req, res) {
@@ -16,8 +16,11 @@ export async function listarContratos(req, res) {
     const contratos = await getAllContratos();
     res.json(contratos);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener contratos' });
+    console.error('Error en listarContratos:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contratos',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
@@ -26,18 +29,23 @@ export async function obtenerContrato(req, res) {
   try {
     const { id } = req.params;
     const contrato = await getContratoById(id);
-    if (!contrato) return res.status(404).json({ error: 'Contrato no encontrado' });
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
     res.json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener contrato' });
+    console.error('Error en obtenerContrato:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
-export async function crearContrato(req, res) {
+// POST /api/contratos
+export async function crearContratoHandler(req, res) {
   try {
     const data = req.body;
-    console.log('Datos recibidos:', data); // Add this for debugging
     
     if (!data || typeof data !== 'object') {
       return res.status(400).json({ 
@@ -45,13 +53,24 @@ export async function crearContrato(req, res) {
       });
     }
     
+    // Validar campos requeridos
+    const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio'];
+    const missingFields = requiredFields.filter(field => data[field] === undefined);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos',
+        missingFields
+      });
+    }
+    
     const contrato = await createContrato(data);
     res.status(201).json(contrato);
   } catch (error) {
-    console.error('Error al crear contrato:', error);
+    console.error('Error en crearContrato:', error);
     res.status(400).json({ 
       error: 'Error al crear contrato',
-      details: error.message 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -61,11 +80,23 @@ export async function actualizarContrato(req, res) {
   try {
     const { id } = req.params;
     const data = req.body;
+    
+    if (!data || Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No se proporcionaron datos para actualizar' });
+    }
+    
     const contrato = await updateContrato(id, data);
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
+    
     res.json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: 'Error al actualizar contrato' });
+    console.error('Error en actualizarContrato:', error);
+    res.status(400).json({ 
+      error: 'Error al actualizar contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
@@ -74,57 +105,112 @@ export async function eliminarContrato(req, res) {
   try {
     const { id } = req.params;
     const contrato = await deleteContrato(id);
-    res.json(contrato);
+    
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
+    
+    res.json({ message: 'Contrato eliminado exitosamente', contrato });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: 'Error al eliminar contrato' });
+    console.error('Error en eliminarContrato:', error);
+    res.status(400).json({ 
+      error: 'Error al eliminar contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
-// Handler para buscar persona por DNI (renombrado para evitar conflicto)
+// GET /api/contratos/persona/dni/:dni
 export async function buscarPersonaPorDni(req, res) {
   try {
     const { dni } = req.params;
     const persona = await getPersonaByDni(dni);
+    
+    if (!persona) {
+      return res.status(404).json({ error: 'Persona no encontrada' });
+    }
+    
     res.json(persona);
   } catch (error) {
-    console.error(error);
-    res.status(404).json({ error: error.message });
+    console.error('Error en buscarPersonaPorDni:', error);
+    res.status(500).json({ 
+      error: 'Error al buscar persona',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
-// Handler para detalles de profesor (renombrado)
+// GET /api/contratos/profesor/:idPersona/detalles
 export async function obtenerDetallesProfesor(req, res) {
   try {
     const { idPersona } = req.params;
     const detalles = await getProfesorDetalles(idPersona);
+    
+    if (!detalles) {
+      return res.status(404).json({ error: 'Profesor no encontrado' });
+    }
+    
     res.json(detalles);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener detalles' });
+    console.error('Error en obtenerDetallesProfesor:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener detalles del profesor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
-// Handler para materias por carrera y año
+// GET /api/contratos/materias
 export async function listarMateriasPorCarreraAnio(req, res) {
   try {
     const { idCarrera, idAnio } = req.query;
+    
+    if (!idCarrera || !idAnio) {
+      return res.status(400).json({ 
+        error: 'Se requieren los parámetros idCarrera e idAnio' 
+      });
+    }
+    
     const materias = await getMateriasByCarreraAnio(idCarrera, idAnio);
     res.json(materias);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener materias' });
+    console.error('Error en listarMateriasPorCarreraAnio:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener materias',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
-// Handler para crear contrato profesor
+// POST /api/contratos/profesor/crear
 export async function crearNuevoContratoProfesor(req, res) {
   try {
     const data = req.body;
+    
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ 
+        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
+      });
+    }
+    
+    // Validar campos requeridos
+    const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio'];
+    const missingFields = requiredFields.filter(field => data[field] === undefined);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos',
+        missingFields
+      });
+    }
+    
     const contrato = await crearContratoProfesor(data);
     res.status(201).json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: 'Error al crear contrato profesor' });
+    console.error('Error en crearNuevoContratoProfesor:', error);
+    res.status(400).json({ 
+      error: 'Error al crear contrato de profesor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
