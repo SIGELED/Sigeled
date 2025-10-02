@@ -10,6 +10,7 @@ import roleRouter from './routes/role.routes.js';
 import contratoRouter from './routes/contrato.routes.js';
 import personaDocRouter from './routes/personaDoc.routes.js'; // corregido nombre
 import personaRouter from './routes/persona.routes.js';
+import digiDocuRouter from './routes/digitalizacion.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 
@@ -63,8 +64,9 @@ app.use('/api/users', userRouter);
 app.use('/api/roles', roleRouter);
 app.use('/uploads', express.static('uploads'));
 app.use('/api/contratos', contratoRouter);
-app.use('/api/persona-doc', personaDocRouter); // corregido nombre
+app.use('/api/persona-doc', personaDocRouter); 
 app.use('/api/persona', personaRouter);
+app.use('/api/digitalizacion', digiDocuRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
