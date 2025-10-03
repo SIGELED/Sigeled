@@ -152,11 +152,13 @@ contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
  */
 contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearNuevoContratoProfesor);
 
+
 /**
  * @swagger
  * /api/contratos/{id}:
  *   put:
  *     summary: Actualiza un contrato existente
+ *     description: Actualiza la información de un contrato específico por su ID.
  *     tags: [Contratos]
  *     security:
  *       - bearerAuth: []
@@ -165,14 +167,61 @@ contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearN
  *         name: id
  *         required: true
  *         schema:
- *           type: string
- *         description: ID del contrato a actualizar
+ *           type: integer
+ *           format: int64
+ *         description: ID numérico del contrato a actualizar
+ *         example: 1
  *     requestBody:
  *       required: true
+ *       description: Datos del contrato a actualizar
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/ContratoInput'
+ *             type: object
+ *             required:
+ *               - id_persona
+ *               - id_profesor
+ *               - id_materia
+ *               - id_periodo
+ *               - horas_semanales
+ *               - horas_mensuales
+ *               - monto_hora
+ *               - fecha_inicio
+ *               - fecha_fin
+ *             properties:
+ *               id_persona:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_profesor:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_materia:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "00000000-0000-0000-0000-000000000000"
+ *               id_periodo:
+ *                 type: integer
+ *                 example: 1
+ *               horas_semanales:
+ *                 type: integer
+ *                 example: 20
+ *               horas_mensuales:
+ *                 type: integer
+ *                 example: 80
+ *               monto_hora:
+ *                 type: number
+ *                 format: float
+ *                 example: 500.00
+ *               fecha_inicio:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-01-01"
+ *               fecha_fin:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-12-31"
  *     responses:
  *       200:
  *         description: Contrato actualizado exitosamente
@@ -181,13 +230,32 @@ contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearN
  *             schema:
  *               $ref: '#/components/schemas/Contrato'
  *       400:
- *         description: Datos de entrada no válidos
+ *         description: Datos de entrada no válidos o error en la validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Datos de entrada no válidos"
+ *                 details:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["El campo 'horas_semanales' es requerido"]
  *       401:
- *         description: No autorizado
+ *         description: No autorizado - Se requiere autenticación
+ *       403:
+ *         description: Prohibido - No tienes permisos para realizar esta acción
  *       404:
- *         description: Contrato no encontrado
+ *         description: No se encontró el contrato con el ID especificado
+ *       500:
+ *         description: Error interno del servidor
  */
 contratoRouter.put('/:id', soloAdministrador, actualizarContrato);
+
+
 
 /**
  * @swagger
