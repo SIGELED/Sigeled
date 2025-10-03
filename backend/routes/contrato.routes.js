@@ -11,6 +11,8 @@ import {
   crearNuevoContratoProfesor,
 } from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
+import { getContratoById } from '../models/contratoQueries.js';
+import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
 
 const contratoRouter = express.Router();
 
@@ -390,3 +392,88 @@ contratoRouter.get('/materias', soloAdministrador, listarMateriasPorCarreraAnio)
 contratoRouter.post('/profesor/crear', soloAdministrador, crearNuevoContratoProfesor);
 
 export default contratoRouter;
+
+/**
+ * @swagger
+ * /api/contratos/{id}/export:
+ *   get:
+ *     summary: Exportar contrato en formato Word o PDF
+ *     description: Exporta un contrato en formato Word (.docx) o PDF
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           format: int64
+ *         description: ID numérico del contrato a exportar
+ *       - in: query
+ *         name: format
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [word, pdf]
+ *         description: Formato de exportación (word o pdf)
+ *     responses:
+ *       200:
+ *         description: Documento generado exitosamente
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Formato no válido o error en la solicitud
+ *       404:
+ *         description: Contrato no encontrado
+ *       500:
+ *         description: Error al generar el documento
+ */
+contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { format } = req.query;
+
+    if (!['word', 'pdf'].includes(format)) {
+      return res.status(400).json({ error: 'Formato no válido. Use "word" o "pdf".' });
+    }
+
+    // Get the contract data
+    const contrato = await getContratoById(id);
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
+
+    let fileContent;
+    let contentType;
+    let fileExtension;
+
+    if (format === 'word') {
+      fileContent = await generateWordDocument(contrato);
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      fileExtension = 'docx';
+    } else {
+      fileContent = await generatePdfDocument(contrato);
+      contentType = 'application/pdf';
+      fileExtension = 'pdf';
+    }
+
+    // Set headers for file download
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename=contrato-${id}.${fileExtension}`);
+    res.setHeader('Content-Length', fileContent.length);
+
+    // Send the file
+    res.send(fileContent);
+
+  } catch (error) {
+    console.error('Error al exportar contrato:', error);
+    res.status(500).json({ 
+      error: 'Error al generar el documento',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
