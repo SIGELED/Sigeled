@@ -3,7 +3,7 @@ import {
     getUsers, 
     getUser, 
     createUserController, 
-    deactivateUser,
+    toggleUser,
     getUserRoles
 } from '../controllers/user.Controller.js';
 import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
@@ -63,7 +63,7 @@ userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserCont
  * @swagger
  * /api/users/{id_usuario}:
  *   delete:
- *     summary: Desactivar usuario (solo administradores)
+ *     summary: Cambiar estado de usuario (solo administradores)
  *     tags:
  *       - Usuarios
  *     security:
@@ -82,7 +82,7 @@ userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserCont
  *       500:
  *         description: Error del servidor
  */
-userRouter.delete('/:id_usuario', permitirRoles('ADMIN'), deactivateUser);
+userRouter.put('/:id_usuario/toggle', permitirRoles('ADMIN'), toggleUser);
 
 /**
  * @swagger

@@ -64,18 +64,21 @@ export const listarEstadosVerificacion = async (req, res) => {
 // Registro de datos personales y vinculación automática
 export const registrarDatosPersona = async (req, res) => {
     try {
-        const { nombre, apellido, fecha_nacimiento, sexo } = req.body;
-        const id_usuario = req.user.id_usuario; // Extraído del token
+        console.log('req.body:', req.body);
+        console.log('req.user:', req.user);
+
+        const { nombre, apellido, fecha_nacimiento, sexo, telefono } = req.body;
+        const id_usuario = req.user.id; // Extraído del token
+        console.log('id_usuario:', id_usuario);
 
         // Crear persona sin tipo de empleado
-        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo });
-
-        // Vincular automáticamente usuario y persona
-        await vincularPersonaUsuario(persona.id_persona, id_usuario);
+        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo, telefono });
+        console.log('persona creada:', persona);
 
         res.status(201).json(persona);
     } catch (error) {
-        res.status(500).json({ message: 'Error al registrar datos personales' });
+        console.error('Error al registrarDatosPersona', error);
+        res.status(500).json({ message: 'Error al registrar datos personales', detalle:error.message });
     }
 };
 
@@ -163,34 +166,29 @@ export const obtenerIdentificacion = async (req, res) => {
 
 export const crearIdentificacion = async (req, res) => {
     try {
-        let datos = req.body;
-        // Control de duplicados DNI/CUIL para la persona
-        const existentes = await getIdentificacionByPersona(datos.id_persona);
-        if (existentes.some(e => e.dni === datos.dni || e.cuil === datos.cuil)) {
+        const {id_persona} = req.params;
+        const {dni, cuil} = req.body;
+
+        console.log('id_persona:', id_persona);
+        console.log('dni:', dni, 'cuil:', cuil);
+        
+        const existentes = await getIdentificacionByPersona(id_persona);
+        console.log('existentes:', existentes);
+
+        if (existentes.some(e => e.dni === dni || e.cuil === cuil)) {
             return res.status(409).json({ error: 'Ya existe una identificación con ese DNI o CUIL para esta persona.' });
         }
-        // Si no se envía id_estado, asignar el id de 'Pendiente'
-        if (!datos.id_estado) {
-            const { getIdEstadoPendiente } = await import('../models/estadoVerificacionModel.js');
-            const idPendiente = await getIdEstadoPendiente();
-            datos.id_estado = idPendiente;
-        } else {
-            // Validar que el estado existe
-            const { getEstadosVerificacion } = await import('../models/estadoVerificacionModel.js');
-            const estados = await getEstadosVerificacion();
-            const existe = estados.some(e => e.id_estado === Number(datos.id_estado));
-            if (!existe) {
-                return res.status(400).json({ error: 'El estado de verificación no es válido.' });
-            }
-        }
-        // Auditoría: guardar el usuario que realiza el cambio
-        if (req.usuario && req.usuario.id_usuario) {
-            datos.actualizado_por = req.usuario.id_usuario;
-        }
-        const nuevaIdent = await createIdentificacion(datos);
-        res.status(201).json(nuevaIdent);
+        
+        const nuevaIdentificacion = await createIdentificacion({id_persona, dni, cuil});
+        console.log('nuevaIdentificacion:', nuevaIdentificacion);
+
+        res.status(201).json({
+            message:'Identificación creada correctamente.',
+            identificacion: nuevaIdentificacion
+        })
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Eror en crearIdentificacion:', err);
+        res.status(500).json({ error: 'Error al crear identificación', detalle: err.message});
     }
 };
 

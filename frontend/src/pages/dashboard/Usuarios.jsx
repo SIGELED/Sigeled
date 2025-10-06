@@ -52,6 +52,7 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], onA
                 Info
                 </button>
 
+
                 {onToggle && (
                 <button
                     onClick={() => onToggle(row.original)}

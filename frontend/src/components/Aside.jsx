@@ -55,10 +55,12 @@ export default function Aside({activeSection, setActiveSection}) {
                     <span>Contratos</span>
                 </BotonAside>
 
-                <BotonAside onClick={() => setActiveSection ("usuarios")} activo={activeSection === "usuarios"}>
-                    <FiUser className="w-8 h-8 shrink-0 currentColor"/>
-                    <span>Usuarios</span>
-                </BotonAside>
+                {user.roles.includes('ADMIN') && (
+                    <BotonAside onClick={() => setActiveSection ("usuarios")} activo={activeSection === "usuarios"}>
+                        <FiUser className="w-8 h-8 shrink-0 currentColor"/>
+                        <span>Usuarios</span>
+                    </BotonAside>
+                )}
 
                     <BotonAside onClick={handleLogout} variant="logout">
                         <MdLogout className="w-8 h-8 shrink-0 text-[#ff1010]"/>

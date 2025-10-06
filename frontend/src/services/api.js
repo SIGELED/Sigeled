@@ -32,7 +32,7 @@ export const userService = {
   getUsuarioById: (id) => api.get(`/users/${id}`),
   createUsuario: (data) => api.post('/users',data),
   updateUsuario: (id, data) => api.put(`/users/${id}`, data),
-  toggleUsuario: (id, activo) => api.patch(`/users/${id}`, {activo})
+  toggleUsuario: (id) => api.put(`/users/${id}/toggle`)
 };
 
 export const roleService = {
@@ -43,6 +43,16 @@ export const roleService = {
   assignRoleToUser:(id_usuario, id_rol, asignado_por) =>
     api.post(`/roles/usuario/asignar`, {id_usuario, id_rol, asignado_por}),
   getRolesByUser: (userId) => api.get(`/roles/usuario/${userId}`)
+}
+
+export const personaService = {
+  createPersona:(data) => api.post('/persona', data),
+  getPersonaByID:(id_persona) => api.get(`/persona/${id_persona}`),
+};
+
+export const identificationService = {
+  createIdentificacion:(id_persona, data) => api.post(`/persona/${id_persona}/identificacion`, data),
+  getIdentificaciones:(id_persona) => api.get(`/persona/${id_persona}/identificacion`),
 }
 
 export default api;

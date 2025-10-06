@@ -17,10 +17,6 @@ export default function Inicio() {
                     {mostrarBotones && (<BotonesInicio/>)}
                 </div>
             </div>
-
-            <div className="h-screen bg-white">
-                
-            </div>
         </div>
     )
 }

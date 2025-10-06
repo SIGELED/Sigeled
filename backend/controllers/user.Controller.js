@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import { getAllUsers, getUserById, findUserByEmail, createUser } from '../models/userModel.js';
 import { getRolesByUserId } from '../models/roleModel.js';
+import db from '../models/db.js';
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
@@ -46,18 +47,33 @@ export const createUserController = async (req, res) => {
 };
 
 // Desactivar usuario
-export const deactivateUser = async (req, res) => {
+export const toggleUser = async (req, res) => {
     try {
         const { id_usuario } = req.params;
-        const user = await getUserById(id_usuario);
-        if (!user) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+
+        const resultUser = await db.query(
+            'SELECT activo FROM usuarios WHERE id_usuario = $1',
+            [id_usuario]
+        );
+
+        if(resultUser.rows.length === 0){
+            return res.status(404).json({message: 'Usuario no encontrado'});
         }
-        await db.query('UPDATE usuarios SET activo = false WHERE id_usuario = $1', [id_usuario]);
-        res.json({ message: 'Usuario desactivado exitosamente' });
+
+        const nuevoEstado = !resultUser.rows[0].activo;
+
+        const resultaUpdate = await db.query(
+            'UPDATE usuarios SET activo = $1 WHERE id_usuario = $2 RETURNING id_usuario, email, activo',
+            [nuevoEstado, id_usuario]
+        );
+
+        res.json({
+            message: `Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`,
+            user: resultaUpdate.rows[0]
+        });
     } catch (error) {
-        console.error('Error al desactivar usuario:', error);
-        res.status(500).json({ message: 'Error del servidor' });
+        console.error('Error al cambiar el estado del usuario:', error);
+        res.status(500).json({message:'Error del servidor'});
     }
 };
 

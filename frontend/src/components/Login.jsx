@@ -22,7 +22,11 @@ export default function Login() {
       login(data.user, data.token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Error al iniciar sesión");
+      if(err.response?.status === 403){
+        navigate("/revision");
+      }else{
+        setError(err.response?.data?.message || "Error al iniciar sesión");
+      }
     }
   };
 
@@ -82,12 +86,12 @@ export default function Login() {
               Ingresar
             </button>
 
-            {/* {error && (
+            {error && (
             <div className="p-3 mb-6 text-[1.7rem] text-[#0a0000] font-[600] rounded-xl bg-[#f48383] flex flex-row items-center">
               <BiSolidError className="w-9 h-9 mr-2 text-[#0a0000] font-black"/>
               {error}
             </div>
-            )} */}
+            )}
           </form>
         </div>
       </div>

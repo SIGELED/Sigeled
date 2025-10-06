@@ -62,9 +62,22 @@ const UsuariosSection = ({user}) =>{
         console.log('Editar usuario', usuario);
     };
 
-    const handleToggle = (usuario) => {
-        console.log('Activar/Desactivar usuario', usuario);
-    };
+    const handleToggle = async (usuario) => {
+        try {
+            const res = await userService.toggleUsuario(usuario.id_usuario)
+            const actualizado = res.data.user;
+
+            setUsuarios(prev =>
+                prev.map(user => 
+                    user.id_usuario === usuario.id_usuario ? { ...user, activo: actualizado.activo } : user
+                )
+            );
+            alert(`Estado actualizado`)
+        } catch (err) {
+            console.error("Error al cambiar estado:", err);
+            alert(err.response?.data?.message || "Error al cambiar estado del usuario");
+        }
+    }
 
     return (
         <Suspense fallback={<div>Cargando...</div>}>
