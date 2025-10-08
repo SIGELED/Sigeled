@@ -1,198 +1,309 @@
 # SIGELED - Backend
 
-Sistema de Gestión Integral de Legajos Digitales para Personal Docente y No Docente
+**Sistema Integral de Gestión de Legajos de Personal Docente**
+
+Un sistema completo para la gestión digital de legajos, documentación y validación de personal docente con funcionalidades avanzadas de autenticación, roles y permisos.
 
 ---
 
-## 🚀 Configuración Inicial
+## 🚀 **Características**
 
-### 1. Crear archivo `.env`
-Crea un archivo `.env` en la carpeta `backend` con el siguiente contenido:
+### **✅ Funcionalidades Implementadas**
 
-```env
-DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/sigeled_db
-JWT_SECRET=tu_clave_secreta_muy_larga_y_segura_para_jwt_tokens
-PORT=4000
-NODE_ENV=development
-SUPABASE_URL=tu_url_supabase
-SUPABASE_SERVICE_ROLE=tu_token_supabase
+- **🔐 Autenticación y Autorización**
+  - JWT con refresh tokens
+  - Sistema RBAC (Roles y Permisos)
+  - Middleware de autenticación robusto
+
+- **👥 Gestión de Personal**
+  - Registro de personas y docentes
+  - Gestión de identificaciones con archivos
+  - Manejo de domicilios y títulos
+  - Sistema de contratos
+
+- **📄 Gestión de Documentos**
+  - Subida segura de archivos
+  - Organización por persona/colaborador
+  - Control de acceso por roles
+  - Validación de formatos y tamaños
+
+- **🔍 Digitalización (Base)**
+  - Estructura para OCR e indexación
+  - Búsquedas básicas en documentos
+  - Estadísticas de documentos
+  - API preparada para IA
+
+- **🛡️ Seguridad y Auditoría**
+  - Validadores de entrada robustos
+  - Middleware de seguridad
+  - Logs de auditoría
+  - Control de acceso granular
+
+---
+
+## 🛠️ **Tecnologías Utilizadas**
+
+- **Backend:** Node.js + Express.js
+- **Base de Datos:** PostgreSQL (Supabase)
+- **Autenticación:** JWT (JSON Web Tokens)
+- **Validación:** Joi + Validadores personalizados
+- **Upload de Archivos:** Multer
+- **Documentación:** Swagger/OpenAPI
+
+---
+
+## 📋 **Requisitos Previos**
+
+- **Node.js** >= 18.x
+- **PostgreSQL** >= 13.x (o cuenta Supabase)
+- **npm** o **yarn**
+
+---
+
+## ⚙️ **Instalación**
+
+### **1. Clonar el repositorio**
+```bash
+git clone <tu-repo-url>
+cd SIGELED/backend
 ```
 
-### 2. Configurar Base de Datos
-- Crear la base de datos PostgreSQL
-- Ejecutar los scripts de tablas y roles necesarios
-- Verifica que las tablas principales (`usuarios`, `personas`, `contratos`, `roles`, etc.) estén creadas
-
-### 3. Instalar Dependencias
+### **2. Instalar dependencias**
 ```bash
 npm install
 ```
 
-### 4. Crear Administrador Inicial
+### **3. Configurar variables de entorno**
 ```bash
+# Copiar archivo de ejemplo
+cp .env.example .env
+
+# Editar con tus credenciales
+nano .env
+```
+
+### **4. Configurar base de datos**
+```bash
+## no hace falta
+node scripts/setupDatabase.js
+```
+
+### **5. Crear usuario administrador**
+
+```bash
+## NO hace falta porque tenemos el perfil de Juan
 node scripts/createAdmin.js
 ```
 
-**Credenciales por defecto:**
-- Email: `admin@sigeled.com`
-- Contraseña: `Admin123!`
-> Cambia la contraseña después del primer inicio de sesión.
+### **6. Iniciar el servidor**
+```bash
+# Desarrollo
+npm run dev
+
+# Producción
+npm start
+```
+
+El servidor estará disponible en: `http://localhost:4000`
 
 ---
 
-## 📁 Estructura de Carpetas
+## 🔧 **Configuración**
 
-- **controllers/**: Lógica de negocio y endpoints REST
-- **middleware/**: Autenticación, autorización, validación de archivos
-- **models/**: Acceso y lógica de base de datos
-- **routes/**: Definición de rutas y endpoints
-- **validators/**: Validaciones de datos
-- **uploads/**: Archivos subidos (si no usas Supabase)
-- **utils/**: Utilidades generales (JWT, etc.)
-- **scripts/**: Scripts auxiliares (ej. crear admin)
+### **Variables de Entorno (.env)**
 
----
+Ver `.env.example` para todas las variables necesarias.
 
-## 🧩 Funcionalidades Principales
+**Principales configuraciones:**
 
-### 1. **Autenticación y Usuarios**
-- Registro y login de usuarios (`auth.routes.js`)
-- Asignación y gestión de roles (`role.routes.js`)
-- CRUD de usuarios (`user.routes.js`)
-- Protección de rutas con JWT y roles (`authMiddlware.js`)
+- **Puerto y Host**
+- **Conexión PostgreSQL**
+- **JWT Secrets**
+- **Configuración de Uploads**
+- **URLs de Frontend**
 
-### 2. **Gestión de Personas**
-- Registro y vinculación automática de datos personales (`persona.routes.js`)
-- Asignación de tipo de empleado (solo RRHH/Admin)
-- Buscador avanzado de personal (solo RRHH/Admin)
-- Consulta y actualización de legajos
-
-### 3. **Documentos, Domicilios, Identificaciones, Títulos**
-- Registro y consulta de documentos personales, domicilios, identificaciones y títulos
-- Subida de archivos comprobatorios (validación de tipo/tamaño)
-- Estados de verificación para cada documento (pendiente, aprobado, rechazado)
-- Evita duplicados (ej. DNI/título)
-
-### 4. **Contratos**
-- Registro, consulta, actualización y eliminación de contratos
-- Solo administradores pueden modificar contratos
-
-### 5. **Roles y Permisos**
-- CRUD de roles y asignación a usuarios
-- Middleware para proteger rutas según rol (`authMiddlware.js`, `soloRRHH`)
-
-### 6. **Auditoría y Trazabilidad**
-- Registro histórico de cambios y acciones relevantes (auditoría)
-- Consulta de historial por entidad
-
-### 7. **Documentación de la API**
-- Swagger disponible en `/api-docs` para probar y consultar todos los endpoints
+### **Estructura de Carpetas**
+```
+backend/
+├── controllers/          # Lógica de negocio
+├── middleware/          # Middlewares (auth, validación, etc.)
+├── models/             # Modelos de datos y BD
+├── routes/             # Definición de rutas API
+├── validators/         # Validadores Joi
+├── utils/              # Utilidades (JWT, helpers)
+├── scripts/            # Scripts de configuración
+├── uploads/            # Archivos subidos (desarrollo)
+└── app.js             # Punto de entrada principal
+```
 
 ---
 
-## 🔎 Buscador Avanzado
+## 📚 **API Endpoints**
 
-- Endpoint: `GET /api/persona/buscar`
-- Parámetros: `nombre`, `apellido`, `dni`, `tipo_empleado`
-- Solo accesible para RRHH/Admin
-- Permite filtrar y buscar personal por múltiples campos
+### **🔐 Autenticación**
+```
+POST   /api/auth/register     # Registro de usuario
+POST   /api/auth/login        # Inicio de sesión
+POST   /api/auth/refresh      # Renovar token
+POST   /api/auth/logout       # Cerrar sesión
+```
 
----
+### **👥 Gestión de Personal**
+```
+GET    /api/personas          # Listar personas
+POST   /api/personas          # Crear persona
+GET    /api/personas/:id      # Obtener persona
+PUT    /api/personas/:id      # Actualizar persona
 
-## 📝 Auditoría y Registro Histórico
+GET    /api/docentes          # Listar docentes
+POST   /api/docentes          # Crear docente
+```
 
-- Cada cambio relevante en datos personales, documentos, contratos, etc. queda registrado en la tabla de auditoría
-- Endpoint para consultar historial: `GET /api/persona/{id_persona}/historial` (solo RRHH/Admin)
+### **📄 Documentos e Identificaciones**
+```
+GET    /api/personas/:id/documentos     # Documentos de persona
+POST   /api/personas/:id/documentos     # Subir documento
+GET    /api/personas/:id/identificacion # Identificaciones
+POST   /api/personas/:id/identificacion # Subir identificación
+```
 
----
+### **🔍 Digitalización**
+```
+GET    /api/digitalizacion/estado       # Estado del sistema
+GET    /api/digitalizacion/estadisticas # Métricas generales
+GET    /api/digitalizacion/buscar       # Búsqueda en documentos
+```
 
-## 🔐 Seguridad y Permisos
-
-- Todas las rutas sensibles están protegidas por JWT
-- Endpoints administrativos requieren rol RRHH o Administrador
-- Los usuarios solo pueden modificar/consultar su propia información y documentos
-- Validación de archivos y datos en todos los endpoints
-
----
-
-## 📋 Ejemplo de Flujo
-
-1. **Registro de usuario:**  
-   POST a `/api/auth/register` con email y contraseña
-
-2. **Login:**  
-   POST a `/api/auth/login` con email y contraseña  
-   Recibes un JWT para autenticación
-
-3. **Completar datos personales:**  
-   POST a `/api/persona` con nombre, apellido, fecha de nacimiento y sexo  
-   El backend vincula automáticamente el usuario y la persona
-
-4. **Subir documentos/archivos:**  
-   POST a `/api/persona/{id_persona}/archivo` con el archivo comprobatorio  
-   POST a `/api/persona/{id_persona}/identificacion` para DNI, etc.
-
-5. **Asignar tipo de empleado:**  
-   PUT a `/api/persona/asignar-tipo` (solo RRHH/Admin)
-
-6. **Aprobar/rechazar documentos:**  
-   PUT a `/api/persona-ident/estado` (solo RRHH/Admin)
-
-7. **Consultar estados de verificación:**  
-   GET a `/api/persona/estados-verificacion` (solo RRHH/Admin)
-
-8. **Buscador avanzado:**  
-   GET a `/api/persona/buscar?nombre=...&apellido=...&dni=...&tipo_empleado=...` (solo RRHH/Admin)
-
-9. **Consultar historial de cambios:**  
-   GET a `/api/persona/{id_persona}/historial` (solo RRHH/Admin)
-
-10. **Gestionar contratos, roles y usuarios:**  
-    CRUD en `/api/contratos`, `/api/roles`, `/api/users` (solo administradores)
+### **👔 Administración**
+```
+GET    /api/roles             # Gestión de roles
+GET    /api/users             # Gestión de usuarios
+GET    /api/contratos         # Gestión de contratos
+```
 
 ---
 
-## 📑 Documentación y Pruebas
+## 🧪 **Testing**
 
-- Accede a [http://localhost:4000/api-docs](http://localhost:4000/api-docs) para ver y probar todos los endpoints con Swagger
+### **Probar la API**
 
----
+#### **1. Documentación Swagger**
+```
+http://localhost:4000/api-docs
+```
 
-## 🐛 Solución de Problemas
+#### **2. Comandos de prueba rápida**
+```bash
+# Verificar estado del servidor
+curl http://localhost:4000/api/auth/ping
 
-- **Error: "Cannot find package 'dotenv'"**  
-  Ejecuta: `npm install dotenv`
+# Login (ajustar credenciales) Estos datos podrias cargarlos con los del perfil de JUAN
+curl -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@sigeled.com", "password": "admin123"}'
 
-- **Error de conexión a base de datos**  
-  Verifica que el archivo `.env` tenga la URL correcta de la base de datos
-
-- **Error de permisos o roles**  
-  Verifica que el usuario tenga el rol adecuado y que el middleware esté correctamente aplicado
-
----
-
-## 👨‍💻 Notas para desarrolladores
-
-- **Backend:RORI**  
-  - Los modelos usan SQL parametrizado para evitar inyecciones
-  - Los controladores registran auditoría en cada cambio relevante
-  - Los middlewares permiten extender fácilmente la lógica de permisos
-
-- **Frontend:JUANQ**  
-  - Consulta la documentación Swagger para saber qué datos enviar y recibir en cada endpoint
-  - Usa JWT en el header `Authorization` para acceder a rutas protegidas
-  - Los endpoints de autogestión y consulta están listos para integración
+# Usar token en requests protegidos
+curl -H "Authorization: Bearer TU_TOKEN" \
+  http://localhost:4000/api/digitalizacion/estado
+```
 
 ---
 
-## ❗️ ¿Qué falta por agregar?
+## 🔮 **Funcionalidades Futuras (En Desarrollo)**
 
-- Filtros avanzados en el buscador (por fecha, estado, etc.)
-- Endpoints para informes y estadísticas
-- Módulo para legajos de alumnos
-- Integración con sistemas externos (API REST, webhooks, etc.)
-- Auditoría más detallada (logs de acceso, cambios en documentos, etc.)
+### **🤖 Inteligencia Artificial**
+- **OCR Automático:** Extracción de texto de documentos
+- **Validación IA:** Verificación automática de documentos
+- **Clasificación:** Categorización inteligente de archivos
+
+### **🔍 Búsqueda Avanzada**
+- **Full-text Search:** Búsqueda semántica en contenido
+- **Filtros Dinámicos:** Filtrado avanzado por múltiples criterios
+- **Vector Search:** Búsqueda por similaridad de contenido
+
+### **📊 Analytics y Reportes**
+- **Dashboard:** Métricas en tiempo real
+- **Reportes:** Generación automática de informes
+- **Alertas:** Notificaciones inteligentes
 
 ---
 
-**Cualquier duda pregunten**
+## 🚦 **Scripts Disponibles**
+
+```bash
+npm start              # Iniciar servidor (producción)
+npm run dev            # Iniciar con nodemon (desarrollo)
+npm test               # Ejecutar tests (cuando estén configurados)
+npm run create:admin   # Crear usuario administrador
+```
+
+---
+
+## 🐛 **Troubleshooting**
+
+### **Problemas Comunes**
+
+#### **Error de conexión a BD**
+```bash
+# Verificar variables de entorno
+echo $DB_HOST
+
+# Probar conexión manual
+psql -h $DB_HOST -U $DB_USER -d $DB_NAME
+```
+
+#### **Error de permisos de archivos**
+```bash
+# Crear directorio de uploads
+mkdir -p uploads
+chmod 755 uploads
+```
+
+#### **Error de JWT**
+```bash
+# Verificar que JWT_SECRET esté configurado
+echo $JWT_SECRET
+
+# Regenerar secret si es necesario
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+---
+
+## 📈 **Contribución**
+
+### **Para Desarrolladores**
+
+1. **Fork** el repositorio
+2. **Crear branch** para tu feature: `git checkout -b feature/nueva-funcionalidad`
+3. **Commit** tus cambios: `git commit -m 'Agregar nueva funcionalidad'`
+4. **Push** al branch: `git push origin feature/nueva-funcionalidad`
+5. **Crear Pull Request**
+
+### **Estándares de Código**
+- Usar **ES6+** modules
+- **Comentarios JSDoc** en funciones principales
+- **Validación Joi** para todos los inputs
+- **Manejo de errores** consistente
+- **Logs** informativos en operaciones críticas
+
+---
+
+## 🔄 **Changelog**
+
+### **v1.0.0** (Actual)
+- ✅ Sistema de autenticación JWT completo
+- ✅ CRUD de personas y docentes
+- ✅ Gestión de documentos e identificaciones
+- ✅ API de digitalización (base)
+- ✅ Sistema de roles y permisos
+- ✅ Documentación Swagger
+
+### **v1.1.0** (Próximo)
+- 🔄 Implementación OCR con Ollama
+- 🔄 Validación automática de documentos
+- 🔄 Búsqueda semántica avanzada
+
+---
+
+**¡Cualquier duda, pregunten!** 🚀
