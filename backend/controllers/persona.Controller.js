@@ -75,7 +75,13 @@ export const registrarDatosPersona = async (req, res) => {
         const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo, telefono });
         console.log('persona creada:', persona);
 
-        res.status(201).json(persona);
+        await db.query(
+            'UPDATE usuarios SET id_persona = $1 WHERE id_usuario = $2',
+            [persona.id_persona, id_usuario]
+        );
+        console.log(`IdUsuario: ${id_usuario} vinculado a persona ${persona.id_persona}`);
+
+        res.status(201).json({message:"Persona creada y vinculada a usuario correctamente", persona});
     } catch (error) {
         console.error('Error al registrarDatosPersona', error);
         res.status(500).json({ message: 'Error al registrar datos personales', detalle:error.message });
