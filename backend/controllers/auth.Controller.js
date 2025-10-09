@@ -21,10 +21,10 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
-        const roles = await getRolesByUserId(user.id_persona);
+        const roles = await getRolesByUserId(user.id_usuario);
         const roleNames = roles.map(rol => rol.codigo.toUpperCase());
 
-        const persona = await getPersonaById(user.id_usuario);
+        const persona = await getPersonaById(user.id_persona);
 
         const token = jwt.sign(
             { id: user.id_usuario, email: user.email, roles:roleNames },

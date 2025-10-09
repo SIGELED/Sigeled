@@ -6,6 +6,7 @@ import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiMo
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
 import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
+import db from "../models/db.js"
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {

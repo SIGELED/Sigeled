@@ -44,7 +44,7 @@ const Register = () => {
             localStorage.setItem("token", res.data.token);
           }
 
-          setUserData({...userData, id_usuario: res.data.id_usuario})
+          setUserData({...userData, id_usuario: res.data.user.id})
           setStep(2);
         }
 
@@ -59,11 +59,17 @@ const Register = () => {
           };
 
           const res = await personaService.createPersona(personaData);
-          setUserData({...userData, id_persona: res.data.id_persona});
+          setUserData({...userData, id_persona: res.data.persona.id_persona});
+          console.log(res.data);
           setStep(3);
         }
 
         else if (step === 3){
+          if(!userData.id_persona){
+            setError("Error interno: falta el ID de la persona");
+            return;
+          }
+          
           const identificationData = {
             dni: userData.dni,
             cuil: userData.cuil
