@@ -36,7 +36,9 @@ export const soloDocente = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol "administrador"
 export const soloAdministrador = (req, res, next) => {
-    if (req.user && req.user.rol === 'ADMIN') {
+    const rolesUsuario = res.user?.roles || [];
+
+    if (rolesUsuario.includes('ADMIN')) {
         next();
     } else {
         return res.status(403).json({ message: 'Acceso solo para administradores' });
@@ -45,8 +47,11 @@ export const soloAdministrador = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol "rrhh" o "administrador"
 export const soloRRHH = (req, res, next) => {
-    if (req.user && (req.user.rol === 'RRHH' || req.user.rol === 'ADMIN')) {
+    const rolesUsuario = res.user?.roles || [];
+
+    if (rolesUsuario.includes('RRHH') || (rolesUsuario.includes('ADMIN'))) {
         return next();
     }
+
     return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador' });
 };

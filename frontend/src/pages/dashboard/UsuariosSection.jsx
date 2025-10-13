@@ -1,11 +1,12 @@
 import { useEffect, useState, Suspense, lazy } from "react";
-import { roleService, userService } from "../../services/api";
+import { personaService, profileService, roleService, userService } from "../../services/api";
 
 const UsuariosTable = lazy(() => import('./Usuarios'));
 
 const UsuariosSection = ({user}) =>{
     const [usuarios, setUsuarios] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [profiles, setProfiles] = useState([]);
 
     useEffect(() =>{
         const fetchData = async() => {
@@ -13,20 +14,34 @@ const UsuariosSection = ({user}) =>{
                 const usuariosRes = await userService.getUsuarios();
                 const usuariosData = usuariosRes.data;
 
-                const usuariosConRoles = await Promise.all(
+                const usuariosConRolesYPersona = await Promise.all(
                     usuariosData.map(async (u) =>{
                         const rolesRes = await roleService.getRolesByUser(u.id_usuario);
+
+                        let personaData = {};
+                        if(u.id_persona){
+                            try {
+                                const personaRes = await personaService.getPersonaByID(u.id_persona);
+                                personaData = personaRes.data;
+                            } catch (err) {
+                                console.warn(`No se encontró persona para usuario ${u.id_usuario}`);
+                            }
+                        }
                         return{
                             ...u,
-                            rolesAsignados: rolesRes.data
+                            rolesAsignados: rolesRes.data,
+                            ...personaData
                         }
                     })
                 )
 
-                setUsuarios(usuariosConRoles);
+                setUsuarios(usuariosConRolesYPersona);
 
                 const rolesRes = await roleService.getRoles();
                 setRoles(rolesRes.data);
+
+                const profileRes = await profileService.getProfiles();
+                setProfiles(profileRes.data);
             } catch (err) {
                 console.log(err);
             }
@@ -58,6 +73,30 @@ const UsuariosSection = ({user}) =>{
         }
     };
 
+    const handleAssignProfile = async(id_persona, id_perfil) => {
+        try {
+            const res = await profileService.assignProfile(
+                id_persona,
+                id_perfil,
+                user.id
+            )
+
+            const profileAsignado = profiles.find(p => p.id_perfil === parseInt(id_perfil));
+
+            setUsuarios((prev) => 
+                prev.map((u) =>
+                    u.id_persona === id_persona
+                    ? {...u, perfilesAsignados: [profileAsignado]}
+                    :u
+                )   
+            )
+                alert("Perfil asignado correctamente")
+                console.log("Usuario que asigna el perfil:", user)
+        } catch (err) {
+            alert(err.response?.data?.message || 'Error al asignar perfil');
+        }
+    }
+
     const handleEdit = (usuario) => {
         console.log('Editar usuario', usuario);
     };
@@ -84,9 +123,11 @@ const UsuariosSection = ({user}) =>{
             <UsuariosTable
                 users={usuarios}
                 roles = {roles}
+                profiles = {profiles}
                 onEdit = {handleEdit}
                 onToggle = {handleToggle}
                 onAssignRole = {handleAssignRole}
+                onAssignProfile = {handleAssignProfile}
             />
         </Suspense>
     )

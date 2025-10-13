@@ -55,4 +55,10 @@ export const identificationService = {
   getIdentificaciones:(id_persona) => api.get(`/persona/${id_persona}/identificacion`),
 }
 
+export const profileService = {
+  getProfiles:() => api.get('/persona/perfiles'),
+  assignProfile:(id_persona, id_perfil) =>
+    api.post(`/persona/asignar-perfil`, {id_persona, id_perfil}),
+}
+
 export default api;

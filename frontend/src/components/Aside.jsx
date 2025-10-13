@@ -33,7 +33,7 @@ export default function Aside({activeSection, setActiveSection}) {
                 {/*FOTO DE PERFIL Y NOMBRE*/}
                 <div className="flex flex-col items-center">
                     <img src="" alt="FOTO DE PERFIL" className="w-46 h-46 rounded-full bg-[#0f1d29] mb-3"/>
-                    <h1 className="text-2xl font-semibold text-white"><span>{user.email}</span></h1>
+                    <h1 className="text-2xl font-semibold text-white"><span>{user.apellido} {user.nombre}</span></h1>
                     <h2 className="text-xl text-[#19F124] font-medium">{user.roles && user.roles.length > 0 ? roleNames[user.roles[0]] || user.roles[0]: "Sin Rol"}</h2>
                 </div>
             </div>

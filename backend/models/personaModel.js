@@ -102,14 +102,6 @@ export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, 
     return res.rows[0];
 };
 
-export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
-    const res = await db.query(
-        `INSERT INTO personas_usuarios (id_persona, id_usuario) VALUES ($1, $2) RETURNING *`,
-        [id_persona, id_usuario]
-    );
-    return res.rows[0];
-};
-
 // Asignar un perfil a una persona
 export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_asignador) => {
     // Opcional: marcar como no vigente si ya tenía ese perfil
@@ -126,6 +118,12 @@ export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_asigna
     );
     return res.rows[0];
 };
+
+// Obtener perfiles 
+export const obtenerPerfiles = async() => {
+    const res = await db.query('SELECT * FROM perfiles');
+    return res.rows;
+}
 
 // Obtener perfiles vigentes de una persona
 export const getPerfilesDePersona = async (id_persona) => {

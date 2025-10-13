@@ -18,14 +18,38 @@ import {
     asignarPerfil,
     obtenerPerfilesPersona,
     buscarPorDNI,
-    buscadorAvanzado
+    buscadorAvanzado,
 } from '../controllers/persona.Controller.js';
+import { obtenerPerfiles } from '../models/personaModel.js';
 import { verificarToken, soloRRHH } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
 
 // Todas las rutas requieren autenticación
 personaRouter.use(verificarToken);
+
+/**
+ * @swagger
+ * /api/perfiles:
+ *   get:
+ *     summary: Obtener todos los Perfiles
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles
+ */
+personaRouter.get('/perfiles', async (req, res) => {
+    try {
+        const perfiles = await obtenerPerfiles();
+        res.json(perfiles);
+    } catch (error) {
+        console.error('Error al obtener perfiles:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
 
 /**
  * @swagger
@@ -357,6 +381,7 @@ personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValida
  *         description: Resultados del buscador avanzado
  */
 personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
+
 /**
  * @swagger
  * /api/persona/buscar:
@@ -387,8 +412,6 @@ personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
  *       200:
  *         description: Resultados del buscador avanzado
  */
-
-
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
 
