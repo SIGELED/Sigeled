@@ -13,8 +13,10 @@ import personaRouter from './routes/persona.routes.js';
 import digiDocuRouter from './routes/digitalizacion.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
+import { errorHandler } from './middleware/errorHandler.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
+import helmet from 'helmet';
 
-// Configuración COMPLETA de Swagger con autenticación
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -53,6 +55,8 @@ const options = {
 const swaggerSpec = swaggerJSDoc(options);
 
 const app = express();
+app.use(helmet());
+app.use(apiLimiter);
 
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
@@ -67,6 +71,8 @@ app.use('/api/contratos', contratoRouter);
 app.use('/api/persona-doc', personaDocRouter); 
 app.use('/api/persona', personaRouter);
 app.use('/api/digitalizacion', digiDocuRouter);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

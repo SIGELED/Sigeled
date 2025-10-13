@@ -82,20 +82,14 @@ cp .env.example .env
 nano .env
 ```
 
-### **4. Configurar base de datos**
-```bash
-## no hace falta
-node scripts/setupDatabase.js
-```
-
-### **5. Crear usuario administrador**
+### **4. Crear usuario administrador**
 
 ```bash
 ## NO hace falta porque tenemos el perfil de Juan
 node scripts/createAdmin.js
 ```
 
-### **6. Iniciar el servidor**
+### **5. Iniciar el servidor**
 ```bash
 # Desarrollo
 npm run dev
