@@ -3,6 +3,7 @@ import { useReactTable, createColumnHelper, getCoreRowModel, flexRender, getPagi
 import { MdNavigateNext, MdNavigateBefore } from "react-icons/md";
 import { FaToggleOn, FaToggleOff } from "react-icons/fa6";
 import { CgInfo } from "react-icons/cg";
+import { useNavigate } from 'react-router-dom';
 
 const columnHelper = createColumnHelper();
 
@@ -11,6 +12,8 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
         pageIndex:0,
         pageSize: 9,
     })
+
+    const navigate = useNavigate();
 
     const columns = useMemo(
         () => [
@@ -83,7 +86,7 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
             cell:({row}) => (
                 <div className='flex items-center justify-center align-middle'>
                 <button
-                    onClick={() => onEdit && onEdit(row.original)}
+                    onClick={() => navigate(`/usuarios/${row.original.id_usuario}`)}
                     aria-label={`Ver info ${row.original.nombre}`}
                     className="p-1 rounded-[0.80rem] bg-[#242E38] hover:bg-[#16222b] transition cursor-pointer"
                     >

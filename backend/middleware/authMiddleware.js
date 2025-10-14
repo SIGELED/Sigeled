@@ -36,7 +36,7 @@ export const soloDocente = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol "administrador"
 export const soloAdministrador = (req, res, next) => {
-    const rolesUsuario = res.user?.roles || [];
+    const rolesUsuario = req.user?.roles || [];
 
     if (rolesUsuario.includes('ADMIN')) {
         next();
@@ -47,7 +47,7 @@ export const soloAdministrador = (req, res, next) => {
 
 // Middleware para permitir solo a usuarios con rol "rrhh" o "administrador"
 export const soloRRHH = (req, res, next) => {
-    const rolesUsuario = res.user?.roles || [];
+    const rolesUsuario = req.user?.roles || [];
 
     if (rolesUsuario.includes('RRHH') || (rolesUsuario.includes('ADMIN'))) {
         return next();

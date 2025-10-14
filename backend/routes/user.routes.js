@@ -84,6 +84,32 @@ userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserCont
  */
 userRouter.put('/:id_usuario/toggle', permitirRoles('ADMIN'), toggleUser);
 
+
+/**
+ * @swagger
+ * /api/users/{id_usuario}:
+ *   get:
+ *     summary: Obtener usuario por id
+ *     tags:
+ *       - Usuarios
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_usuario
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Usuario encontrado
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error del servidor
+ */
+userRouter.get('/:id_usuario', permitirRoles('ADMIN'), getUser)
+
 /**
  * @swagger
  * /api/users/profile:

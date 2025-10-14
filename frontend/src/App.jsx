@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Inicio from './pages/Inicio';
 import Perfil from './components/Perfil';
 import Revision from './pages/Revision';
+import UsuarioDetalle from './pages/dashboard/UsuarioDetalle';
 
 function App() {
   return (
@@ -30,8 +31,15 @@ function App() {
                     <Dashboard />
                   </ProtectedRoute>
                 } 
+              />  
+              <Route
+                path="/usuarios/:id"
+                element={
+                  <ProtectedRoute>
+                    <UsuarioDetalle />
+                  </ProtectedRoute>
+                }
               />
-              
               {/* Redirecciones */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

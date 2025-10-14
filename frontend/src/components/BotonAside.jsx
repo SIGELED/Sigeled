@@ -1,6 +1,6 @@
 export default function BotonAside({ children, onClick, activo, variant }) {
     let baseStyles = `
-        w-fit max-w-fit text-4xl grid grid-cols-[1.75rem_auto] items-center gap-3 
+        text-2xl grid grid-cols-[1.75rem_auto] items-center gap-3 
         rounded-xl px-4 py-3 leading-none transition duration-200 text-left
     `;
 
@@ -12,7 +12,7 @@ export default function BotonAside({ children, onClick, activo, variant }) {
 
     if (variant === "logout") {
         baseStyles = `
-        w-fit max-w-fit text-4xl grid grid-cols-[1.75rem_auto] items-center gap-3
+        text-2xl grid grid-cols-[1.75rem_auto] items-center gap-3
         rounded-xl px-4 py-3 leading-none transition duration-200 text-left
         text-[#ff2c2c] font-medium hover:text-[#ff1010] hover:bg-[#0b1823] hover:cursor-pointer
         `;

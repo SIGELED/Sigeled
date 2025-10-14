@@ -59,6 +59,7 @@ export const profileService = {
   getProfiles:() => api.get('/persona/perfiles'),
   assignProfile:(id_persona, id_perfil) =>
     api.post(`/persona/asignar-perfil`, {id_persona, id_perfil}),
+  getPersonaProfile:(id_persona) => api.get(`/persona/${id_persona}/perfiles`)
 }
 
 export default api;

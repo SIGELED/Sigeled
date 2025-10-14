@@ -22,12 +22,29 @@ export const getUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
-        res.json(user);
+        res.status(200).json(user);
     } catch (error) {
         console.error('Error al obtener usuario:', error);
         res.status(500).json({ message: 'Error del servidor' });
     }
 };
+
+export const getUserByIdController = async (req,res) => {
+    try {
+        const { id_usuario } = req.params;
+
+        const userRes = await db.query(
+            `SELECT u.id_usuario, u.email, u.activo, u.id_persona
+            FROM USUARIOS u
+            WHERE id_usuario = $1`,
+            [id_usuario]
+        );
+        const user = userRes.rows[0];
+        if(!user) return res.status(404).json({message:"Usuario no encontrado"})
+    } catch (err) {
+        
+    }
+}
 
 // Crear nuevo usuario
 export const createUserController = async (req, res) => {
