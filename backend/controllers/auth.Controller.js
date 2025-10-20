@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { findUserByEmail, createUser } from '../models/userModel.js';
 import { getRolesByUserId } from '../models/roleModel.js';
-import { getPersonaById } from '../models/personaModel.js';
+import { getPerfilesDePersona, getPersonaById } from '../models/personaModel.js';
 import db from '../models/db.js';
 
 export const login = async (req, res) => {
@@ -26,12 +26,14 @@ export const login = async (req, res) => {
 
         const persona = await getPersonaById(user.id_persona);
 
+        const perfiles = await getPerfilesDePersona(user.id_persona);
+
         const token = jwt.sign(
-            { id: user.id_usuario, email: user.email, roles:roleNames },
+            { id: user.id_usuario, email: user.email, roles:roleNames, perfiles: perfiles},
             process.env.JWT_ACCESS_SECRET,
             { expiresIn: '1h' }
         );
-        res.json({ token, user: { id: user.id_usuario, email: user.email, nombre:persona?.nombre, apellido:persona?.apellido, roles:roleNames } });
+        res.json({ token, user: { id: user.id_usuario, email: user.email, nombre:persona?.nombre, apellido:persona?.apellido, roles:roleNames, perfiles: perfiles } });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });

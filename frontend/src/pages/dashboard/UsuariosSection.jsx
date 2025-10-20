@@ -73,29 +73,29 @@ const UsuariosSection = ({user}) =>{
         }
     };
 
-    const handleAssignProfile = async(id_persona, id_perfil) => {
-        try {
-            const res = await profileService.assignProfile(
-                id_persona,
-                id_perfil,
-                user.id
-            )
+    // const handleAssignProfile = async(id_persona, id_perfil) => {
+    //     try {
+    //         const res = await profileService.assignProfile(
+    //             id_persona,
+    //             id_perfil,
+    //             user.id
+    //         )
 
-            const profileAsignado = profiles.find(p => p.id_perfil === parseInt(id_perfil));
+    //         const profileAsignado = profiles.find(p => p.id_perfil === parseInt(id_perfil));
 
-            setUsuarios((prev) => 
-                prev.map((u) =>
-                    u.id_persona === id_persona
-                    ? {...u, perfilesAsignados: [profileAsignado]}
-                    :u
-                )   
-            )
-                alert("Perfil asignado correctamente")
-                console.log("Usuario que asigna el perfil:", user)
-        } catch (err) {
-            alert(err.response?.data?.message || 'Error al asignar perfil');
-        }
-    }
+    //         setUsuarios((prev) => 
+    //             prev.map((u) =>
+    //                 u.id_persona === id_persona
+    //                 ? {...u, perfilesAsignados: [profileAsignado]}
+    //                 :u
+    //             )   
+    //         )
+    //             alert("Perfil asignado correctamente")
+    //             console.log("Usuario que asigna el perfil:", user)
+    //     } catch (err) {
+    //         alert(err.response?.data?.message || 'Error al asignar perfil');
+    //     }
+    // }
 
     const handleEdit = (usuario) => {
         console.log('Editar usuario', usuario);
@@ -127,7 +127,7 @@ const UsuariosSection = ({user}) =>{
                 onEdit = {handleEdit}
                 onToggle = {handleToggle}
                 onAssignRole = {handleAssignRole}
-                onAssignProfile = {handleAssignProfile}
+                // onAssignProfile = {handleAssignProfile}
             />
         </Suspense>
     )

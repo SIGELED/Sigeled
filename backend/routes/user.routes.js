@@ -4,7 +4,8 @@ import {
     getUser, 
     createUserController, 
     toggleUser,
-    getUserRoles
+    getUserRoles,
+    getUserByIdController
 } from '../controllers/user.Controller.js';
 import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
 import { validarCrearUsuario, validarActualizarUsuario } from '../validators/userValidator.js';
@@ -13,6 +14,8 @@ const userRouter = express.Router();
 
 // Todas las rutas requieren autenticación
 userRouter.use(verificarToken);
+
+userRouter.get('/:id_usuario', permitirRoles('ADMIN', 'RRHH'), getUserByIdController)
 
 /**
  * @swagger

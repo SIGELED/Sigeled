@@ -50,43 +50,43 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
                 );
             },
         }),
-        columnHelper.display({
-            id:"perfil",
-            header:"Perfil",
-            cell:({row}) => {
-                const usuario = row.original;
+        // columnHelper.display({
+        //     id:"perfil",
+        //     header:"Perfil",
+        //     cell:({row}) => {
+        //         const usuario = row.original;
 
-                if(usuario.perfilesAsignados && usuario.perfilesAsignados.length > 0){
-                    return <span>{usuario.perfilesAsignados.map(p => p.nombre).join(', ')}</span>
-                }
+        //         if(usuario.perfilesAsignados && usuario.perfilesAsignados.length > 0){
+        //             return <span>{usuario.perfilesAsignados.map(p => p.nombre).join(', ')}</span>
+        //         }
 
-                const handleChange = async(e) =>{
-                    const nuevoPerfil = e.target.value;
-                    if(onAssignProfile && nuevoPerfil) {
-                        onAssignProfile(usuario.id_persona, nuevoPerfil)
-                    }
-                };
+        //         const handleChange = async(e) =>{
+        //             const nuevoPerfil = e.target.value;
+        //             if(onAssignProfile && nuevoPerfil) {
+        //                 onAssignProfile(usuario.id_persona, nuevoPerfil)
+        //             }
+        //         };
                 
-                return(
-                    <select defaultValue="" onChange={handleChange} className='px-2 py-1 rounded-full bg-[#242E38] text-white hover:bg-[#2d3946] transition cursor-pointer'>
+        //         return(
+        //             <select defaultValue="" onChange={handleChange} className='px-2 py-1 rounded-full bg-[#242E38] text-white hover:bg-[#2d3946] transition cursor-pointer'>
 
-                        <option value="" className=''>Seleccionar perfil</option>
-                        {profiles.map((p) =>(
-                            <option key={p.id_perfil} value={p.id_perfil}>
-                                {p.nombre}
-                            </option>
-                        ))}
-                    </select>
-                );
-            },
-        }),
+        //                 <option value="" className=''>Seleccionar perfil</option>
+        //                 {profiles.map((p) =>(
+        //                     <option key={p.id_perfil} value={p.id_perfil}>
+        //                         {p.nombre}
+        //                     </option>
+        //                 ))}
+        //             </select>
+        //         );
+        //     },
+        // }),
         columnHelper.display({
             id:"info",
             header: "Info.",
             cell:({row}) => (
                 <div className='flex items-center justify-center align-middle'>
                 <button
-                    onClick={() => navigate(`/usuarios/${row.original.id_usuario}`)}
+                    onClick={() => navigate(`/dashboard/usuarios/${row.original.id_usuario}`)}
                     aria-label={`Ver info ${row.original.nombre}`}
                     className="p-1 rounded-[0.80rem] bg-[#242E38] hover:bg-[#16222b] transition cursor-pointer"
                     >
@@ -106,12 +106,12 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
                     aria-label={`${row.original.activo ? 'Desactivar' : 'Activar'} ${row.original.nombre}`}
                     className={`px-3 py-1 rounded-2xl transition-all duration-200 cursor-pointer
                     ${row.original.activo
-                        ? 'font-black text-[#ff2222] hover:text-[#ff3e3e] hover:bg-[#2d3946]'
-                        : 'font-black text-[#19F124] hover:bg-[#2d3946]'
+                        ? 'font-black text-[#19F124] hover:bg-[#2d3946]'
+                        : 'font-black text-[#ff2222] hover:text-[#ff3e3e] hover:bg-[#2d3946]'
                     }`
                 }
                 >
-                    {row.original.activo ? (<FaToggleOff className="w-7 h-7"/>) : (<FaToggleOn className="w-7 h-7"/>)}
+                    {row.original.activo ? (<FaToggleOn className="w-7 h-7"/>) : (<FaToggleOff className="w-7 h-7"/>)}
                 </button>
                 )}
             </div>
@@ -131,7 +131,9 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
     });
 
 return (
-    <div className='pt-5 pl-10 pr-10'>
+    <main className='mt-7'>
+    <h1 className='text-4xl font-medium ml-20'>Gestión de Usuarios</h1>
+    <div className='mt-5 pl-10 pr-10'>
         <div className="flex flex-col justify-between h-[85vh] bg-[#101922] rounded-3xl overflow-hidden">
             <div className="flex-grow overflow-y-auto">
                 <table className="min-w-full">
@@ -215,5 +217,6 @@ return (
             </div>
         </div>
     </div>
+    </main>
     );
 }

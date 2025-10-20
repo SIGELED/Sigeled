@@ -25,21 +25,14 @@ function App() {
               
               {/* Ruta protegida */}
               <Route 
-                path="/dashboard" 
+                path="/dashboard/*" 
                 element={
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
                 } 
               />  
-              <Route
-                path="/usuarios/:id"
-                element={
-                  <ProtectedRoute>
-                    <UsuarioDetalle />
-                  </ProtectedRoute>
-                }
-              />
+
               {/* Redirecciones */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
