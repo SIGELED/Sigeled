@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
-import { createPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import db from "../models/db.js"
 
@@ -92,13 +92,44 @@ export const registrarDatosPersona = async (req, res) => {
 export const asignarPerfil = async (req, res) => {
     try {
         const { id_persona, id_perfil } = req.body;
-        const usuario_asignador = req.user.id_usuario;
-        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuario_asignador);
-        res.status(201).json({ message: 'Perfil asignado correctamente', resultado });
+        
+        const usuarioActor = 
+            req.user?.id_usuario ??
+            req.user?.id ??
+            req.usuario?.id_usuario ??
+            req.usuario?.id;
+
+        if(!usuarioActor){
+            return res.status(401).json({message:'No se pudo identificar el usuario autenticad'});
+        }
+
+        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuarioActor);
+        res.status(201).json({message:'Perfil asignado correctamente', resultado});
     } catch (error) {
         res.status(500).json({ message: 'Error al asignar perfil', detalle: error.message });
     }
 };
+
+export const desasignarPerfil = async (req, res) => {
+    try {
+        const {id_persona, id_perfil} = req.params;
+        const usuarioActor = 
+            req.user?.id_usuario ??
+            req.user?.id ??
+            req.usuario?.id_usuario ??
+            req.usuario?.id;
+
+        const out = await desasignarPerfilPersona(id_persona, Number(id_perfil), usuarioActor);
+
+        if(!out) {
+            return res.status(404).json({message: "No hay un perfil vigente para quitar"});
+        }
+        res.json({message:'Perfil desasignado correctamente', resultado: out});
+    } catch (error) {
+        console.error('Error en desasignarPerfil:', error);
+        res.status(500).json({message:'Error al desasignar perfil', detalle:error.message});
+    }
+}
 
 // Obtener todas las personas
 export const listarPersonas = async (req, res) => {

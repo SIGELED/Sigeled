@@ -1,5 +1,5 @@
 import { archivoValidator } from '../middleware/archivoMiddleware.js';
-import { subirArchivo, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
+import { subirArchivo, listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
@@ -21,7 +21,7 @@ import {
     buscadorAvanzado,
 } from '../controllers/persona.Controller.js';
 import { obtenerPerfiles } from '../models/personaModel.js';
-import { verificarToken, soloRRHH } from '../middleware/authMiddleware.js';
+import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
 
@@ -414,6 +414,8 @@ personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
  */
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
+
+personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministrador, desasignarPerfil)
 
 /**
  * @swagger

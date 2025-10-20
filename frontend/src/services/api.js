@@ -59,7 +59,32 @@ export const profileService = {
   getProfiles:() => api.get('/persona/perfiles'),
   assignProfile:(id_persona, id_perfil) =>
     api.post(`/persona/asignar-perfil`, {id_persona, id_perfil}),
-  getPersonaProfile:(id_persona) => api.get(`/persona/${id_persona}/perfiles`)
+  getPersonaProfile:(id_persona) => api.get(`/persona/${id_persona}/perfiles`),
+  deleteProfile: (id_persona, id_perfil) => api.delete(`/persona/${id_persona}/perfiles/${id_perfil}`),
 }
+
+export const personaDocService = {
+  listarDocumentos: (params = {}) => api.get('/persona-doc', {params}),
+  getDocById: (id_persona_doc) => api.get(`/persona-doc/${id_persona_doc}`),
+  createDoc: (data) => api.post('/persona-doc', data),
+}
+
+export const estadoVerificacionService = {
+  getAll: () => api.get('/persona/estados-verificacion'),
+}
+
+export const tipoDocService = {
+  getAllDocTypes: () => api.get('/tipos-documento'),
+}
+
+export const archivoService = {
+  uploadForPersona: (id_persona, file) => {
+    const form = new FormData();
+    form.append('archivo', file);
+    return api.post(`/persona/${id_persona}/archivo`, form, {
+      headers:{'Content-Type':'multipart/form-data'},
+    });
+  },
+};
 
 export default api;

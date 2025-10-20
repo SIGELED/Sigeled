@@ -103,26 +103,53 @@ export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, 
 };
 
 // Asignar un perfil a una persona
-export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_asignador) => {
-    // Opcional: marcar como no vigente si ya tenía ese perfil
-    await db.query(
-        `UPDATE personas_perfiles SET vigente = false, actualizado_por_usuario = $1, actualizado_en = NOW()
-            WHERE id_persona = $2 AND id_perfil = $3 AND vigente = true`,
-        [usuario_asignador, id_persona, id_perfil]
+export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_editor) => {
+    const up = await db.query(
+        `UPDATE personas_perfiles 
+        SET vigente = true, 
+            asignado_por_usuario = $3,
+            asignado_en = NOW(),
+            actualizado_por_usuario = $3,
+            actualizado_en = NOW()
+        WHERE id_persona = $1 
+            AND id_perfil = $2 
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
     );
-    // Insertar nuevo perfil vigente
-    const res = await db.query(
-        `INSERT INTO personas_perfiles (id_persona, id_perfil, vigente, asignado_por_usuario, asignado_en)
-         VALUES ($1, $2, true, $3, NOW()) RETURNING *`,
-        [id_persona, id_perfil, usuario_asignador]
+
+    if(up.rowCount > 0) return up.rows[0];
+
+    const ins = await db.query(
+        `INSERT INTO personas_perfiles
+            (id_persona, id_perfil, vigente, asignado_por_usuario, asignado_en)
+        VALUES ($1, $2, true, $3, NOW())
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
     );
-    return res.rows[0];
+
+    return ins.rows[0];
 };
 
 // Obtener perfiles 
 export const obtenerPerfiles = async() => {
     const res = await db.query('SELECT * FROM perfiles');
     return res.rows;
+}
+
+// Eliminar perfil de persona
+export const desasignarPerfilPersona = async(id_persona, id_perfil, usuario_editor) => {
+    const res = await db.query(
+        `UPDATE personas_perfiles
+        SET vigente = false,
+            actualizado_por_usuario = $3,
+            actualizado_en = NOW()
+        WHERE id_persona = $1
+            AND id_perfil = $2
+            AND vigente = true
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
+    );
+    return res.rowCount ? res.rows[0] : null;
 }
 
 // Obtener perfiles vigentes de una persona
