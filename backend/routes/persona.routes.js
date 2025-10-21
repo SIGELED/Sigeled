@@ -11,8 +11,6 @@ import {
     obtenerPersona,
     obtenerIdentificacion,
     crearIdentificacion,
-    obtenerDomicilios,
-    crearDomicilio,
     obtenerTitulos,
     crearTitulo,
     asignarPerfil,
@@ -21,6 +19,12 @@ import {
     buscadorAvanzado,
 } from '../controllers/persona.Controller.js';
 import { obtenerPerfiles } from '../models/personaModel.js';
+import { 
+    obtenerDomicilios, 
+    crearDomicilio, 
+    listarDepartamentos, 
+    listarLocalidades, 
+    listarBarrios } from '../controllers/personaDomi.Controller.js';
 import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
@@ -42,6 +46,12 @@ personaRouter.use(verificarToken);
  *         description: Lista de estados de verificación
  */
 personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+
+personaRouter.get('/dom/departamentos', listarDepartamentos);
+
+personaRouter.get('/dom/departamentos/:id_dom_departamento/localidades', listarLocalidades);
+
+personaRouter.get('/dom/localidades/:id_dom_localidad/barrios', listarBarrios);
 
 /**
  * @swagger

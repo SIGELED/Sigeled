@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import PersonaDocumentos from "../../components/PersonaDocumentos";
+import PersonaDomicilios from "../../components/PersonaDomicilios";
 import { userService, profileService} from "../../services/api"
 import { MdNavigateBefore } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
@@ -19,6 +20,7 @@ export default function UsuarioDetalle() {
     const [perfilesVigentes, setPerfilesVigentes] = useState([]);
 
     const [showDocs, setShowDocs] = useState(false);
+    const [showDomicilios, setShowDomicilios] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -192,6 +194,14 @@ export default function UsuarioDetalle() {
                             >
                                 Consultar documentos<br />personales
                             </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowDomicilios(true)}
+                                className="justify-self-start border-3 border-dashed rounded-2xl px-6 py-8 text-sm leading-tight text-center hover:border-[#19F124] hover:bg-[#19F124] hover:text-[#101922] transition"
+                            >
+                                Gestionar domicilios
+                            </button>
                         </div>
                     </section>
                 </div>
@@ -281,6 +291,13 @@ export default function UsuarioDetalle() {
                     <PersonaDocumentos
                         idPersona={usuario.id_persona}
                         onClose={() => setShowDocs(false)}
+                    />
+                )}
+
+                {showDomicilios && (
+                    <PersonaDomicilios
+                        idPersona={usuario.id_persona}
+                        onClose={() => setShowDomicilios(false)}
                     />
                 )}
         </div>

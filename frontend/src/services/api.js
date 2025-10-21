@@ -88,4 +88,15 @@ export const archivoService = {
   getSignedUrl: (id_archivo) => api.get(`/archivos/${id_archivo}/signed-url`),
 };
 
+export const domicilioService = {
+  getDomicilioByPersona: (id_persona) => api.get(`/persona/${id_persona}/domicilio`),
+  createDomicilio: (id_persona, data) => api.post(`/persona/${id_persona}/domicilio`, data),
+}
+
+export const domOtrosService = {
+  getDepartamentos:() => api.get(`/persona/dom/departamentos`),
+  getLocalidades:(id_dom_departamento) => api.get(`/persona/dom/departamentos/${id_dom_departamento}/localidades`),
+  getBarrios: (id_dom_localidad) => api.get(`/persona/dom/localidades/${id_dom_localidad}/barrios`),
+}
+
 export default api;
