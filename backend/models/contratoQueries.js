@@ -86,7 +86,18 @@ export async function createContrato(data) {
       data.fecha_fin || null
     ];
     
-    console.log('Executing query with values:', values);
+        // Verificar solapamiento: el mismo profesor no puede tener contratos que se solapen
+        const overlapQuery = `
+          SELECT 1 FROM contrato_profesor
+          WHERE id_profesor = $1
+            AND daterange(fecha_inicio, COALESCE(fecha_fin, 'infinity'::date)) &&
+                daterange($2::date, COALESCE($3::date, 'infinity'::date))
+          LIMIT 1
+        `;
+        const { rows: overlapRows } = await client.query(overlapQuery, [data.id_profesor, data.fecha_inicio, data.fecha_fin || null]);
+        if (overlapRows.length > 0) {
+          throw new Error('Solapamiento detectado: el profesor ya tiene un contrato en ese rango de fechas');
+        }
     
     const { rows } = await client.query(query, values);
     await client.query('COMMIT');
@@ -114,18 +125,53 @@ export async function updateContrato(idContrato, data) {
     if (rowCount === 0) {
       throw new Error('Contrato no encontrado');
     }
-    
-    const updateFields = [];
-    const values = [];
-    let paramIndex = 1;
-    
-    // Construir dinámicamente la consulta de actualización
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        updateFields.push(`${key} = $${paramIndex++}`);
-        values.push(value);
-      }
+    // Obtener contrato actual para calcular valores efectivos (en caso de updates parciales)
+    const currentRes = await client.query('SELECT id_profesor, fecha_inicio, fecha_fin FROM contrato_profesor WHERE id_contrato_profesor = $1', [idContrato]);
+    const current = currentRes.rows[0];
+
+    // Determinar valores que se usarán para la comprobación de solapamiento
+    const effectiveProfesor = data.id_profesor !== undefined ? data.id_profesor : current.id_profesor;
+    const effectiveStart = data.fecha_inicio !== undefined ? data.fecha_inicio : current.fecha_inicio;
+    const effectiveEnd = data.fecha_fin !== undefined ? data.fecha_fin : current.fecha_fin;
+
+    // Verificar solapamiento (excluyendo el propio contrato)
+    const overlapQueryUpdate = `
+      SELECT 1 FROM contrato_profesor
+      WHERE id_profesor = $1
+        AND id_contrato_profesor <> $4
+        AND daterange(fecha_inicio, COALESCE(fecha_fin, 'infinity'::date)) &&
+            daterange($2::date, COALESCE($3::date, 'infinity'::date))
+      LIMIT 1
+    `;
+    const { rows: overlapUpdate } = await client.query(overlapQueryUpdate, [effectiveProfesor, effectiveStart, effectiveEnd, idContrato]);
+    if (overlapUpdate.length > 0) {
+      throw new Error('Solapamiento detectado: el profesor ya tiene un contrato en ese rango de fechas');
     }
+    // White-list de campos permitidos a actualizar
+        const allowedFields = new Set([
+          'id_persona', 'id_profesor', 'id_materia', 'id_periodo',
+          'horas_semanales', 'horas_mensuales', 'monto_hora', 'fecha_inicio', 'fecha_fin', 'estado'
+        ]);
+        const updateFields = [];
+        const values = [];
+        let paramIndex = 1;
+        
+        // Validar rangos de fecha si vienen ambos
+        if (data.fecha_inicio !== undefined && data.fecha_fin !== undefined) {
+          const start = new Date(data.fecha_inicio);
+          const end = new Date(data.fecha_fin);
+          if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+            throw new Error('Fechas inválidas: fecha_inicio debe ser anterior a fecha_fin');
+          }
+        }
+        
+        // Construir SET usando white-list
+        for (const [key, value] of Object.entries(data)) {
+          if (value === undefined) continue;
+          if (!allowedFields.has(key)) continue; // Ignorar campos no permitidos
+          updateFields.push(`${key} = $${paramIndex++}`);
+          values.push(value);
+        }
     
     if (updateFields.length === 0) {
       throw new Error('No se proporcionaron campos para actualizar');

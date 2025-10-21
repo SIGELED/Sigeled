@@ -13,6 +13,7 @@ import {
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoQueries.js';
 import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
+import { createContratoValidators, updateContratoValidators, handleValidation } from '../validators/contratoValidator.js';
 
 const contratoRouter = express.Router();
 
@@ -152,7 +153,7 @@ contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
  *       500:
  *         description: Error del servidor
  */
-contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearNuevoContratoProfesor);
+contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, createContratoValidators, handleValidation, crearNuevoContratoProfesor);
 
 
 /**
@@ -255,7 +256,7 @@ contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, crearN
  *       500:
  *         description: Error interno del servidor
  */
-contratoRouter.put('/:id', soloAdministrador, actualizarContrato);
+contratoRouter.put('/:id', soloAdministrador, updateContratoValidators, handleValidation, actualizarContrato);
 
 
 

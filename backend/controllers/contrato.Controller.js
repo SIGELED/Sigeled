@@ -53,8 +53,8 @@ export async function crearContratoHandler(req, res) {
       });
     }
     
-    // Validar campos requeridos
-    const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio'];
+  // Validar campos requeridos (fecha_fin es obligatoria según regla)
+  const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio', 'fecha_fin'];
     const missingFields = requiredFields.filter(field => data[field] === undefined);
     
     if (missingFields.length > 0) {

@@ -36,6 +36,46 @@ const swaggerDefinition = {
         bearerFormat: 'JWT'
       }
     }
+    ,
+    schemas: {
+      Contrato: {
+        type: 'object',
+        properties: {
+          id_contrato_profesor: { type: 'integer', example: 1 },
+          id_persona: { type: 'integer', example: 3 },
+          id_profesor: { type: 'integer', example: 5 },
+          id_materia: { type: 'integer', example: 10 },
+          id_periodo: { type: 'integer', example: 2025 },
+          horas_semanales: { type: 'integer', example: 20 },
+          horas_mensuales: { type: 'integer', example: 80 },
+          monto_hora: { type: 'number', format: 'float', example: 500.00 },
+          fecha_inicio: { type: 'string', format: 'date', example: '2025-01-01' },
+          fecha_fin: { type: 'string', format: 'date', example: '2025-12-31' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          persona_nombre: { type: 'string' },
+          persona_apellido: { type: 'string' },
+          descripcion_materia: { type: 'string' },
+          carrera_descripcion: { type: 'string' }
+        }
+      },
+      ContratoProfesorInput: {
+        type: 'object',
+        required: ['id_persona','id_profesor','id_materia','id_periodo','horas_semanales','monto_hora','fecha_inicio','fecha_fin'],
+        properties: {
+          id_persona: { type: 'integer', example: 3 },
+          id_profesor: { type: 'integer', example: 5 },
+          id_materia: { type: 'integer', example: 10 },
+          id_periodo: { type: 'integer', example: 1 },
+          horas_semanales: { type: 'integer', example: 20 },
+          horas_mensuales: { type: 'integer', example: 80 },
+          monto_hora: { type: 'number', format: 'float', example: 500.00 },
+          fecha_inicio: { type: 'string', format: 'date', example: '2025-01-01' },
+          fecha_fin: { type: 'string', format: 'date', example: '2025-12-31' },
+          estado: { type: 'string', example: 'en_espera' }
+        }
+      }
+    }
   },
   security: [
     {
