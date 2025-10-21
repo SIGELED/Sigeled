@@ -7,6 +7,7 @@ import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js
 import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import db from "../models/db.js"
+import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -43,11 +44,12 @@ export const subirArchivo = async (req, res) => {
             storage_provider: 'supabase',
             storage_bucket: 'legajos',
             storage_key: nombreArchivo,
-            subido_por: req.usuario?.id_usuario || null
+            subido_por_usuario: req.usuario?.id_usuario || null
         };
         const archivoGuardado = await createArchivo(archivoData);
         res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado });
     } catch (err) {
+        console.error('Error en subirArchivo:', err);
         res.status(500).json({ error: err.message });
     }
 };

@@ -25,3 +25,8 @@ export const createPersonaDocumento = async (data) => {
     );
     return res.rows[0];
 };
+
+export const getAllTiposDocumento = async () => {
+    const res = await db.query('SELECT * FROM tipos_documento ORDER BY id_tipo_doc');
+    return res.rows;
+}

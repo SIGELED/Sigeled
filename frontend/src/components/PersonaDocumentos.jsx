@@ -146,7 +146,7 @@ export default function PersonaDocumentos({idPersona, onClose}) {
             <div className="relative z-10 w-[95%] max-w-3xl bg-[#101922] rounded-2xl p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-start justify-between mb-4">
                     <h3 className="text-2xl font-semibold text-[#19F124]">Documentos Personales</h3>
-                    <button onClick={onClose} className="p-1 rounded-lg hover:bg-[#1A2430]" aria-label="Cerrar">
+                    <button onClick={onClose} className="cursor-pointer p-1 rounded-lg hover:bg-[#1A2430]" aria-label="Cerrar">
                         <IoClose size={24}/>
                     </button>
                 </div>
@@ -268,13 +268,13 @@ export default function PersonaDocumentos({idPersona, onClose}) {
                                     </div>
 
                                     <div className="flex justify-end gap-3">
-                                        <button type="button" onClick={() => setShowNew(false)} className="px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] transition">
+                                        <button type="button" onClick={() => setShowNew(false)} className="cursor-pointer px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] transition">
                                             Cancelar
                                         </button>
                                         <button 
                                             type="submit"
                                             disabled={saving || archivoSubiendo}
-                                            className="px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
+                                            className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
                                         >
                                             {archivoSubiendo ? "Subiendo archivo..." : saving ? "Guardando..." : "Guardar"}
                                         </button>

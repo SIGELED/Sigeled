@@ -74,7 +74,7 @@ export const estadoVerificacionService = {
 }
 
 export const tipoDocService = {
-  getAllDocTypes: () => api.get('/tipos-documento'),
+  getAllDocTypes: () => api.get('/persona-doc/tipos-documento'),
 }
 
 export const archivoService = {

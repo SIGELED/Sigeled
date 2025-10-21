@@ -30,6 +30,21 @@ personaRouter.use(verificarToken);
 
 /**
  * @swagger
+ * /api/persona/estados-verificacion:
+ *   get:
+ *     summary: Listar estados de verificación
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de estados de verificación
+ */
+personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+
+/**
+ * @swagger
  * /api/perfiles:
  *   get:
  *     summary: Obtener todos los Perfiles
@@ -159,20 +174,7 @@ personaRouter.get('/', listarPersonas);
  */
 personaRouter.get('/:id_persona', obtenerPersona);
 
-/**
- * @swagger
- * /api/persona/estados-verificacion:
- *   get:
- *     summary: Listar estados de verificación
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de estados de verificación
- */
-personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+
 
 /**
  * @swagger

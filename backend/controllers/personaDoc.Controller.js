@@ -1,7 +1,8 @@
 import {
     getAllPersonasDocumentos,
     getPersonaDocumentoById,
-    createPersonaDocumento
+    createPersonaDocumento,
+    getAllTiposDocumento
 } from '../models/personaDocModel.js';
 
 // Obtener todos los documentos de personas
@@ -37,3 +38,13 @@ export const crearPersonaDocumento = async (req, res) => {
         res.status(500).json({ message: 'Error al crear documento de persona' });
     }
 };
+
+export const listarTiposDocumento = async (req, res) => {
+    try {
+        const tipos = await getAllTiposDocumento();
+        res.json(tipos);
+    } catch (error) {
+        console.error('Error en listarTiposDocumento:', error);
+        res.status(500).json({message:"Error al obtener tipos de documento", detalle: error.message});
+    }
+}
