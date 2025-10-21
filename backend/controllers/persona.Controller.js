@@ -4,8 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
-import { createPersona, vincularPersonaUsuario, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
+import db from "../models/db.js"
+import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -42,11 +44,12 @@ export const subirArchivo = async (req, res) => {
             storage_provider: 'supabase',
             storage_bucket: 'legajos',
             storage_key: nombreArchivo,
-            subido_por: req.usuario?.id_usuario || null
+            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null
         };
         const archivoGuardado = await createArchivo(archivoData);
         res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado });
     } catch (err) {
+        console.error('Error en subirArchivo:', err);
         res.status(500).json({ error: err.message });
     }
 };
@@ -64,31 +67,71 @@ export const listarEstadosVerificacion = async (req, res) => {
 // Registro de datos personales y vinculación automática
 export const registrarDatosPersona = async (req, res) => {
     try {
-        const { nombre, apellido, fecha_nacimiento, sexo } = req.body;
-        const id_usuario = req.user.id_usuario; // Extraído del token
+        console.log('req.body:', req.body);
+        console.log('req.user:', req.user);
+
+        const { nombre, apellido, fecha_nacimiento, sexo, telefono } = req.body;
+        const id_usuario = req.user.id; // Extraído del token
+        console.log('id_usuario:', id_usuario);
 
         // Crear persona sin tipo de empleado
-        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo });
+        const persona = await createPersona({ nombre, apellido, fecha_nacimiento, sexo, telefono });
+        console.log('persona creada:', persona);
 
-        // Vincular automáticamente usuario y persona
-        await vincularPersonaUsuario(persona.id_persona, id_usuario);
+        await db.query(
+            'UPDATE usuarios SET id_persona = $1 WHERE id_usuario = $2',
+            [persona.id_persona, id_usuario]
+        );
+        console.log(`IdUsuario: ${id_usuario} vinculado a persona ${persona.id_persona}`);
 
-        res.status(201).json(persona);
+        res.status(201).json({message:"Persona creada y vinculada a usuario correctamente", persona});
     } catch (error) {
-        res.status(500).json({ message: 'Error al registrar datos personales' });
+        console.error('Error al registrarDatosPersona', error);
+        res.status(500).json({ message: 'Error al registrar datos personales', detalle:error.message });
     }
 };
 
 export const asignarPerfil = async (req, res) => {
     try {
         const { id_persona, id_perfil } = req.body;
-        const usuario_asignador = req.user.id_usuario;
-        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuario_asignador);
-        res.status(201).json({ message: 'Perfil asignado correctamente', resultado });
+        
+        const usuarioActor = 
+            req.user?.id_usuario ??
+            req.user?.id ??
+            req.usuario?.id_usuario ??
+            req.usuario?.id;
+
+        if(!usuarioActor){
+            return res.status(401).json({message:'No se pudo identificar el usuario autenticad'});
+        }
+
+        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuarioActor);
+        res.status(201).json({message:'Perfil asignado correctamente', resultado});
     } catch (error) {
         res.status(500).json({ message: 'Error al asignar perfil', detalle: error.message });
     }
 };
+
+export const desasignarPerfil = async (req, res) => {
+    try {
+        const {id_persona, id_perfil} = req.params;
+        const usuarioActor = 
+            req.user?.id_usuario ??
+            req.user?.id ??
+            req.usuario?.id_usuario ??
+            req.usuario?.id;
+
+        const out = await desasignarPerfilPersona(id_persona, Number(id_perfil), usuarioActor);
+
+        if(!out) {
+            return res.status(404).json({message: "No hay un perfil vigente para quitar"});
+        }
+        res.json({message:'Perfil desasignado correctamente', resultado: out});
+    } catch (error) {
+        console.error('Error en desasignarPerfil:', error);
+        res.status(500).json({message:'Error al desasignar perfil', detalle:error.message});
+    }
+}
 
 // Obtener todas las personas
 export const listarPersonas = async (req, res) => {
@@ -163,34 +206,29 @@ export const obtenerIdentificacion = async (req, res) => {
 
 export const crearIdentificacion = async (req, res) => {
     try {
-        let datos = req.body;
-        // Control de duplicados DNI/CUIL para la persona
-        const existentes = await getIdentificacionByPersona(datos.id_persona);
-        if (existentes.some(e => e.dni === datos.dni || e.cuil === datos.cuil)) {
+        const {id_persona} = req.params;
+        const {dni, cuil} = req.body;
+
+        console.log('id_persona:', id_persona);
+        console.log('dni:', dni, 'cuil:', cuil);
+        
+        const existentes = await getIdentificacionByPersona(id_persona);
+        console.log('existentes:', existentes);
+
+        if (existentes.some(e => e.dni === dni || e.cuil === cuil)) {
             return res.status(409).json({ error: 'Ya existe una identificación con ese DNI o CUIL para esta persona.' });
         }
-        // Si no se envía id_estado, asignar el id de 'Pendiente'
-        if (!datos.id_estado) {
-            const { getIdEstadoPendiente } = await import('../models/estadoVerificacionModel.js');
-            const idPendiente = await getIdEstadoPendiente();
-            datos.id_estado = idPendiente;
-        } else {
-            // Validar que el estado existe
-            const { getEstadosVerificacion } = await import('../models/estadoVerificacionModel.js');
-            const estados = await getEstadosVerificacion();
-            const existe = estados.some(e => e.id_estado === Number(datos.id_estado));
-            if (!existe) {
-                return res.status(400).json({ error: 'El estado de verificación no es válido.' });
-            }
-        }
-        // Auditoría: guardar el usuario que realiza el cambio
-        if (req.usuario && req.usuario.id_usuario) {
-            datos.actualizado_por = req.usuario.id_usuario;
-        }
-        const nuevaIdent = await createIdentificacion(datos);
-        res.status(201).json(nuevaIdent);
+        
+        const nuevaIdentificacion = await createIdentificacion({id_persona, dni, cuil});
+        console.log('nuevaIdentificacion:', nuevaIdentificacion);
+
+        res.status(201).json({
+            message:'Identificación creada correctamente.',
+            identificacion: nuevaIdentificacion
+        })
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Eror en crearIdentificacion:', err);
+        res.status(500).json({ error: 'Error al crear identificación', detalle: err.message});
     }
 };
 
