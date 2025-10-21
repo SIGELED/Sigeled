@@ -85,6 +85,7 @@ export const archivoService = {
       headers:{'Content-Type':'multipart/form-data'},
     });
   },
+  getSignedUrl: (id_archivo) => api.get(`/archivos/${id_archivo}/signed-url`),
 };
 
 export default api;

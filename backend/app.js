@@ -12,6 +12,7 @@ import personaDocRouter from './routes/personaDoc.routes.js'; // corregido nombr
 import personaRouter from './routes/persona.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
+import archivosRouter from './routes/archivos.routes.js';
 
 // Configuración básica de Swagger
 const swaggerDefinition = {
@@ -48,7 +49,8 @@ app.use('/api/users', userRouter);
 app.use('/api/roles', roleRouter);
 app.use('/uploads', express.static('uploads'));
 app.use('/api/contratos', contratoRouter);
-app.use('/api/persona-doc', personaDocRouter); // corregido nombre
+app.use('/api/persona-doc', personaDocRouter); 
+app.use('/api/archivos', archivosRouter); 
 app.use('/api/persona', personaRouter);
 
 const PORT = process.env.PORT || 4000;

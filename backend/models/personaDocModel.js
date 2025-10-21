@@ -26,6 +26,16 @@ export const createPersonaDocumento = async (data) => {
     return res.rows[0];
 };
 
+// Eliminar documento de persona
+export const deletePersonaDocumento = async (data) => {
+    const {
+        id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
+    } = data;
+    const res = await db.query(
+        `DELETE FROM `
+    )
+}
+
 export const getAllTiposDocumento = async () => {
     const res = await db.query('SELECT * FROM tipos_documento ORDER BY id_tipo_doc');
     return res.rows;

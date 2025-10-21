@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 const FALLBACK_TIPOS = [
     {id_tipo_doc: 1, codigo:"DNI", nombre: "Documento Nacional de Identidad"},
@@ -34,6 +35,26 @@ export default function PersonaDocumentos({idPersona, onClose}) {
     const [file, setFile] = useState(null);
     const [archivoSubiendo, setArchivoSubiendo] = useState(false);
     const [archivoInfo, setArchivoInfo] = useState(null);
+
+    const [preview, setPreview] = useState({open: false, url: '', title: ''});
+
+    const openPreview = async (doc) => {
+        if(!doc.id_archivo) return;
+        try {
+            const { data } = await archivoService.getSignedUrl(doc.id_archivo);
+            const tipo = tipoById(doc.id_tipo_doc);
+            setPreview({
+                open: true,
+                url: data.url,
+                title: tipo.nombre || 'Documento'
+            });
+        } catch (error) {
+            console.error('No se pudo abrir el documento:', error);
+            alert('No se pudo abrir el documento');
+        }
+    }
+
+    const closePreview = () => setPreview({open:false, url:'', title:''});
 
     useEffect(() => {
         const loadCatalogos = async () => {
@@ -115,7 +136,7 @@ export default function PersonaDocumentos({idPersona, onClose}) {
             id_persona: idPersona,
             id_tipo_doc: Number(id_tipo_doc),
             id_archivo: id_archivo,
-            id_estado: Number(id_estado),
+            id_estado_verificacion: Number(id_estado),
             vigente: Boolean(vigente),
         };
 
@@ -182,13 +203,21 @@ export default function PersonaDocumentos({idPersona, onClose}) {
                                                 {d.vigente === false && <span className="ml-2 text-xs bg-[#24303C] px-2 py-0.5 rounded-md">No vigente</span>}
                                             </div>
                                             {d.id_archivo && (
-                                                <div className="text-xs opacity-60">
-                                                    Archivo ID: {d.id_archivo} {d.nombre_original ?  `• ${d.nombre_original}` : ""}
+                                                <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
+                                                    <span className="opacity-60">Archivo ID: {d.id_archivo}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openPreview(d)}
+                                                        className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                                                        title="Ver Documento"
+                                                    >
+                                                        Ver Documento
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
                                         <div className="text-xs opacity-60 whitespace-nowrap">
-                                            {d.cread_en?.split("T")[0]??""}
+                                            {d.creado_en?.split("T")[0]??""}
                                         </div>
                                     </li>
                                 );
@@ -196,6 +225,13 @@ export default function PersonaDocumentos({idPersona, onClose}) {
                         </ul>
                     )}
                 </div>
+                {preview.open && (
+                        <PdfPreviewModal
+                            url={preview.url}
+                            title={preview.title}
+                            onClose={closePreview}
+                        />
+                )}
 
                 {showNew && (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center">

@@ -35,7 +35,8 @@ export const crearPersonaDocumento = async (req, res) => {
         const nuevoDocumento = await createPersonaDocumento(req.body);
         res.status(201).json(nuevoDocumento);
     } catch (error) {
-        res.status(500).json({ message: 'Error al crear documento de persona' });
+        console.error('Error en crearPersonaDocumento:', error);
+        res.status(500).json({ message: 'Error al crear documento de persona', detalle:error.message });
     }
 };
 

@@ -44,7 +44,7 @@ export const subirArchivo = async (req, res) => {
             storage_provider: 'supabase',
             storage_bucket: 'legajos',
             storage_key: nombreArchivo,
-            subido_por_usuario: req.usuario?.id_usuario || null
+            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null
         };
         const archivoGuardado = await createArchivo(archivoData);
         res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado });
