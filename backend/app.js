@@ -2,32 +2,34 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import swaggerUI from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
 import cors from 'cors';
 import authRouter from './routes/auth.routes.js';
 import docenteRouter from './routes/docente.routes.js';
 import userRouter from './routes/user.routes.js';
 import roleRouter from './routes/role.routes.js';
 import contratoRouter from './routes/contrato.routes.js';
-import personaDocRouter from './routes/personaDoc.routes.js'; // corregido nombre
-import personaRouter from './routes/persona.routes.js';
-import swaggerUI from 'swagger-ui-express';
-import swaggerJSDoc from 'swagger-jsdoc';
+import personaDocRouter from './routes/personaDoc.routes.js';
 import archivosRouter from './routes/archivos.routes.js';
+import personaRouter from './routes/persona.routes.js';
+import PersonaDomiRouter from './routes/personaDomi.routes.js';
+
 
 // Configuración básica de Swagger
 const swaggerDefinition = {
   openapi: '3.0.0',
-  info: {
-    title: 'SIGELED API',
-    version: '1.0.0',
-    description: 'Documentación de la API para SIGELED',
-  },
+  info: { title: 'SIGELED API', version: '1.0.0' },
   servers: [
-    {
-      url: 'http://localhost:4000',
-      description: 'Servidor local',
-    },
+    { url: 'http://localhost:4000', description: 'Servidor local (raíz)' },
+    { url: 'http://localhost:4000/api', description: 'Servidor local con prefijo /api' },
+    { url: 'http://localhost:4000/api/persona-domicilio', description: 'Servidor para rutas de persona-domicilio (usar en Swagger para probar estas rutas)' }
   ],
+  components: {
+    securitySchemes: {
+      bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
+    }
+  }
 };
 
 const options = {
@@ -37,9 +39,9 @@ const options = {
 
 const swaggerSpec = swaggerJSDoc(options);
 
-const app = express(); // debe ir antes de usar app.use
+const app = express();
 
-app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec, { explorer: true }));
 
 app.use(cors());
 app.use(express.json());
@@ -52,6 +54,24 @@ app.use('/api/contratos', contratoRouter);
 app.use('/api/persona-doc', personaDocRouter); 
 app.use('/api/archivos', archivosRouter); 
 app.use('/api/persona', personaRouter);
+app.use('/api/persona-domicilio', PersonaDomiRouter); 
+
+// Debug: listar rutas registradas (útil para confirmar paths/métodos)
+// - Ejecutar solo después de crear `app` y registrar las rutas
+if (process.env.NODE_ENV !== 'production') {
+  if (app && app._router && Array.isArray(app._router.stack)) {
+    const routes = [];
+    app._router.stack
+      .filter(r => r.route && r.route.path)
+      .forEach(r => {
+        const methods = Object.keys(r.route.methods).map(m => m.toUpperCase()).join(',');
+        routes.push(`${methods} ${r.route.path}`);
+      });
+    console.log('Rutas registradas:\n' + routes.join('\n'));
+  } else {
+    console.log('No hay rutas registradas todavía (app._router indefinido).');
+  }
+}
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
