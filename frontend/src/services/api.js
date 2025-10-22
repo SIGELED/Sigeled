@@ -97,6 +97,13 @@ export const domOtrosService = {
   getDepartamentos:() => api.get(`/persona/dom/departamentos`),
   getLocalidades:(id_dom_departamento) => api.get(`/persona/dom/departamentos/${id_dom_departamento}/localidades`),
   getBarrios: (id_dom_localidad) => api.get(`/persona/dom/localidades/${id_dom_localidad}/barrios`),
+  createBarrio: (id_dom_localidad, data) => api.post(`/persona/dom/localidades/${id_dom_localidad}/barrios`, data),
+}
+
+export const personaBarrioService = {
+  getBarrioByPersona: (id_persona) => api.get(`/persona/${id_persona}/barrios`),
+  assignBarrio: (id_persona, id_dom_barrio) => api.post(`/persona/${id_persona}/barrios`, {id_dom_barrio}),
+  unassignBarrio: (id_persona, id_dom_barrio) => api.delete(`/persona/${id_persona}/barrios/${id_dom_barrio}`),
 }
 
 export default api;

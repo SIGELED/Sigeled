@@ -24,7 +24,12 @@ import {
     crearDomicilio, 
     listarDepartamentos, 
     listarLocalidades, 
-    listarBarrios } from '../controllers/personaDomi.Controller.js';
+    listarBarrios,
+    crearBarrio,
+    listarBarriosPersona,
+    vincularBarrioPersona,
+    desvincularBarrioPersona 
+} from '../controllers/personaDomi.Controller.js';
 import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
@@ -52,6 +57,12 @@ personaRouter.get('/dom/departamentos', listarDepartamentos);
 personaRouter.get('/dom/departamentos/:id_dom_departamento/localidades', listarLocalidades);
 
 personaRouter.get('/dom/localidades/:id_dom_localidad/barrios', listarBarrios);
+
+personaRouter.post('/dom/localidades/:id_dom_localidad/barrios', crearBarrio);
+
+personaRouter.get('/:id_persona/barrios', listarBarriosPersona);
+personaRouter.post('/:id_persona/barrios', vincularBarrioPersona);
+personaRouter.delete('/:id_persona/barrios/:id_dom_barrio', desvincularBarrioPersona);
 
 /**
  * @swagger
