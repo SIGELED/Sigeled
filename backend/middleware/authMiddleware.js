@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+
 import { verificarTokenJWT } from '../utils/jwt.js';
 
 export const verificarToken = (req, res, next) => {

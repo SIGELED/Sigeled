@@ -1,0 +1,340 @@
+{
+	"info": {
+		"_postman_id": "8a85e932-be35-4923-b1bb-ca29518f931e",
+		"name": "Sigeled",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39063347",
+		"_collection_link": "https://polo55.postman.co/workspace/polo-Workspace~a6bdf1d7-cd16-4f75-8605-4841d88bedfb/collection/39063347-8a85e932-be35-4923-b1bb-ca29518f931e?action=share&source=collection_link&creator=39063347"
+	},
+	"item": [
+		{
+			"name": "Register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"nombre\": \"Quiroga Juan\",\r\n  \"email\": \"quiroga@mail.com\",\r\n  \"contraseña\": \"quiroga123\",\r\n  \"rol\": \"administrador\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/auth/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "authJWTforADMIN",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"rorri@gori.edus\", // Usa un usuario con rol \"administrador\"\r\n    \"contraseña\": \"admin1234\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getContracts",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwicm9sIjoiYWRtaW5pc3RyYWRvciIsImlhdCI6MTc1MjIwNjQ4MiwiZXhwIjoxNzUyMjEwMDgyfQ.RRDhO8XeJHWe81sPA7sM-jfPx4fbTxIWfHUMza1T_PI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4000/api/contratos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getSpecificContract",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwicm9sIjoiYWRtaW5pc3RyYWRvciIsImlhdCI6MTc1MjIwNjQ4MiwiZXhwIjoxNzUyMjEwMDgyfQ.RRDhO8XeJHWe81sPA7sM-jfPx4fbTxIWfHUMza1T_PI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4000/api/contratos/CTR-2025-0002",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos",
+						"CTR-2025-0002"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "createContract",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwicm9sIjoiYWRtaW5pc3RyYWRvciIsImlhdCI6MTc1MjIwNjQ4MiwiZXhwIjoxNzUyMjEwMDgyfQ.RRDhO8XeJHWe81sPA7sM-jfPx4fbTxIWfHUMza1T_PI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"numero_contrato\": \"CTR-2025-0009\",\r\n  \"empleado_id\": 3,\r\n  \"fecha_expedicion\": \"2025-07-01\",\r\n  \"fecha_vencimiento\": \"2026-05-01\",\r\n  \"estado\": \"en_espera\",\r\n  \"periodo\": \"2025\",\r\n  \"catedras\": [1, 2] // IDs de cátedras asociadas\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/contratos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "actualiceContract",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwicm9sIjoiYWRtaW5pc3RyYWRvciIsImlhdCI6MTc1MjE5NjU5MywiZXhwIjoxNzUyMjAwMTkzfQ.tKeJY7i3DfaS1LLSbyOnNRAUQK2oEr698UBACdJ_P98",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"empleado_id\": 2,\r\n  \"fecha_expedicion\": \"2025-07-10\",\r\n  \"fecha_vencimiento\": \"2026-07-12\",\r\n  \"estado\": \"finalizado\",\r\n  \"periodo\": \"2025\",\r\n  \"catedras\": [3] // IDs de cátedras nuevas\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/contratos/CTR-2025-0005",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos",
+						"CTR-2025-0005"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "deleteContract",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OSwicm9sIjoiYWRtaW5pc3RyYWRvciIsImlhdCI6MTc1MjIwNjQ4MiwiZXhwIjoxNzUyMjEwMDgyfQ.RRDhO8XeJHWe81sPA7sM-jfPx4fbTxIWfHUMza1T_PI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4000/api/contratos/CTR-2025-0009",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos",
+						"CTR-2025-0009"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getContractPDF",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbCI6ImRvY2VudGUiLCJpYXQiOjE3NTIzMzMyNTUsImV4cCI6MTc1MjMzNjg1NX0.GYuaZiJ29_ZRWuwG7UPuYMKl0xu4H21OPHYwwm2lVg0",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4000/api/contratos/CTR-2025-0009/pdf",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos",
+						"CTR-2025-0009",
+						"pdf"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "authNormalUser",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"mail@mail.mail\", // Usa un usuario con rol \"administrador\"\r\n    \"contraseña\": \"user1234\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "signContract",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAsInJvbCI6ImRvY2VudGUiLCJpYXQiOjE3NTIzMzMyNTUsImV4cCI6MTc1MjMzNjg1NX0.GYuaZiJ29_ZRWuwG7UPuYMKl0xu4H21OPHYwwm2lVg0",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": []
+				},
+				"url": {
+					"raw": "http://localhost:4000/api/contratos/CTR-2025-0009/firmar",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"api",
+						"contratos",
+						"CTR-2025-0009",
+						"firmar"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

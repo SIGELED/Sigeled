@@ -90,7 +90,7 @@ export async function createContrato(data) {
         const overlapQuery = `
           SELECT 1 FROM contrato_profesor
           WHERE id_profesor = $1
-            AND daterange(fecha_inicio, COALESCE(fecha_fin, 'infinity'::date)) &&
+            AND daterange(fecha_inicio::date, COALESCE(fecha_fin::date, 'infinity'::date)) &&
                 daterange($2::date, COALESCE($3::date, 'infinity'::date))
           LIMIT 1
         `;
@@ -139,7 +139,7 @@ export async function updateContrato(idContrato, data) {
       SELECT 1 FROM contrato_profesor
       WHERE id_profesor = $1
         AND id_contrato_profesor <> $4
-        AND daterange(fecha_inicio, COALESCE(fecha_fin, 'infinity'::date)) &&
+        AND daterange(fecha_inicio::date, COALESCE(fecha_fin::date, 'infinity'::date)) &&
             daterange($2::date, COALESCE($3::date, 'infinity'::date))
       LIMIT 1
     `;

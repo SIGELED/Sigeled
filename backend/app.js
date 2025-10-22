@@ -42,9 +42,9 @@ const swaggerDefinition = {
         type: 'object',
         properties: {
           id_contrato_profesor: { type: 'integer', example: 1 },
-          id_persona: { type: 'integer', example: 3 },
-          id_profesor: { type: 'integer', example: 5 },
-          id_materia: { type: 'integer', example: 10 },
+          id_persona: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000001', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000001")' },
+          id_profesor: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000002', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000002")' },
+          id_materia: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000003', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000003")' },
           id_periodo: { type: 'integer', example: 2025 },
           horas_semanales: { type: 'integer', example: 20 },
           horas_mensuales: { type: 'integer', example: 80 },
@@ -63,9 +63,9 @@ const swaggerDefinition = {
         type: 'object',
         required: ['id_persona','id_profesor','id_materia','id_periodo','horas_semanales','monto_hora','fecha_inicio','fecha_fin'],
         properties: {
-          id_persona: { type: 'integer', example: 3 },
-          id_profesor: { type: 'integer', example: 5 },
-          id_materia: { type: 'integer', example: 10 },
+          id_persona: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000001', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000001")' },
+          id_profesor: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000002', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000002")' },
+          id_materia: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000003', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000003")' },
           id_periodo: { type: 'integer', example: 1 },
           horas_semanales: { type: 'integer', example: 20 },
           horas_mensuales: { type: 'integer', example: 80 },
@@ -97,7 +97,18 @@ const app = express();
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 app.use(cors());
-app.use(express.json());
+// Limitar el tamaño del body y manejar errores de parseo JSON
+app.use(express.json({ limit: '100kb' }));
+
+// Middleware para capturar errores de parseo JSON y devolver 400 legible
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    // Error de parseo JSON
+    return res.status(400).json({ error: 'JSON inválido en el cuerpo de la petición' });
+  }
+  // Pasar al siguiente manejador de errores
+  next(err);
+});
 app.use('/api/auth', authRouter);
 app.use('/api/docente', docenteRouter);
 app.use('/api/users', userRouter);
