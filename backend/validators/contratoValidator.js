@@ -24,29 +24,7 @@ export const createContratoValidators = [
   body('estado').optional().isString().withMessage('estado debe ser texto')
 ];
 
-export const updateContratoValidators = [
-  // Para update permitimos campos opcionales, pero si vienen validarlos
-  body('id_persona').optional().isUUID().withMessage('id_persona debe ser UUID'),
-  body('id_profesor').optional().isUUID().withMessage('id_profesor debe ser UUID'),
-  body('id_materia').optional().isUUID().withMessage('id_materia debe ser UUID'),
-  body('id_periodo').optional().isInt().withMessage('id_periodo debe ser entero'),
-  body('horas_semanales').optional().isInt({ min: 0, max: 160 }).withMessage('horas_semanales debe ser entero entre 0 y 160'),
-  body('horas_mensuales').optional().isInt({ min: 0 }).withMessage('horas_mensuales debe ser entero positivo'),
-  body('monto_hora').optional().isFloat({ min: 0 }).withMessage('monto_hora debe ser numero >= 0'),
-  body('fecha_inicio').optional().isISO8601().withMessage('fecha_inicio debe ser fecha ISO (YYYY-MM-DD)'),
-  body('fecha_fin').optional().isISO8601().withMessage('fecha_fin debe ser fecha ISO (YYYY-MM-DD)'),
-  body().custom((value, { req }) => {
-    if (req.body.fecha_inicio !== undefined && req.body.fecha_fin !== undefined) {
-      const start = new Date(req.body.fecha_inicio);
-      const end = new Date(req.body.fecha_fin);
-      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
-        throw new Error('fecha_inicio debe ser anterior a fecha_fin');
-      }
-    }
-    return true;
-  }),
-  body('estado').optional().isString().withMessage('estado debe ser texto')
-];
+// Validadores para actualización retirados: la actualización de contratos está deshabilitada.
 
 export const handleValidation = (req, res, next) => {
   const errors = validationResult(req);

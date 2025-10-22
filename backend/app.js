@@ -42,6 +42,7 @@ const swaggerDefinition = {
         type: 'object',
         properties: {
           id_contrato_profesor: { type: 'integer', example: 1 },
+          external_id: { type: 'string', format: 'uuid', example: '11111111-1111-1111-1111-111111111111', description: 'UUID público del contrato (external_id), usado en APIs públicas' },
           id_persona: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000001', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000001")' },
           id_profesor: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000002', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000002")' },
           id_materia: { type: 'string', format: 'uuid', example: '00000000-0000-0000-0000-000000000003', description: 'UUID string (ej: "00000000-0000-0000-0000-000000000003")' },
@@ -72,7 +73,8 @@ const swaggerDefinition = {
           monto_hora: { type: 'number', format: 'float', example: 500.00 },
           fecha_inicio: { type: 'string', format: 'date', example: '2025-01-01' },
           fecha_fin: { type: 'string', format: 'date', example: '2025-12-31' },
-          estado: { type: 'string', example: 'en_espera' }
+          estado: { type: 'string', example: 'en_espera' },
+          external_id: { type: 'string', format: 'uuid', example: '11111111-1111-1111-1111-111111111111', description: 'Output only: external UUID del contrato' }
         }
       }
     }

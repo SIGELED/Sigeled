@@ -75,12 +75,9 @@ export async function createContrato(data) {
 }
 
 // Nueva función de modelo: Actualizar contrato
-export async function updateContrato(idContrato, data) {
-  const contrato = await ContratoProfesor.findByPk(idContrato);
-  if (!contrato) throw new Error('Contrato no encontrado');
-  await contrato.update(data);
-  return contrato.toJSON();
-}
+// Actualización de contratos DESHABILITADA: los contratos no son editables.
+// Esta función permanece por compatibilidad pero lanzará un error claro si se invoca.
+// Nota: la función de actualización fue removida. No se permite modificar contratos.
 
 // Nueva función de modelo: Eliminar contrato
 export async function deleteContrato(idContrato) {

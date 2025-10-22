@@ -1,8 +1,8 @@
 import {
   getAllContratos,
   getContratoById,
+  getContratoByExternalId,
   createContrato,
-  updateContrato,
   deleteContrato,
   getPersonaByDni,
   getProfesorDetalles,
@@ -77,27 +77,8 @@ export async function crearContratoHandler(req, res) {
 
 // PUT /api/contratos/:id
 export async function actualizarContrato(req, res) {
-  try {
-    const { id } = req.params;
-    const data = req.body;
-    
-    if (!data || Object.keys(data).length === 0) {
-      return res.status(400).json({ error: 'No se proporcionaron datos para actualizar' });
-    }
-    
-    const contrato = await updateContrato(id, data);
-    if (!contrato) {
-      return res.status(404).json({ error: 'Contrato no encontrado' });
-    }
-    
-    res.json(contrato);
-  } catch (error) {
-    console.error('Error en actualizarContrato:', error);
-    res.status(400).json({ 
-      error: 'Error al actualizar contrato',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
+  // Actualización intencionalmente deshabilitada: los contratos no son editables.
+  res.status(405).json({ error: 'Actualización de contratos deshabilitada: los contratos no pueden modificarse una vez creados' });
 }
 
 // DELETE /api/contratos/:id
@@ -210,6 +191,24 @@ export async function crearNuevoContratoProfesor(req, res) {
     console.error('Error en crearNuevoContratoProfesor:', error);
     res.status(400).json({ 
       error: 'Error al crear contrato de profesor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// GET /api/contratos/external/:external_id
+export async function obtenerContratoPorExternalId(req, res) {
+  try {
+    const { external_id } = req.params;
+    const contrato = await getContratoByExternalId(external_id);
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
+    res.json(contrato);
+  } catch (error) {
+    console.error('Error en obtenerContratoPorExternalId:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contrato por external_id',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
