@@ -2,7 +2,8 @@ import express from 'express';
 import {
     listarPersonasDocumentos,
     obtenerPersonaDocumento,
-    crearPersonaDocumento
+    crearPersonaDocumento,
+    listarTiposDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
@@ -10,6 +11,8 @@ const personaDocRouter = express.Router();
 
 // Todas las rutas requieren autenticación
 personaDocRouter.use(verificarToken);
+
+personaDocRouter.get('/tipos-documento', listarTiposDocumento);
 
 /**
  * @swagger
@@ -80,5 +83,7 @@ personaDocRouter.get('/:id_persona_doc', obtenerPersonaDocumento);
  *         description: Error interno
  */
 personaDocRouter.post('/', crearPersonaDocumento);
+
+
 
 export default personaDocRouter;

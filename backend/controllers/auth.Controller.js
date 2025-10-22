@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { generarTokenJWT } from '../utils/jwt.js';
 import { findUserByEmail, createUser } from '../models/userModel.js';
-import { getRolesByUserId} from '../models/roleModel.js';
-
+import { getRolesByUserId } from '../models/roleModel.js';
+import { getPerfilesDePersona, getPersonaById } from '../models/personaModel.js';
+import db from '../models/db.js';
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -12,30 +12,28 @@ export const login = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Usuario no encontrado' });
         }
+        if(!user.activo){
+            return res.status(403).json({message:"Tu cuenta esta en revisión. Espera a que sea activada"});
+        }
 
         const isPasswordValid = await bcrypt.compare(password, user.password_hash);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Contraseña incorrecta' });
         }
 
-        // OBTENER LOS ROLES DEL USUARIO
-        const userRoles = await getRolesByUserId(user.id_usuario);
-        const rolPrincipal = userRoles.length > 0 ? userRoles[0].nombre : 'usuario';
+        const roles = await getRolesByUserId(user.id_usuario);
+        const roleNames = roles.map(rol => rol.codigo.toUpperCase());
 
-        const token = generarTokenJWT({
-            id_usuario: user.id_usuario,
-            email: user.email,
-            rol: rolPrincipal
-        });
+        const persona = await getPersonaById(user.id_persona);
 
-        res.json({ 
-            token, 
-            user: { 
-                id_usuario: user.id_usuario, 
-                email: user.email, 
-                rol: rolPrincipal
-            } 
-        });
+        const perfiles = await getPerfilesDePersona(user.id_persona);
+
+        const token = jwt.sign(
+            { id: user.id_usuario, email: user.email, roles:roleNames, perfiles: perfiles},
+            process.env.JWT_ACCESS_SECRET,
+            { expiresIn: '1h' }
+        );
+        res.json({ token, user: { id: user.id_usuario, email: user.email, nombre:persona?.nombre, apellido:persona?.apellido, roles:roleNames, perfiles: perfiles } });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });

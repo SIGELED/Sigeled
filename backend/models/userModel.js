@@ -20,10 +20,11 @@ export const createUser = async ({ email, password_hash }) => {
 
 // Buscar usuario por id
 export const getUserById = async (id_usuario) => {
-    const res = await db.query(
-        `SELECT * FROM usuarios WHERE id_usuario = $1`,
-        [id_usuario]
-    );
+    const query =
+        `SELECT u.id_usuario, u.email, u.activo, p.id_persona, p.nombre, p.apellido 
+        FROM usuarios u 
+        LEFT JOIN personas p ON u.id_persona = p.id_persona WHERE u.id_usuario = $1`;
+    const res = await db.query(query, [id_usuario]);
     return res.rows[0];
 };
 

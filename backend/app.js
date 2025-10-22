@@ -10,13 +10,11 @@ import roleRouter from './routes/role.routes.js';
 import contratoRouter from './routes/contrato.routes.js';
 import personaDocRouter from './routes/personaDoc.routes.js'; // corregido nombre
 import personaRouter from './routes/persona.routes.js';
-import digiDocuRouter from './routes/digitalizacion.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
-import { errorHandler } from './middleware/errorHandler.js';
-import { apiLimiter } from './middleware/rateLimiter.js';
-import helmet from 'helmet';
+import archivosRouter from './routes/archivos.routes.js';
 
+// Configuración básica de Swagger
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -30,33 +28,16 @@ const swaggerDefinition = {
       description: 'Servidor local',
     },
   ],
-  // ← ESTO ES LO QUE FALTABA
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT'
-      }
-    }
-  },
-  security: [
-    {
-      bearerAuth: []
-    }
-  ]
 };
 
 const options = {
   swaggerDefinition,
-  apis: ['./routes/*.js'],
+  apis: ['./routes/*.js'], // Documenta todas las rutas
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
-const app = express();
-app.use(helmet());
-app.use(apiLimiter);
+const app = express(); // debe ir antes de usar app.use
 
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
@@ -69,10 +50,8 @@ app.use('/api/roles', roleRouter);
 app.use('/uploads', express.static('uploads'));
 app.use('/api/contratos', contratoRouter);
 app.use('/api/persona-doc', personaDocRouter); 
+app.use('/api/archivos', archivosRouter); 
 app.use('/api/persona', personaRouter);
-app.use('/api/digitalizacion', digiDocuRouter);
-
-app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

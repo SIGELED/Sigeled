@@ -14,7 +14,7 @@ export const buscarPersonasPorNombrePerfil = async (nombre_perfil) => {
         JOIN personas_perfiles pp ON p.id_persona = pp.id_persona
         JOIN perfiles pf ON pp.id_perfil = pf.id_perfil
         WHERE LOWER(pf.nombre) = LOWER($1)
-          AND pp.vigente = true
+        AND pp.vigente = true
     `;
     const res = await db.query(query, [nombre_perfil]);
     return res.rows;
@@ -29,7 +29,7 @@ export const buscarPersonasPorNombresPerfiles = async (nombres_perfiles) => {
         JOIN personas_perfiles pp ON p.id_persona = pp.id_persona
         JOIN perfiles pf ON pp.id_perfil = pf.id_perfil
         WHERE LOWER(pf.nombre) IN (${placeholders})
-          AND pp.vigente = true
+        AND pp.vigente = true
     `;
     const res = await db.query(query, nombres_perfiles.map(n => n.toLowerCase()));
     return res.rows;
@@ -102,38 +102,63 @@ export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, 
     return res.rows[0];
 };
 
-export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
-    const res = await db.query(
-        `INSERT INTO personas_usuarios (id_persona, id_usuario) VALUES ($1, $2) RETURNING *`,
-        [id_persona, id_usuario]
+// Asignar un perfil a una persona
+export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_editor) => {
+    const up = await db.query(
+        `UPDATE personas_perfiles 
+        SET vigente = true, 
+            asignado_por_usuario = $3,
+            asignado_en = NOW(),
+            actualizado_por_usuario = $3,
+            actualizado_en = NOW()
+        WHERE id_persona = $1 
+            AND id_perfil = $2 
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
     );
-    return res.rows[0];
+
+    if(up.rowCount > 0) return up.rows[0];
+
+    const ins = await db.query(
+        `INSERT INTO personas_perfiles
+            (id_persona, id_perfil, vigente, asignado_por_usuario, asignado_en)
+        VALUES ($1, $2, true, $3, NOW())
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
+    );
+
+    return ins.rows[0];
 };
 
-// Asignar un perfil a una persona
-export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_asignador) => {
-    // Opcional: marcar como no vigente si ya tenía ese perfil
-    await db.query(
-        `UPDATE personas_perfiles SET vigente = false, actualizado_por_usuario = $1, actualizado_en = NOW()
-         WHERE id_persona = $2 AND id_perfil = $3 AND vigente = true`,
-        [usuario_asignador, id_persona, id_perfil]
-    );
-    // Insertar nuevo perfil vigente
+// Obtener perfiles 
+export const obtenerPerfiles = async() => {
+    const res = await db.query('SELECT * FROM perfiles');
+    return res.rows;
+}
+
+// Eliminar perfil de persona
+export const desasignarPerfilPersona = async(id_persona, id_perfil, usuario_editor) => {
     const res = await db.query(
-        `INSERT INTO personas_perfiles (id_persona, id_perfil, vigente, asignado_por_usuario, asignado_en)
-         VALUES ($1, $2, true, $3, NOW()) RETURNING *`,
-        [id_persona, id_perfil, usuario_asignador]
+        `UPDATE personas_perfiles
+        SET vigente = false,
+            actualizado_por_usuario = $3,
+            actualizado_en = NOW()
+        WHERE id_persona = $1
+            AND id_perfil = $2
+            AND vigente = true
+        RETURNING *`,
+        [id_persona, id_perfil, usuario_editor]
     );
-    return res.rows[0];
-};
+    return res.rowCount ? res.rows[0] : null;
+}
 
 // Obtener perfiles vigentes de una persona
 export const getPerfilesDePersona = async (id_persona) => {
     const res = await db.query(
         `SELECT pf.*
-         FROM perfiles pf
-         JOIN personas_perfiles pp ON pf.id_perfil = pp.id_perfil
-         WHERE pp.id_persona = $1 AND pp.vigente = true`,
+        FROM perfiles pf
+        JOIN personas_perfiles pp ON pf.id_perfil = pp.id_perfil
+        WHERE pp.id_persona = $1 AND pp.vigente = true`,
         [id_persona]
     );
     return res.rows;

@@ -15,7 +15,7 @@ const roleRouter = express.Router();
 
 // Todas las rutas requieren autenticación y rol de administrador
 roleRouter.use(verificarToken);
-roleRouter.use(permitirRoles('administrador'));
+roleRouter.use(permitirRoles('ADMIN'));
 
 /**
  * @swagger

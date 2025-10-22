@@ -1,5 +1,6 @@
 // Middleware de autorización para edición/eliminación/verificación de datos de persona
 import jwt from 'jsonwebtoken';
+import { validationResult } from 'express-validator';
 
 export function autorizarEdicion(req, res, next) {
   const usuario = req.usuario; // Se asume que el usuario ya está en req.usuario por el middleware de autenticación
