@@ -13,6 +13,7 @@ import personaRouter from './routes/persona.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import archivosRouter from './routes/archivos.routes.js';
+import personaTituRouter from './routes/personaTitu.routes.js';
 
 // Configuración básica de Swagger
 const swaggerDefinition = {
@@ -52,6 +53,7 @@ app.use('/api/contratos', contratoRouter);
 app.use('/api/persona-doc', personaDocRouter); 
 app.use('/api/archivos', archivosRouter); 
 app.use('/api/persona', personaRouter);
+app.use('/api/titulos', personaTituRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
