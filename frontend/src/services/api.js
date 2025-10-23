@@ -106,4 +106,10 @@ export const personaBarrioService = {
   unassignBarrio: (id_persona, id_dom_barrio) => api.delete(`/persona/${id_persona}/barrios/${id_dom_barrio}`),
 }
 
+export const tituloService = {
+  createTitulo:(data) => api.post(`/titulos/`, data),
+  findTituloByPersona:(id_persona) => api.get(`/titulos/persona/${id_persona}`),
+  getTiposTiulos: () => api.get(`/titulos/tipos`)
+}
+
 export default api;

@@ -1,4 +1,4 @@
-import { getTitulosByPersona, createTitulo } from "../models/personaTituModel.js";
+import { getTitulosByPersona, createTitulo, getTiposTitulo } from "../models/personaTituModel.js";
 
 export const crearTitulo = async (req, res) => {
     try {
@@ -15,9 +15,9 @@ export const crearTitulo = async (req, res) => {
             institucion: data.institucion || null,
             fecha_emision: data.fecha_emision || null,
             matricula_prof: data.matricula_prof || null,
-            id_archivo: data.id_archivo || null, 
-            verificado_por_usuario: data.verificado_por || null,
-            verificado_en: data.verificado_en || null, 
+            id_archivo: data.id_archivo || null,
+            verificado_por_usuario: data.verificado_por_usuario || null,
+            verificado_en: data.verificado_en || null,
             id_estado_verificacion: data.id_estado_verificacion || 1, 
             creado_en: data.creado_en || new Date()
         })
@@ -37,5 +37,15 @@ export const encontrarTituloPersona = async (req, res) => {
     } catch (error) {
         console.error('Error en findTituloPersona:', error);
         res.status(500).json({message:'Error al encontrar titulo por persona', detalle:error.message});
+    }
+}
+
+export const listarTiposTitulo = async (_req, res) => {
+    try {
+        const tipos = await getTiposTitulo();
+        res.json(tipos);
+    } catch (error) {
+        console.error('Error en listarTiposTitulo:', error);
+        res.status(500).json({message:'Error al listar tipos de titulo', detalle:error.message});
     }
 }
