@@ -13,9 +13,9 @@ async function createInitialAdmin() {
         // Verificar si ya existe un administrador
         const existingAdmin = await db.query(
             `SELECT u.*, r.nombre AS nombre_rol
-             FROM usuarios u
-             JOIN roles r ON u.rol = r.id
-             WHERE r.nombre = 'administrador'`
+            FROM usuarios u
+            JOIN roles r ON u.rol = r.id
+            WHERE r.nombre = 'administrador'`
         );
 
         if (existingAdmin.rows.length > 0) {

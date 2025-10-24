@@ -12,15 +12,15 @@ import {
 
 // Función de modelo: Obtener todos los contratos
 export async function getAllContratos() {
-  const contratos = await ContratoProfesor.findAll({
-    include: [
-      { model: Persona, as: 'Persona' },
-      { model: Profesor, as: 'Profesor', include: [{ model: CargoProfesor, as: 'CargoProfesor' }] },
-      { model: Materia, as: 'Materia', include: [{ model: Carrera, as: 'Carrera' }] },
-    ],
-    order: [['fecha_inicio', 'DESC']],
-  });
-  return contratos.map(c => c.toJSON());
+  const query = `
+    SELECT c.numero_contrato, c.estado, c.periodo, c.fecha_expedicion, c.fecha_vencimiento,
+    e.*
+    FROM contratos c
+    JOIN empleados e ON c.empleado_id = e.id_empleado
+    ORDER BY c.fecha_expedicion DESC
+  `;
+  const { rows } = await pool.query(query);
+  return rows;
 }
 
 // Función de modelo: Obtener contrato por ID

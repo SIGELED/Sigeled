@@ -1,9 +1,9 @@
 import { archivoValidator } from '../middleware/archivoMiddleware.js';
-import { subirArchivo, listarEstadosVerificacion } from '../controllers/persona.Controller.js';
+import { subirArchivo, listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
-import { manejarErroresValidacion } from '../middleware/personaMiddleware.js';
+import {manejarErroresValidacion} from '../middleware/personaMiddleware.js';
 import express from 'express';
 import {
     registrarDatosPersona,
@@ -11,21 +11,81 @@ import {
     obtenerPersona,
     obtenerIdentificacion,
     crearIdentificacion,
-    obtenerDomicilios,
-    crearDomicilio,
     obtenerTitulos,
     crearTitulo,
     asignarPerfil,
     obtenerPerfilesPersona,
     buscarPorDNI,
-    buscadorAvanzado
+    buscadorAvanzado,
 } from '../controllers/persona.Controller.js';
-import { verificarToken, soloRRHH } from '../middleware/authMiddleware.js';
+import { obtenerPerfiles } from '../models/personaModel.js';
+import { 
+    obtenerDomicilios, 
+    crearDomicilio, 
+    listarDepartamentos, 
+    listarLocalidades, 
+    listarBarrios,
+    crearBarrio,
+    listarBarriosPersona,
+    vincularBarrioPersona,
+    desvincularBarrioPersona 
+} from '../controllers/personaDomi.Controller.js';
+import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const personaRouter = express.Router();
 
 // Todas las rutas requieren autenticación
 personaRouter.use(verificarToken);
+
+/**
+ * @swagger
+ * /api/persona/estados-verificacion:
+ *   get:
+ *     summary: Listar estados de verificación
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de estados de verificación
+ */
+personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+
+personaRouter.get('/dom/departamentos', listarDepartamentos);
+
+personaRouter.get('/dom/departamentos/:id_dom_departamento/localidades', listarLocalidades);
+
+personaRouter.get('/dom/localidades/:id_dom_localidad/barrios', listarBarrios);
+
+personaRouter.post('/dom/localidades/:id_dom_localidad/barrios', crearBarrio);
+
+personaRouter.get('/:id_persona/barrios', listarBarriosPersona);
+personaRouter.post('/:id_persona/barrios', vincularBarrioPersona);
+personaRouter.delete('/:id_persona/barrios/:id_dom_barrio', desvincularBarrioPersona);
+
+/**
+ * @swagger
+ * /api/perfiles:
+ *   get:
+ *     summary: Obtener todos los Perfiles
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles
+ */
+personaRouter.get('/perfiles', async (req, res) => {
+    try {
+        const perfiles = await obtenerPerfiles();
+        res.json(perfiles);
+    } catch (error) {
+        console.error('Error al obtener perfiles:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+});
 
 /**
  * @swagger
@@ -135,20 +195,6 @@ personaRouter.get('/', listarPersonas);
  */
 personaRouter.get('/:id_persona', obtenerPersona);
 
-/**
- * @swagger
- * /api/persona/estados-verificacion:
- *   get:
- *     summary: Listar estados de verificación
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de estados de verificación
- */
-personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
 
 /**
  * @swagger
@@ -387,10 +433,10 @@ personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
  *       200:
  *         description: Resultados del buscador avanzado
  */
-
-
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
+
+personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministrador, desasignarPerfil)
 
 /**
  * @swagger

@@ -15,13 +15,28 @@ export const getPersonaDocumentoById = async (id_persona_doc) => {
 // Crear documento de persona
 export const createPersonaDocumento = async (data) => {
     const {
-        id_persona, id_tipo_doc, id_archivo, id_estado, vigente
+        id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
     } = data;
     const res = await db.query(
         `INSERT INTO personas_documentos (
-            id_persona, id_tipo_doc, id_archivo, id_estado, vigente
+            id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
         ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [id_persona, id_tipo_doc, id_archivo, id_estado, vigente]
+        [id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente]
     );
     return res.rows[0];
 };
+
+// Eliminar documento de persona
+export const deletePersonaDocumento = async (data) => {
+    const {
+        id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
+    } = data;
+    const res = await db.query(
+        `DELETE FROM `
+    )
+}
+
+export const getAllTiposDocumento = async () => {
+    const res = await db.query('SELECT * FROM tipos_documento ORDER BY id_tipo_doc');
+    return res.rows;
+}

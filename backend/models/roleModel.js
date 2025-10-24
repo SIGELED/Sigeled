@@ -51,8 +51,8 @@ export const deleteRole = async (id_rol) => {
 export const getRolesByUserId = async (id_usuario) => {
     const res = await db.query(
         `SELECT r.* FROM usuarios_roles ur
-         JOIN roles r ON ur.id_rol = r.id_rol
-         WHERE ur.id_usuario = $1`,
+            JOIN roles r ON ur.id_rol = r.id_rol
+            WHERE ur.id_usuario = $1`,
         [id_usuario]
     );
     return res.rows;
