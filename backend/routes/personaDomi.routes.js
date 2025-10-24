@@ -323,18 +323,26 @@ PersonaDomiRouter.post('/personas/:id_persona/domicilios', authMiddleware, ctrl.
 
 /**
  * @swagger
- * /domicilios/{id_domicilio}:
+ * /personas/{id_persona}/domicilios/{id_domicilio}:
  *   put:
- *     summary: Actualizar domicilio
+ *     summary: Actualizar domicilio de una persona
  *     tags: [Domicilios]
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID de la persona
  *       - name: id_domicilio
  *         in: path
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del domicilio
  *     requestBody:
  *       required: true
  *       content:
@@ -344,36 +352,65 @@ PersonaDomiRouter.post('/personas/:id_persona/domicilios', authMiddleware, ctrl.
  *     responses:
  *       200:
  *         description: Domicilio actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Domicilio'
  *       400:
  *         description: Datos inválidos
  *       403:
  *         description: Acceso denegado
  *       404:
- *         description: No encontrado
+ *         description: Domicilio no encontrado
  */
-PersonaDomiRouter.put('/domicilios/:id_domicilio', authMiddleware, ctrl.updateDomicilio );
+PersonaDomiRouter.put('/personas/:id_persona/domicilios/:id_domicilio', authMiddleware, ctrl.updateDomicilio );
 
 /**
  * @swagger
- * /domicilios/{id_domicilio}:
+ * /personas/{id_persona}/domicilios/{id_domicilio}:
  *   delete:
- *     summary: Eliminar domicilio
+ *     summary: Eliminar domicilio de una persona
  *     tags: [Domicilios]
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID de la persona
  *       - name: id_domicilio
  *         in: path
  *         required: true
  *         schema:
  *           type: integer
+ *         description: ID del domicilio
  *     responses:
- *       204:
- *         description: Eliminado correctamente
+ *       200:
+ *         description: Domicilio eliminado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Domicilio'
+ *       400:
+ *         description: id_persona e id_domicilio requeridos o domicilio no pertenece a la persona
  *       403:
- *         description: Acceso denegado
+ *         description: Acceso denegado (no propietario ni rol privilegiado)
  *       404:
- *         description: No encontrado
+ *         description: Domicilio no encontrado
  */
-PersonaDomiRouter.delete('/personas/:id_persona/domicilios/:id_domicilio', authMiddleware, ctrl.deleteDomicilio );
+PersonaDomiRouter.delete('/personas/:id_persona/domicilios/:id_domicilio', authMiddleware, ctrl.deleteDomicilio);
+
 export default PersonaDomiRouter;
