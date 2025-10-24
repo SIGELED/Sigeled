@@ -375,6 +375,5 @@ PersonaDomiRouter.put('/domicilios/:id_domicilio', authMiddleware, ctrl.updateDo
  *       404:
  *         description: No encontrado
  */
-PersonaDomiRouter.delete('/domicilios/:id_domicilio', authMiddleware, ctrl.deleteDomicilio );
-
+PersonaDomiRouter.delete('/personas/:id_persona/domicilios/:id_domicilio', authMiddleware, ctrl.deleteDomicilio );
 export default PersonaDomiRouter;

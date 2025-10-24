@@ -1,18 +1,21 @@
 import * as model from '../models/personaDomiModel.js';
 
-// Helper: roles 1=ADMIN, 2=RRHH
+// Helper: comprobar roles privilegiados (acepta id_rol numérico o roles/perfiles como array)
 const isAdminOrRRHH = (req) => {
-  return !!(req.user && (req.user.id_rol === 1 || req.user.id_rol === 2 || req.user.id_rol === 3));
+  const user = req.user;
+  if (!user) return false;
+  const rolNum = Number(user.id_rol || user.id_perfil || user.idPerfil || 0);
+  if ([1, 2, 3].includes(rolNum)) return true;
+  const roleNames = Array.isArray(user.roles) ? user.roles : (Array.isArray(user.perfiles) ? user.perfiles.map(p => p?.codigo || p?.nombre) : []);
+  return roleNames.some(r => ['ADMIN', 'RRHH', 'ADMINISTRATIVO'].includes(String(r)));
 };
 
 /* Listar todos (solo admin/rrhh) */
 export const listAllDomicilios = async (req, res, next) => {
   try {
-    if (!isAdminOrRRHH(req)) {
-      const e = new Error('Acceso denegado'); e.status = 403; throw e;
-    }
+    if (!isAdminOrRRHH(req)) return res.status(403).json({ success: false, message: 'Acceso denegado' });
     const rows = await model.getAllDomicilios();
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };
 
@@ -20,12 +23,14 @@ export const listAllDomicilios = async (req, res, next) => {
 export const listByPersona = async (req, res, next) => {
   try {
     const { id_persona } = req.params;
-    if (!id_persona) { const e = new Error('id_persona requerido'); e.status = 400; throw e; }
+    if (!id_persona) return res.status(400).json({ success: false, message: 'id_persona requerido' });
 
-    if (!isAdminOrRRHH(req)) {
-      if (!req.user || String(req.user.id_persona) !== String(id_persona)) {
-        const err = new Error('Solo puedes ver tus propios domicilios'); err.status = 403; throw err;
-      }
+    const user = req.user;
+    if (!user) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+
+    const userPersonaId = String(user.id_persona || user.id || user.id_persona_sistema || '');
+    if (!isAdminOrRRHH(req) && userPersonaId !== String(id_persona)) {
+      return res.status(403).json({ success: false, message: 'Solo puedes ver tus propios domicilios' });
     }
 
     const rows = await model.getDomiciliosByPersona(id_persona);
@@ -37,13 +42,17 @@ export const listByPersona = async (req, res, next) => {
 export const getDomicilio = async (req, res, next) => {
   try {
     const { id_domicilio } = req.params;
-    const dom = await model.getDomicilioById(id_domicilio);
-    if (!dom) { const e = new Error('Domicilio no encontrado'); e.status = 404; throw e; }
+    if (!id_domicilio) return res.status(400).json({ success: false, message: 'id_domicilio requerido' });
 
-    if (!isAdminOrRRHH(req)) {
-      if (!req.user || String(req.user.id_persona) !== String(dom.id_persona)) {
-        const err = new Error('Acceso denegado'); err.status = 403; throw err;
-      }
+    const dom = await model.getDomicilioById(id_domicilio);
+    if (!dom) return res.status(404).json({ success: false, message: 'Domicilio no encontrado' });
+
+    const user = req.user;
+    if (!user) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+
+    const userPersonaId = String(user.id_persona || user.id || '');
+    if (!isAdminOrRRHH(req) && userPersonaId !== String(dom.id_persona)) {
+      return res.status(403).json({ success: false, message: 'Acceso denegado' });
     }
 
     return res.json({ success: true, data: dom });
@@ -53,14 +62,12 @@ export const getDomicilio = async (req, res, next) => {
 export const getDomiciliosByDni = async (req, res, next) => {
   try {
     const { dni } = req.params;
-    if (!dni) { const e = new Error('DNI requerido'); e.status = 400; throw e; }
+    if (!dni) return res.status(400).json({ success: false, message: 'DNI requerido' });
 
-    if (!isAdminOrRRHH(req)) {
-      const e = new Error('Acceso denegado'); e.status = 403; throw e;
-    }
+    if (!isAdminOrRRHH(req)) return res.status(403).json({ success: false, message: 'Acceso denegado' });
 
     const rows = await model.getDomiciliosByDni(dni);
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };
 
@@ -68,7 +75,7 @@ export const getDomiciliosByDni = async (req, res, next) => {
 export const listDepartamentos = async (req, res, next) => {
   try {
     const rows = await model.getDepartamentos();
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };
 
@@ -78,7 +85,7 @@ export const listLocalidades = async (req, res, next) => {
     const { departamentoId } = req.query;
     if (!departamentoId) return res.status(400).json({ success:false, message:'departamentoId requerido' });
     const rows = await model.getLocalidadesByDepartamento(departamentoId);
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };
 
@@ -88,10 +95,9 @@ export const listBarrios = async (req, res, next) => {
     const { localidadId } = req.query;
     if (!localidadId) return res.status(400).json({ success:false, message:'localidadId requerido' });
     const rows = await model.getBarriosByLocalidad(localidadId);
-    res.json({ success: true, data: rows });
+    return res.json({ success: true, data: rows });
   } catch (err) { next(err); }
 };
-
 
 
 /* Crear domicilio (admin/rrhh pueden crear para cualquier id_persona; usuario sólo para sí mismo) */
@@ -102,12 +108,12 @@ export const createDomicilio = async (req, res, next) => {
 
     if (!calle || !barrio) return res.status(400).json({ success:false, message:'calle y barrio requeridos' });
 
-    // permiso: si no ADMIN/RRHH/ADMTVO, solo puede crear su propio domicilio
-    const rol = Number(req.user?.id_rol);
-    if (![1,2,3].includes(rol)) { // 4=EMP
-      if (!req.user || String(req.user.id_persona) !== String(id_persona)) {
-        return res.status(403).json({ success:false, message:'Solo puedes crear tu propio domicilio' });
-      }
+    const user = req.user;
+    if (!user) return res.status(401).json({ success:false, message:'Usuario no autenticado' });
+
+    const userPersonaId = String(user.id_persona || user.id || '');
+    if (!isAdminOrRRHH(req) && userPersonaId !== String(id_persona)) {
+      return res.status(403).json({ success:false, message:'Solo puedes crear tu propio domicilio' });
     }
 
     const created = await model.createDomicilioWithBarrio({
@@ -118,7 +124,7 @@ export const createDomicilio = async (req, res, next) => {
     });
 
     const full = await model.getDomicilioFullById(created.id_domicilio);
-    res.status(201).json({ success: true, data: full });
+    return res.status(201).json({ success: true, data: full });
   } catch (err) { next(err); }
 };
 
@@ -127,39 +133,46 @@ export const updateDomicilio = async (req, res, next) => {
   try {
     const { id_domicilio } = req.params;
     const data = req.body;
+    if (!id_domicilio) return res.status(400).json({ success:false, message:'id_domicilio requerido' });
 
     const dom = await model.getDomicilioById(id_domicilio);
-    if (!dom) { const e = new Error('Domicilio no encontrado'); e.status = 404; throw e; }
+    if (!dom) return res.status(404).json({ success:false, message:'Domicilio no encontrado' });
 
-    if (!isAdminOrRRHH(req)) {
-      if (!req.user || String(req.user.id_persona) !== String(dom.id_persona)) {
-        const err = new Error('Acceso denegado'); err.status = 403; throw err;
-      }
+    const user = req.user;
+    if (!user) return res.status(401).json({ success:false, message:'Usuario no autenticado' });
+
+    const userPersonaId = String(user.id_persona || user.id || '');
+    if (!isAdminOrRRHH(req) && userPersonaId !== String(dom.id_persona)) {
+      return res.status(403).json({ success:false, message:'Acceso denegado' });
     }
 
-    const result = await model.updateDomicilio(id_domicilio, data);
-    if (result.rowCount === 0) { const e = new Error('No se actualizó'); e.status = 400; throw e; }
+    const updated = await model.updateDomicilio(id_domicilio, data);
+    if (!updated) return res.status(400).json({ success:false, message:'No se actualizó' });
 
-    return res.json({ success: true, data: result.rows[0] });
+    return res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 };
 
 /* Eliminar domicilio (admin/rrhh cualquiera, empleado sólo si le pertenece) */
 export const deleteDomicilio = async (req, res, next) => {
   try {
-    const { id_domicilio } = req.params;
-    const dom = await model.getDomicilioById(id_domicilio);
-    if (!dom) { const e = new Error('Domicilio no encontrado'); e.status = 404; throw e; }
+    const { id_persona, id_domicilio } = req.params;
+    if (!id_persona || !id_domicilio) return res.status(400).json({ success:false, message:'id_persona e id_domicilio requeridos' });
 
-    if (!isAdminOrRRHH(req)) {
-      if (!req.user || String(req.user.id_persona) !== String(dom.id_persona)) {
-        const err = new Error('Acceso denegado'); err.status = 403; throw err;
-      }
+    const dom = await model.getDomicilioById(id_domicilio);
+    if (!dom) return res.status(404).json({ success:false, message:'Domicilio no encontrado' });
+
+    if (String(dom.id_persona) !== String(id_persona)) return res.status(400).json({ success:false, message:'Domicilio no pertenece a la persona indicada' });
+
+    const user = req.user;
+    if (!user) return res.status(401).json({ success:false, message:'Usuario no autenticado' });
+
+    const userPersonaId = String(user.id_persona || user.id || '');
+    if (!isAdminOrRRHH(req) && userPersonaId !== String(id_persona)) {
+      return res.status(403).json({ success:false, message:'No autorizado para eliminar este domicilio' });
     }
 
-    const result = await model.deleteDomicilio(id_domicilio);
-    if (result.rowCount === 0) { const e = new Error('No se eliminó'); e.status = 400; throw e; }
-
-    return res.status(204).send();
+    const deleted = await model.deleteDomicilio(id_domicilio);
+    return res.status(200).json({ success: true, data: deleted });
   } catch (err) { next(err); }
 };

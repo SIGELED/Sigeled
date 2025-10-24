@@ -20,12 +20,18 @@ export const createUser = async ({ email, password_hash }) => {
 
 // Buscar usuario por id
 export const getUserById = async (id_usuario) => {
-    const query =
-        `SELECT u.id_usuario, u.email, u.activo, p.id_persona, p.nombre, p.apellido 
-        FROM usuarios u 
-        LEFT JOIN personas p ON u.id_persona = p.id_persona WHERE u.id_usuario = $1`;
-    const res = await db.query(query, [id_usuario]);
-    return res.rows[0];
+  const q = `
+    SELECT u.id_usuario, u.id_persona,
+           json_agg(json_build_object('id_perfil', p.id_perfil, 'codigo', p.codigo, 'nombre', p.nombre)) FILTER (WHERE p.id_perfil IS NOT NULL) AS perfiles
+    FROM usuarios u
+    LEFT JOIN usuarios_perfiles up ON u.id_usuario = up.id_usuario
+    LEFT JOIN perfiles p ON up.id_perfil = p.id_perfil
+    WHERE u.id_usuario = $1
+    GROUP BY u.id_usuario, u.id_persona
+    LIMIT 1
+  `;
+  const r = await db.query(q, [id_usuario]);
+  return r.rows[0] || null;
 };
 
 // Obtener todos los usuarios

@@ -3,7 +3,8 @@ import {
     listarPersonasDocumentos,
     obtenerPersonaDocumento,
     crearPersonaDocumento,
-    listarTiposDocumento
+    listarTiposDocumento,
+    deleteDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
@@ -43,7 +44,8 @@ personaDocRouter.get('/', listarPersonasDocumentos);
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *     responses:
  *       200:
  *         description: Documento encontrado
@@ -69,11 +71,15 @@ personaDocRouter.get('/:id_persona_doc', obtenerPersonaDocumento);
  *             type: object
  *             properties:
  *               id_persona:
+ *                 type: string
+ *                 format: uuid
+ *               id_tipo_doc:
  *                 type: integer
- *               tipo_documento:
+ *               id_archivo:
  *                 type: string
- *               numero_documento:
- *                 type: string
+ *                 format: uuid
+ *               vigente:
+ *                 type: boolean
  *     responses:
  *       201:
  *         description: Documento creado
@@ -84,6 +90,6 @@ personaDocRouter.get('/:id_persona_doc', obtenerPersonaDocumento);
  */
 personaDocRouter.post('/', crearPersonaDocumento);
 
-
+personaDocRouter.delete('/personas/:id_persona/documentos/:id_persona_doc', deleteDocumento);
 
 export default personaDocRouter;

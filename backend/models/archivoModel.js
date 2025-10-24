@@ -8,8 +8,10 @@ export const getAllArchivos = async () => {
 
 // Obtener archivo por ID
 export const getArchivoById = async (id_archivo) => {
-    const res = await db.query('SELECT * FROM archivos WHERE id_archivo = $1', [id_archivo]);
-    return res.rows[0];
+  if (!id_archivo) return null;
+  const q = 'SELECT * FROM archivos WHERE id_archivo = $1';
+  const r = await db.query(q, [id_archivo]);
+  return r.rows[0] || null;
 };
 
 // Crear archivo
@@ -35,4 +37,10 @@ export const createArchivo = async (data) => {
         ]
     );
     return res.rows[0];
+};
+
+export const deleteArchivo = async (id_archivo) => {
+  const q = 'DELETE FROM archivos WHERE id_archivo = $1 RETURNING *';
+  const r = await db.query(q, [id_archivo]);
+  return r.rows[0] || null;
 };

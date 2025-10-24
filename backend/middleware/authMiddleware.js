@@ -1,59 +1,86 @@
-// ...existing code...
 import { verificarTokenJWT } from '../utils/jwt.js';
+import * as userModel from '../models/userModel.js';
 
-// Middleware para verificar el token JWT
-export const verificarToken = (req, res, next) => {
-    const authHeader = req.headers.authorization || req.headers['authorization'];
-    if (!authHeader) {
-        return res.status(401).json({ message: 'Token no proporcionado' });
-    }
-    try {
-        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-        const decoded = verificarTokenJWT(token);
-        req.user = decoded; // asegúrate que el token incluya id_usuario, id_persona, id_rol; si no, consulta la BD aquí
-        next();
-    } catch (error) {
-        return res.status(401).json({ message: 'Token inválido' });
-    }
+const normalizePayload = (payload) => {
+  const id_usuario = payload.id || payload.sub || payload.userId || payload.id_usuario || null;
+  const id_persona = payload.id_persona || payload.personaId || payload.id_persona_usuario || payload.persona || null;
+  let roles = [];
+  if (Array.isArray(payload.roles)) roles = payload.roles;
+  else if (Array.isArray(payload.perfiles)) {
+    roles = payload.perfiles.map(p => (typeof p === 'string' ? p : (p?.codigo || p?.nombre))).filter(Boolean);
+  } else if (payload.role) {
+    roles = Array.isArray(payload.role) ? payload.role : [payload.role];
+  }
+  const id_rol = payload.id_rol ?? payload.id_perfil ?? payload.idPerfil ?? null;
+  return { raw: payload, id_usuario, id_persona, roles, id_rol, perfiles: payload.perfiles ?? null };
 };
 
-// Alias esperado por muchas rutas
+export const verificarToken = async (req, res, next) => {
+  try {
+    console.log('[auth] Authorization header:', req.headers.authorization?.substring(0, 50) + '...');
+    const header = req.headers.authorization || req.headers['authorization'];
+    if (!header) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : header.trim();
+    if (!token) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
+
+    let payload;
+    try {
+      payload = verificarTokenJWT(token);
+    } catch (err) {
+      console.error('[auth] Token inválido:', err.message);
+      return res.status(401).json({ success: false, message: 'Usuario no autenticado', detail: err.message });
+    }
+
+    req.user = normalizePayload(payload);
+
+    // Si falta id_persona en el payload, enriquecer desde BD
+    if ((!req.user.id_persona || req.user.id_persona === null) && req.user.id_usuario) {
+      try {
+        const u = await userModel.getUserById(req.user.id_usuario);
+        if (u && u.id_persona) {
+          req.user.id_persona = u.id_persona;
+          console.log('[auth] id_persona enriquecido desde DB:', req.user.id_persona);
+        } else {
+          console.warn('[auth] usuario no tiene id_persona asociado:', req.user.id_usuario);
+        }
+      } catch (e) {
+        console.warn('[auth] error enriqueciendo id_persona:', e.message);
+      }
+    }
+
+    console.log('[auth] req.user:', { id_usuario: req.user.id_usuario, id_persona: req.user.id_persona, roles: req.user.roles });
+    return next();
+  } catch (err) {
+    console.error('[auth] error inesperado:', err);
+    return res.status(500).json({ success: false, message: 'Error interno de autenticación' });
+  }
+};
+
+export default verificarToken;
 export const authMiddleware = verificarToken;
 
-// Middleware para permitir solo a usuarios con rol específico
-export const permitirRoles = (...roles) => (req, res, next) => {
-    if (req.user && req.user.roles && req.user.roles.some(rol => roles.includes(rol))) {
-        next();
-    } else {
-        return res.status(403).json({ message: 'Acceso denegado: permisos insuficientes' });
-    }
+export const permitirRoles = (...allowedRoles) => (req, res, next) => {
+  const roles = req.user?.roles || [];
+  const ok = roles.some(r => allowedRoles.includes(r));
+  if (ok) return next();
+  return res.status(403).json({ success: false, message: 'Acceso denegado: permisos insuficientes' });
 };
 
-// Middleware para permitir solo a usuarios con rol "docente" (compatibilidad)
-export const soloDocente = (req, res, next) => {
-    if (req.user && (req.user.rol === 'docente' || (req.user.role_codigo && req.user.role_codigo.toString().toUpperCase() === 'DOCENTE'))) {
-        next();
-    } else {
-        return res.status(403).json({ message: 'Acceso solo para docentes' });
-    }
-};
-
-// Middleware para permitir solo a usuarios con rol "administrador"
 export const soloAdministrador = (req, res, next) => {
-    const rolesUsuario = req.user?.roles || [];
-    if (rolesUsuario.includes('ADMIN') || req.user?.id_rol === 1) {
-        next();
-    } else {
-        return res.status(403).json({ message: 'Acceso solo para administradores' });
-    }
+  const roles = req.user?.roles || [];
+  if (roles.includes('ADMIN')) return next();
+  return res.status(403).json({ success: false, message: 'Acceso solo para administradores' });
 };
 
-// Middleware para permitir solo a usuarios con rol "rrhh" o "administrador"
 export const soloRRHH = (req, res, next) => {
-    const rolesUsuario = req.user?.roles || [];
-    if (rolesUsuario.includes('RRHH') || rolesUsuario.includes('ADMIN') || req.user?.id_rol === 2 || req.user?.id_rol === 1) {
-        return next();
-    }
-    return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador' });
+  const roles = req.user?.roles || [];
+  if (roles.includes('RRHH') || roles.includes('ADMIN')) return next();
+  return res.status(403).json({ success: false, message: 'Acceso denegado: solo RRHH o Admin' });
 };
-// ...existing code...
+
+export const soloDocente = (req, res, next) => {
+  const roles = req.user?.roles || [];
+  if (roles.includes('DOCENTE') || roles.includes('PROFESOR')) return next();
+  return res.status(403).json({ success: false, message: 'Acceso solo para docentes' });
+};
