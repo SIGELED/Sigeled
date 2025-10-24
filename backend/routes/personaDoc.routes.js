@@ -1,3 +1,4 @@
+// ...existing code...
 import express from 'express';
 import {
     listarPersonasDocumentos,
@@ -90,6 +91,40 @@ personaDocRouter.get('/:id_persona_doc', obtenerPersonaDocumento);
  */
 personaDocRouter.post('/', crearPersonaDocumento);
 
+/**
+ * @swagger
+ * /api/persona-doc/personas/{id_persona}/documentos/{id_persona_doc}:
+ *   delete:
+ *     summary: Eliminar documento personal
+ *     tags:
+ *       - PersonaDoc
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID de la persona propietaria del documento
+ *       - name: id_persona_doc
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID del documento a eliminar
+ *     responses:
+ *       200:
+ *         description: Documento eliminado correctamente
+ *       400:
+ *         description: Parámetros inválidos o documento no pertenece a la persona
+ *       403:
+ *         description: Acceso denegado
+ *       404:
+ *         description: Documento no encontrado
+ */
 personaDocRouter.delete('/personas/:id_persona/documentos/:id_persona_doc', deleteDocumento);
 
 export default personaDocRouter;
