@@ -82,17 +82,10 @@ export default function PersonaDocumentos({idPersona, onClose}) {
             setLoading(true);
             try {
                 const { data } = await personaDocService.listarDocumentos({id_persona: idPersona});
-                if (Array.isArray(data)) setDocs(data);
-                else throw new Error("Respuesta inesperada");
-            } catch {
-                try {
-                    const { data } = await personaDocService.listarDocumentos();
-                    const arr = Array.isArray(data) ? data : [];
-                    setDocs(arr.filter(d => String(d.id_persona) === String(idPersona)));
-                } catch (e2) {
-                    console.error("No se pudieron cargar documentos:", e2);
-                    setDocs([]);
-                }
+                setDocs(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error("No se pudieron cargar documentos:", error);
+                setDocs([]);
             } finally {
                 setLoading(false);
             }
@@ -187,8 +180,9 @@ export default function PersonaDocumentos({idPersona, onClose}) {
                     ) : (
                         <ul className="space-y-2">
                             {docsOrdenados.map((d) => {
-                                const t = tipoById(d.id_tipo_doc);
-                                const e = estadoById(d.id_estado) || estadoById(d.id_estado_verificacion);
+                                const t = d.tipo_nombre ? {nombre: d.tipo_nombre, obligatorio: undefined} : tipoById(d.id_tipo_doc);
+                                const e = d.estado_nombre ? { nombre: d.estado_nombre, codigo: d.estado_codigo } :
+                                    (estadoById(d.id_estado) || estadoById(d.id_estado_verificacion));
                                 return(
                                     <li key={d.id_persona_doc ?? `${d.id_persona}-${d.id_tipo_doc}-${d.creado_en}`} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#0D1520]">
                                         <div className="flex-1">
@@ -204,7 +198,7 @@ export default function PersonaDocumentos({idPersona, onClose}) {
                                             </div>
                                             {d.id_archivo && (
                                                 <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
-                                                    <span className="opacity-60">Archivo ID: {d.id_archivo}</span>
+                                                    <span className="opacity-60">Archivo ID: {d.archivo_nombre ?? `ID ${d.id_archivo}`}</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => openPreview(d)}

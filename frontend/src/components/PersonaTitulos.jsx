@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { tituloService, archivoService } from "../services/api";
 import { IoClose } from "react-icons/io5";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 export default function PersonaTitulos({idPersona, onClose}){
     const [titulos, setTitulos] = useState([]);
@@ -17,6 +18,47 @@ export default function PersonaTitulos({idPersona, onClose}){
     const [fecha_emision, setFechaEmision] = useState("");
     const [matricula_prof, setMatriculaProf] = useState("");
     const [archivo, setArchivo] = useState(null);
+
+    const [preview, setPreview] = useState({open: false, url: '', title: ''});
+    const tipoById = (id) => tipos.find(t => Number(t.id_tipo_titulo) === Number(id));
+
+    const openPreview = async (doc) => {
+        if(!doc.id_archivo) return;
+        try {
+            const { data } = await archivoService.getSignedUrl(doc.id_archivo);
+            // const tipo = tipoById(doc.id_tipo_titulo);
+            setPreview({
+                open: true,
+                url: data.url ?? data.signedUrl,
+                title: doc.archivo_nombre || data.nombre_original || 'Documento',
+            });
+        } catch (error) {
+            console.error('No se pudo abrir el documento:', e?.response?.data || e.message);
+            alert('No se pudo abrir el documento');
+        }
+    }
+
+    const closePreview = () => setPreview({open: false, url:'', title:''});
+
+    const fetchTitulos = useCallback(async() => {
+        setLoading(true);
+        try {
+            const [tRes, tiposRes] = await Promise.all([
+                tituloService.findTituloByPersona(idPersona),
+                tituloService.getTiposTiulos(),
+            ]);
+            setTitulos(Array.isArray(tRes.data) ? tRes.data : []);
+            setTipos(Array.isArray(tiposRes.data) ? tiposRes.data : []);
+        } catch (error) {
+            console.error("Error cargando títulos o tipos:", error);
+            setTitulos([]);
+            setTipos([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [idPersona]);
+
+    useEffect(() => { fetchTitulos(); }, [fetchTitulos]);
 
     useEffect(() => {
         const loadTitulos = async () => {
@@ -64,10 +106,10 @@ export default function PersonaTitulos({idPersona, onClose}){
             let id_archivo = null;
             if(archivo) {
                 const up = await archivoService.uploadForPersona(idPersona, archivo);
-                id_archivo =
-                    up?.data?.id_archivo ??
-                    up?.data?.archivo?.id_archivo ??
-                    up?.data?.result?.id_archivo ??
+                id_archivo = 
+                    up?.data?.id_archivo 
+                    ?? up?.data?.archivo?.id_archivo
+                    ?? up?.data?.result?.id_archivo ?? 
                     null;
             }
 
@@ -78,17 +120,19 @@ export default function PersonaTitulos({idPersona, onClose}){
                 institucion: institucion || null,
                 fecha_emision: fecha_emision || null,
                 matricula_prof: matricula_prof || null,
-                id_archivo: id_archivo,
+                id_archivo,
                 id_estado_verificacion: 1,
             };
 
             const { data: nuevoTitulo } = await tituloService.createTitulo(body);
+
             setTitulos((prev) => [nuevoTitulo, ...prev]);
 
+            await fetchTitulos();
             resetForm();
             setShowNew(false);
-        } catch (error) {
-            console.error("Error al crear título:", error);
+            } catch (error) {
+            console.error("Error al crear título:", error)
             alert("No se pudo crear el título");
         } finally {
             setSaving(false);
@@ -124,7 +168,7 @@ export default function PersonaTitulos({idPersona, onClose}){
                         ) : (
                             <ul className="space-y-2">
                                 {titulosOrdenados.map((t) => (
-                                    <li key={t.id_titulo} className="px-3 py-2 rounded-xl bg-[#0D1520]">
+                                    <li key={`t-${t.id_titulo ?? t.nombre_titulo}`} className="px-3 py-2 rounded-xl bg-[#0D1520]">
                                         <div className="font-semibold">{t.nombre_titulo}</div>
                                         <div className="text-sm opacity-80">
                                             {t.tipo_titulo ? `${t.tipo_titulo} • ` : ""}
@@ -135,11 +179,32 @@ export default function PersonaTitulos({idPersona, onClose}){
                                             Estado: {t.estado_verificacion_nombre || 'Sin asignar'}
                                             {t.archivo_nombre ? ` • Archivo: ${t.archivo_nombre}` : ""}
                                         </div>
+
+                                        {t.id_archivo && (
+                                            <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
+                                                <span>Archivo ID: {t.id_archivo}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPreview(t)}
+                                                    className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                                                    title="Ver Título"
+                                                >
+                                                    Ver Título
+                                                </button>
+                                            </div>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
                         )}
                     </div>
+                    {preview.open && (
+                        <PdfPreviewModal
+                            url={preview.url}
+                            title={preview.title}
+                            onClose={closePreview}
+                        />
+                    )}
 
                     {showNew && (
                         <div className="fixed inset-0 z-[80]">
@@ -164,8 +229,8 @@ export default function PersonaTitulos({idPersona, onClose}){
                                                     required>
                                                         <option value="">Seleccionar...</option>
                                                         {tipos.map((t) => (
-                                                            <option key={t.id_tipo_titulo} value={t.id_tipo_titulo}>
-                                                                {t.nombre} {t.codigo ? `(${t.codigo})` : ""}
+                                                            <option key={`tip-${t.id_tipo_titulo ?? t.codigo}`} value={t.id_tipo_titulo}>
+                                                                {t.nombre}
                                                             </option>
                                                         ))}
                                                 </select>

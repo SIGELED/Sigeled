@@ -6,9 +6,56 @@ export const getAllPersonasDocumentos = async () => {
     return res.rows;
 };
 
+export const getPersonasDocumentos = async ({id_persona} = {}) => {
+    const params = [];
+    let where = '';
+    if(id_persona){
+        params.push(id_persona);
+        where = `WHERE pd.id_persona = $${params.length}`;
+    }
+
+    const sql = `
+    SELECT
+        pd.id_persona_doc,
+        pd.id_persona,
+        pd.id_tipo_doc,
+        t.codigo       AS tipo_codigo,
+        t.nombre       AS tipo_nombre,
+        pd.id_archivo,
+        a.nombre_original AS archivo_nombre,
+        pd.id_estado_verificacion AS id_estado,
+        ev.codigo      AS estado_codigo,
+        ev.nombre      AS estado_nombre,
+        pd.vigente,
+        pd.creado_en
+        FROM personas_documentos pd
+        LEFT JOIN tipos_documento      t  USING (id_tipo_doc)
+        LEFT JOIN archivos             a  USING (id_archivo)
+        LEFT JOIN estado_verificacion  ev ON ev.id_estado = pd.id_estado_verificacion
+        ${where}
+        ORDER BY pd.creado_en DESC, pd.id_persona_doc DESC
+    `;
+    const res = await db.query(sql, params);
+    return res.rows;
+    }
+
 // Obtener documento de persona por ID
 export const getPersonaDocumentoById = async (id_persona_doc) => {
-    const res = await db.query('SELECT * FROM personas_documentos WHERE id_persona_doc = $1', [id_persona_doc]);
+    const res = await db.query(
+        `
+        SELECT
+            pd.*,
+            t.codigo AS tipo_codigo, t.nombre AS tipo_nombre,
+            a.nombre_original AS archivo_nombre,
+            ev.codigo AS estado_codigo, ev.nombre AS estado_nombre
+        FROM personas_documentos pd
+        LEFT JOIN tipos_documento     t  USING (id_tipo_doc)
+        LEFT JOIN archivos            a  USING (id_archivo)
+        LEFT JOIN estado_verificacion ev ON ev.id_estado_verificacion = pd.id_estado_verificacion
+        WHERE pd.id_persona_doc = $1
+        `,
+        [id_persona_doc]
+    );
     return res.rows[0];
 };
 
@@ -18,9 +65,32 @@ export const createPersonaDocumento = async (data) => {
         id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
     } = data;
     const res = await db.query(
-        `INSERT INTO personas_documentos (
+    `
+        WITH ins AS (
+        INSERT INTO personas_documentos (
             id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
-        ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        ) VALUES ($1,$2,$3,$4,$5)
+        RETURNING id_persona_doc
+        )
+        SELECT
+        pd.id_persona_doc,
+        pd.id_persona,
+        pd.id_tipo_doc,
+        t.codigo       AS tipo_codigo,
+        t.nombre       AS tipo_nombre,
+        pd.id_archivo,
+        a.nombre_original AS archivo_nombre,
+        pd.id_estado_verificacion AS id_estado,
+        ev.codigo      AS estado_codigo,
+        ev.nombre      AS estado_nombre,
+        pd.vigente,
+        pd.creado_en
+        FROM personas_documentos pd
+        LEFT JOIN tipos_documento      t  USING (id_tipo_doc)
+        LEFT JOIN archivos             a  USING (id_archivo)
+        LEFT JOIN estado_verificacion  ev ON ev.id_estado_verificacion = pd.id_estado_verificacion
+        WHERE pd.id_persona_doc = (SELECT id_persona_doc FROM ins)
+        `,
         [id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente]
     );
     return res.rows[0];

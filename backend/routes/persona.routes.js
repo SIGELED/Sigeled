@@ -32,6 +32,18 @@ import {
 } from '../controllers/personaDomi.Controller.js';
 import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
+const manejarErroresMulter = (req, res, next) => 
+    archivoValidator.single('archivo')(req, res, (err) => {
+        if(err) {
+            const message =
+                err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+                    ? 'El archivo supera 5MB.'
+                    : err.message || 'Archivo inválido';
+                return res.status(400).json({error:message});
+        }
+        next();
+    })
+
 const personaRouter = express.Router();
 
 // Todas las rutas requieren autenticación
@@ -120,7 +132,7 @@ personaRouter.get('/perfiles', async (req, res) => {
  *       500:
  *         description: Error interno
  */
-personaRouter.post('/:id_persona/archivo', archivoValidator.single('archivo'), subirArchivo);
+personaRouter.post('/:id_persona/archivo', manejarErroresMulter, subirArchivo);
 
 /**
  * @swagger

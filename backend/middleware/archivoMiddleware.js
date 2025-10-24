@@ -1,18 +1,24 @@
 import multer from 'multer';
 
-const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png'];
+const tiposPermitidos = new Set([
+        'application/pdf',
+        'application/x-pdf', 
+        'application/octet-stream',
+        'image/jpeg', 
+        'image/png'
+    ]
+);
 const TAMANO_MAXIMO = 5 * 1024 * 1024; // 5MB
 
-const storage = multer.memoryStorage();
-
 export const archivoValidator = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: TAMANO_MAXIMO },
     fileFilter: (req, file, cb) => {
-        if (tiposPermitidos.includes(file.mimetype)) {
-        cb(null, true);
-        } else {
-        cb(new Error('Tipo de archivo no permitido. Solo PDF, JPG y PNG.'), false);
-        }
+        const esPermitido =
+            tiposPermitidos.has(file.mimetype) ||
+            (file.mimetype === 'application/octet-stream' &&
+                /\.(pdf|jpg|jpeg|png)$/i.test(file.originalName));
+            if(esPermitido) cb(null, true);
+            else cb(new Error('Tipo de archivo no permitido. Solo PDF, JPG y PNG'), false);
     }
 });

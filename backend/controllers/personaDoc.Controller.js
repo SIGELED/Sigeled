@@ -1,5 +1,5 @@
 import {
-    getAllPersonasDocumentos,
+    getPersonasDocumentos,
     getPersonaDocumentoById,
     createPersonaDocumento,
     getAllTiposDocumento
@@ -8,9 +8,11 @@ import {
 // Obtener todos los documentos de personas
 export const listarPersonasDocumentos = async (req, res) => {
     try {
-        const documentos = await getAllPersonasDocumentos();
+        const { id_persona } = req.query;
+        const documentos = await getPersonasDocumentos({ id_persona });
         res.json(documentos);
     } catch (error) {
+        console.error('Error en listarPersonasDocumentos', error);
         res.status(500).json({ message: 'Error al obtener documentos de personas' });
     }
 };
@@ -25,6 +27,7 @@ export const obtenerPersonaDocumento = async (req, res) => {
         }
         res.json(documento);
     } catch (error) {
+        console.error('Error en obtenerPersonaDocumento:', error);
         res.status(500).json({ message: 'Error al obtener documento de persona' });
     }
 };

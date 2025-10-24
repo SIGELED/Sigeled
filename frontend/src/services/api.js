@@ -81,9 +81,7 @@ export const archivoService = {
   uploadForPersona: (id_persona, file) => {
     const form = new FormData();
     form.append('archivo', file);
-    return api.post(`/persona/${id_persona}/archivo`, form, {
-      headers:{'Content-Type':'multipart/form-data'},
-    });
+    return api.post(`/persona/${id_persona}/archivo`, form);
   },
   getSignedUrl: (id_archivo) => api.get(`/archivos/${id_archivo}/signed-url`),
 };

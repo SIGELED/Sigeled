@@ -1,5 +1,5 @@
 import { createArchivo } from '../models/archivoModel.js';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
@@ -8,6 +8,7 @@ import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById 
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import db from "../models/db.js"
 import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
+import path from 'path';
 
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
@@ -15,39 +16,61 @@ export const subirArchivo = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No se envió ningún archivo.' });
         }
+
+        if(!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE){
+            return res.status(500).json({error:'Storage no configurado'});
+        }
+
         // Inicializar Supabase
         const supabase = createClient(
             process.env.SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE
         );
         // Generar nombre único para el archivo
-        const timestamp = Date.now();
-        const nombreArchivo = `${timestamp}_${req.file.originalname}`;
+        const guessExt = (m) => {
+            const mt = (m || '').toLowerCase();
+            if(mt === 'application/pdf') return '.pdf';
+            if(mt === 'image/jpeg') return '.jpg';
+            if(mt === 'image/png') return '.png';
+            return '';
+        }
+
+        const extFromName = path.extname(req.file.originalname) || '';
+        const ext = guessExt(req.file.mimetype) || extFromName || '.bin';
+
+        const safeKey = `persona/${req.params.id_persona}/${Date.now()}-${randomUUID()}${ext}`;
+
+        const nombre_OriginalRaw = req.file.originalname;
+        const nombre_original = Buffer.from(nombre_OriginalRaw, 'latin1').toString('utf-8');
+
         // Subir a Supabase Storage
         const { error: uploadError, data: uploadData } = await supabase.storage
             .from('legajos')
-            .upload(nombreArchivo, req.file.buffer, {
-                contentType: req.file.mimetype,
+            .upload(safeKey, req.file.buffer, {
+                contentType: req.file.mimetype || 'application/octet-stream',
                 upsert: false
             });
+
         if (uploadError) {
+            console.error('Supabase upload error:', uploadError);
             return res.status(500).json({ error: 'Error al subir el archivo a Supabase', detalle: uploadError.message });
         }
         // Calcular hash SHA256
         const sha256_hex = createHash('sha256').update(req.file.buffer).digest('hex');
         // Guardar metadatos en la base de datos
         const archivoData = {
-            nombre_original: req.file.originalname,
+            nombre_original,
             content_type: req.file.mimetype,
             size_bytes: req.file.size,
             sha256_hex,
             storage_provider: 'supabase',
             storage_bucket: 'legajos',
-            storage_key: nombreArchivo,
-            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null
+            storage_key: safeKey,
+            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null,
         };
+
         const archivoGuardado = await createArchivo(archivoData);
-        res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado });
+        return res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado, id_archivo: archivoGuardado.id_archivo });
     } catch (err) {
         console.error('Error en subirArchivo:', err);
         res.status(500).json({ error: err.message });
