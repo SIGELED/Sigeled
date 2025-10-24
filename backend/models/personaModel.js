@@ -110,6 +110,14 @@ export const vincularPersonaUsuario = async (id_persona, id_usuario) => {
     return res.rows[0];
 };
 
+// Obtener id_persona asociado a un id_usuario (si existe)
+export const getPersonaIdByUsuario = async (id_usuario) => {
+    const res = await db.query(
+        `SELECT id_persona FROM personas_usuarios WHERE id_usuario = $1 LIMIT 1`,
+        [id_usuario]
+    );
+    return res.rows[0] ? res.rows[0].id_persona : null;
+};
 // Asignar un perfil a una persona
 export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_asignador) => {
     // Opcional: marcar como no vigente si ya tenía ese perfil

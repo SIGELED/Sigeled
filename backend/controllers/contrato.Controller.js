@@ -6,9 +6,11 @@ import {
   deleteContrato,
   getPersonaByDni,
   getProfesorDetalles,
+  getContratosByPersona,
   getMateriasByCarreraAnio,
   crearContratoProfesor
 } from '../models/contratoQueries.js';
+import { getPersonaIdByUsuario } from '../models/personaModel.js';
 
 // GET /api/contratos
 export async function listarContratos(req, res) {
@@ -211,5 +213,29 @@ export async function obtenerContratoPorExternalId(req, res) {
       error: 'Error al obtener contrato por external_id',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+}
+
+// GET /api/contratos/mios
+export async function obtenerContratosPropios(req, res) {
+  try {
+    const id_usuario = req.user && req.user.id_usuario;
+    if (!id_usuario) return res.status(401).json({ error: 'Usuario no autenticado' });
+
+    const id_persona = await getPersonaIdByUsuario(id_usuario);
+    if (!id_persona) {
+      return res.status(404).json({ error: 'No se encontró persona asociada al usuario' });
+    }
+
+    const contratos = await getContratosByPersona(id_persona, { activoOnly: true });
+    if (!contratos || contratos.length === 0) {
+      return res.status(404).json({ error: 'No tiene contrato activo' });
+    }
+
+    // devolver el primer contrato activo (si se desea devolver todos, cambiar aquí)
+    return res.json(contratos[0]);
+  } catch (error) {
+    console.error('Error en obtenerContratosPropios:', error);
+    return res.status(500).json({ error: 'Error al obtener contratos propios' });
   }
 }

@@ -3,6 +3,7 @@ import {
   listarContratos,
   obtenerContrato,
   obtenerContratoPorExternalId,
+  obtenerContratosPropios,
   crearContratoHandler,
   eliminarContrato,
   buscarPersonaPorDni,
@@ -11,6 +12,7 @@ import {
   crearNuevoContratoProfesor,
 } from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
+import { permitirPropietarioOAdmin } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoQueries.js';
 import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
 import { createContratoValidators, handleValidation } from '../validators/contratoValidator.js';
@@ -79,6 +81,30 @@ contratoRouter.get('/', soloAdministrador, listarContratos);
  *         description: No autorizado
  */
 contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
+
+// Obtener el/los contrato(s) del usuario autenticado (docente)
+// Devuelve el contrato activo del docente
+/**
+ * @swagger
+ * /api/contratos/me:
+ *   get:
+ *     summary: Obtener el contrato activo del docente autenticado
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Contrato activo del docente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Contrato'
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: No se encontró contrato activo para el usuario
+ */
+contratoRouter.get('/me', verificarToken, obtenerContratosPropios);
 
 /**
  * @swagger
@@ -305,7 +331,7 @@ export default contratoRouter;
  * /api/contratos/{id}/export:
  *   get:
  *     summary: Exportar contrato en formato Word o PDF
- *     description: Exporta un contrato en formato Word (.docx) o PDF
+ *     description: Exporta un contrato en formato Word (.docx) o PDF. Acceso permitido al administrador o al docente propietario del contrato (requiere autenticación).
  *     tags: [Contratos]
  *     security:
  *       - bearerAuth: []
@@ -339,7 +365,7 @@ export default contratoRouter;
  *       500:
  *         description: Error al generar el documento
  */
-contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
+contratoRouter.get('/:id/export', permitirPropietarioOAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { format } = req.query;
@@ -354,27 +380,66 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
       return res.status(404).json({ error: 'Contrato no encontrado' });
     }
 
-    let fileContent;
+    // Normalizar/mapeo mínimo para los generadores
+    const contratoForDoc = {
+      ...contrato,
+      nombre_profesor: contrato.persona_nombre ? `${contrato.persona_nombre} ${contrato.persona_apellido || ''}`.trim() : (contrato.nombre_profesor || ''),
+      nombre_materia: contrato.descripcion_materia || contrato.nombre_materia || '',
+      nombre_periodo: contrato.nombre_periodo || (contrato.id_periodo ? String(contrato.id_periodo) : ''),
+      monto_hora: contrato.monto_hora,
+      horas_semanales: contrato.horas_semanales,
+      fecha_inicio: contrato.fecha_inicio,
+      fecha_fin: contrato.fecha_fin,
+      external_id: contrato.external_id
+    };
+
+    // Formateo localizado: fechas y moneda (es-AR)
+    const formatDate = (d) => {
+      if (!d) return '';
+      const dt = new Date(d);
+      if (Number.isNaN(dt.getTime())) return '';
+      return new Intl.DateTimeFormat('es-AR').format(dt);
+    };
+
+    const formatCurrency = (v) => {
+      try {
+        return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Number(v || 0));
+      } catch (e) {
+        return `$${Number(v || 0).toFixed(2)}`;
+      }
+    };
+
+    contratoForDoc.fecha_inicio_formatted = formatDate(contratoForDoc.fecha_inicio);
+    contratoForDoc.fecha_fin_formatted = formatDate(contratoForDoc.fecha_fin);
+    contratoForDoc.monto_hora_formatted = formatCurrency(contratoForDoc.monto_hora);
+
+    let fileBuffer;
     let contentType;
     let fileExtension;
 
     if (format === 'word') {
-      fileContent = await generateWordDocument(contrato);
+      const buf = await generateWordDocument(contratoForDoc);
+      // `generateWordDocument` returns a Buffer
+      fileBuffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
       contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       fileExtension = 'docx';
     } else {
-      fileContent = await generatePdfDocument(contrato);
+      const pdfBytes = await generatePdfDocument(contratoForDoc);
+      // `generatePdfDocument` returns Uint8Array/ArrayBuffer — convertir a Buffer
+      fileBuffer = Buffer.from(pdfBytes);
       contentType = 'application/pdf';
       fileExtension = 'pdf';
     }
 
-    // Set headers for file download
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename=contrato-${id}.${fileExtension}`);
-    res.setHeader('Content-Length', fileContent.length);
+    const filenameId = contratoForDoc.external_id || contratoForDoc.id_contrato_profesor || id;
 
-    // Send the file
-    res.send(fileContent);
+    // Set headers for file download (use Buffer length)
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename=contrato-${filenameId}.${fileExtension}`);
+    res.setHeader('Content-Length', fileBuffer.length);
+
+    // Send the file buffer
+    res.send(fileBuffer);
 
   } catch (error) {
     console.error('Error al exportar contrato:', error);

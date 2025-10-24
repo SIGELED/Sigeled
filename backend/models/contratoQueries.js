@@ -236,3 +236,35 @@ export async function getMateriasByCarreraAnio(idCarrera, idAnio) {
 
 // Alias para compatibilidad
 export const crearContratoProfesor = createContrato;
+
+// Obtener contratos por id_persona (opcionalmente sólo activos)
+export async function getContratosByPersona(id_persona, options = { activoOnly: true }) {
+  try {
+    const params = [id_persona];
+    let where = 'WHERE cp.id_persona = $1';
+    if (options.activoOnly) {
+      // usar la fecha actual del servidor
+      params.push(new Date());
+      where += ` AND cp.fecha_inicio <= $2 AND (cp.fecha_fin IS NULL OR cp.fecha_fin >= $2)`;
+    }
+    const query = `
+      SELECT 
+        cp.*, cp.external_id,
+        p.nombre as persona_nombre,
+        p.apellido as persona_apellido,
+        m.descripcion_materia,
+        c.carrera_descripcion
+      FROM contrato_profesor cp
+      JOIN personas p ON cp.id_persona = p.id_persona
+      JOIN materia m ON cp.id_materia = m.id_materia
+      LEFT JOIN carrera c ON m.id_carrera = c.id_carrera
+      ${where}
+      ORDER BY cp.fecha_inicio DESC
+    `;
+    const { rows } = await pool.query(query, params);
+    return rows;
+  } catch (error) {
+    console.error('Error en getContratosByPersona:', error);
+    throw error;
+  }
+}
