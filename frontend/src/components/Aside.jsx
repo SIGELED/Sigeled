@@ -1,5 +1,5 @@
 import BotonAside from "./BotonAside"
-import { FiHome, FiArchive, FiClipboard, FiUser } from "react-icons/fi";
+import { FiHome, FiArchive, FiClipboard, FiUsers } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -101,7 +101,7 @@ export default function Aside({activeSection, setActiveSection}) {
                         }}
                         activo={activeSection === "usuarios"}
                     >
-                        <FiUser className="w-7 h-7 shrink-0 currentColor" />
+                        <FiUsers className="w-7 h-7 shrink-0 currentColor" />
                         <span>Usuarios</span>
                     </BotonAside>
                 )}

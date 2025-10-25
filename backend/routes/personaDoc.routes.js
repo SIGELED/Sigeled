@@ -3,16 +3,18 @@ import {
     listarPersonasDocumentos,
     obtenerPersonaDocumento,
     crearPersonaDocumento,
-    listarTiposDocumento
+    listarTiposDocumento,
+    verificarPersonaDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
+import { soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
 const personaDocRouter = express.Router();
-
-// Todas las rutas requieren autenticación
 personaDocRouter.use(verificarToken);
 
 personaDocRouter.get('/tipos-documento', listarTiposDocumento);
+
+personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, soloAdministrador, verificarPersonaDocumento);
 
 /**
  * @swagger
