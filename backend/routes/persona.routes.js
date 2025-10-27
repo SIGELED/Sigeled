@@ -1,5 +1,6 @@
 import { archivoValidator } from '../middleware/archivoMiddleware.js';
-import { subirArchivo, listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
+import { listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
+import * as archivoCtrl from '../controllers/archivos.controller.js'; // NUEVA IMPORTACIÓN
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
@@ -100,7 +101,37 @@ personaRouter.get('/perfiles', async (req, res) => {
  *       500:
  *         description: Error interno
  */
-personaRouter.post('/:id_persona/archivo', archivoValidator.single('archivo'), subirArchivo);
+personaRouter.post('/:id_persona/archivo', archivoValidator.single('archivo'), archivoCtrl.subirArchivo);
+
+/**
+ * @swagger
+ * /api/persona/{id_persona}/archivo/{id_archivo}:
+ *   delete:
+ *     summary: Eliminar archivo de una persona
+ *     tags: [Persona]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: id_archivo
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Archivo eliminado correctamente
+ *       403:
+ *         description: No autorizado
+ *       404:
+ *         description: Archivo no encontrado
+ */
+personaRouter.delete('/:id_persona/archivo/:id_archivo', archivoCtrl.eliminarArchivo);
 
 /**
  * @swagger
@@ -174,8 +205,6 @@ personaRouter.get('/', listarPersonas);
  *         description: Persona no encontrada
  */
 personaRouter.get('/:id_persona', obtenerPersona);
-
-
 
 /**
  * @swagger
@@ -353,13 +382,12 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  */
 personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValidacion, crearTitulo);
 
-
 /**
  * @swagger
- * /api/persona-titulos/personas/{id_persona}/titulos/{id_titulo}:
+ * /api/persona/{id_persona}/titulos/{id_titulo}:
  *   delete:
- *     summary: Eliminar título
- *     tags: [PersonaTitulos]
+ *     summary: Eliminar título de una persona
+ *     tags: [Persona]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -385,8 +413,7 @@ personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValida
  *       404:
  *         description: Título no encontrado
  */
-personaRouter.delete('/personas/:id_persona/titulos/:id_titulo',deleteTitulo);
-
+personaRouter.delete('/:id_persona/titulos/:id_titulo', deleteTitulo);
 
 /**
  * @swagger
@@ -420,121 +447,15 @@ personaRouter.delete('/personas/:id_persona/titulos/:id_titulo',deleteTitulo);
  */
 personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
 
-/**
- * @swagger
- * /api/persona/buscar:
- *   get:
- *     summary: Buscador avanzado de personal (solo RRHH/Admin)
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: nombre
- *         in: query
- *         schema:
- *           type: string
- *       - name: apellido
- *         in: query
- *         schema:
- *           type: string
- *       - name: dni
- *         in: query
- *         schema:
- *           type: string
- *       - name: perfil
- *         in: query
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Resultados del buscador avanzado
- */
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
 
-personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministrador, desasignarPerfil)
-
-/**
- * @swagger
- * /api/persona/asignar-perfil:
- *   post:
- *     summary: Asignar un perfil a una persona (solo RRHH/Admin)
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               id_persona:
- *                 type: string
- *                 format: uuid
- *               id_perfil:
- *                 type: integer
- *     responses:
- *       201:
- *         description: Perfil asignado correctamente
- *       400:
- *         description: Datos faltantes o inválidos
- *       500:
- *         description: Error interno
- */
+personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministrador, desasignarPerfil);
 
 // Obtener perfiles vigentes de una persona
 personaRouter.get('/:id_persona/perfiles', obtenerPerfilesPersona);
 
-/**
- * @swagger
- * /api/persona/{id_persona}/perfiles:
- *   get:
- *     summary: Obtener perfiles vigentes de una persona
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id_persona
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Lista de perfiles vigentes
- *       404:
- *         description: Persona no encontrada
- */
-
 // Buscar persona por DNI
 personaRouter.get('/buscar-por-dni', soloRRHH, buscarPorDNI);
 
-/**
- * @swagger
- * /api/persona/buscar-por-dni:
- *   get:
- *     summary: Buscar persona por DNI (solo RRHH/Admin)
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: dni
- *         in: query
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Persona encontrada
- *       404:
- *         description: No se encontró persona con ese DNI
- */
-
 export default personaRouter;
-

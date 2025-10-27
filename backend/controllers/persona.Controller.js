@@ -19,50 +19,6 @@ const isAdminOrRRHH = (req) => {
   const roles = Array.isArray(user.roles) ? user.roles : [];
   return roles.some(r => ALLOWED_ROLES.includes(String(r)));
 };
-// Subir archivo comprobatorio
-export const subirArchivo = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No se envió ningún archivo.' });
-        }
-        // Inicializar Supabase
-        const supabase = createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE
-        );
-        // Generar nombre único para el archivo
-        const timestamp = Date.now();
-        const nombreArchivo = `${timestamp}_${req.file.originalname}`;
-        // Subir a Supabase Storage
-        const { error: uploadError, data: uploadData } = await supabase.storage
-            .from('legajos')
-            .upload(nombreArchivo, req.file.buffer, {
-                contentType: req.file.mimetype,
-                upsert: false
-            });
-        if (uploadError) {
-            return res.status(500).json({ error: 'Error al subir el archivo a Supabase', detalle: uploadError.message });
-        }
-        // Calcular hash SHA256
-        const sha256_hex = createHash('sha256').update(req.file.buffer).digest('hex');
-        // Guardar metadatos en la base de datos
-        const archivoData = {
-            nombre_original: req.file.originalname,
-            content_type: req.file.mimetype,
-            size_bytes: req.file.size,
-            sha256_hex,
-            storage_provider: 'supabase',
-            storage_bucket: 'legajos',
-            storage_key: nombreArchivo,
-            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null
-        };
-        const archivoGuardado = await createArchivo(archivoData);
-        res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado });
-    } catch (err) {
-        console.error('Error en subirArchivo:', err);
-        res.status(500).json({ error: err.message });
-    }
-};
 
 // Listar estados de verificación
 export const listarEstadosVerificacion = async (req, res) => {

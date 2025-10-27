@@ -56,6 +56,7 @@ app.use('/api/archivos', archivosRouter);
 app.use('/api/persona', personaRouter);
 app.use('/api/persona-domicilio', PersonaDomiRouter); 
 
+
 // Debug: listar rutas registradas (útil para confirmar paths/métodos)
 // - Ejecutar solo después de crear `app` y registrar las rutas
 if (process.env.NODE_ENV !== 'production') {
