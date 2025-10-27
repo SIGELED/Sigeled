@@ -19,6 +19,7 @@ import {
     obtenerPerfilesPersona,
     buscarPorDNI,
     buscadorAvanzado,
+    deleteTitulo
 } from '../controllers/persona.Controller.js';
 import { obtenerPerfiles } from '../models/personaModel.js';
 import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
@@ -351,6 +352,41 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  *         description: Error interno
  */
 personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValidacion, crearTitulo);
+
+
+/**
+ * @swagger
+ * /api/persona-titulos/personas/{id_persona}/titulos/{id_titulo}:
+ *   delete:
+ *     summary: Eliminar título
+ *     tags: [PersonaTitulos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - name: id_titulo
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Título eliminado correctamente
+ *       400:
+ *         description: Parámetros inválidos o título no pertenece a la persona
+ *       403:
+ *         description: Acceso denegado
+ *       404:
+ *         description: Título no encontrado
+ */
+personaRouter.delete('/personas/:id_persona/titulos/:id_titulo',deleteTitulo);
+
 
 /**
  * @swagger

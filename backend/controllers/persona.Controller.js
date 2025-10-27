@@ -3,12 +3,22 @@ import { createHash } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
-import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
+import * as tituModel from '../models/personaTituModel.js';
+import * as archivoModel from '../models/archivoModel.js';
+import * as docModel from '../models/personaDocModel.js';
 import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
-import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
+import { getPersonasFiltros, asignarPerfilPersona, getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import db from "../models/db.js"
 import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
 
+const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
+
+const isAdminOrRRHH = (req) => {
+  const user = req.user;
+  if (!user) return false;
+  const roles = Array.isArray(user.roles) ? user.roles : [];
+  return roles.some(r => ALLOWED_ROLES.includes(String(r)));
+};
 // Subir archivo comprobatorio
 export const subirArchivo = async (req, res) => {
     try {
@@ -312,4 +322,58 @@ export const crearTitulo = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+};
+
+// Eliminar título (con limpieza de archivo si corresponde)
+export const deleteTitulo = async (req, res, next) => {
+  try {
+    console.log('[titu-delete] req.params:', req.params);
+    const { id_persona, id_titulo } = req.params;
+    
+    if (!id_persona || !id_titulo) {
+      return res.status(400).json({ success: false, message: 'id_persona e id_titulo requeridos' });
+    }
+
+    // Obtener título
+    const titulo = await tituModel.getTituloById(id_titulo);
+    if (!titulo) return res.status(404).json({ success: false, message: 'Título no encontrado' });
+
+    // Validar que pertenece a la persona indicada
+    if (String(titulo.id_persona) !== String(id_persona)) {
+      return res.status(400).json({ success: false, message: 'Título no pertenece a la persona indicada' });
+    }
+
+    // Obtener archivo asociado (si existe)
+    const archivo = titulo.id_archivo ? await archivoModel.getArchivoById(titulo.id_archivo) : null;
+
+    // Validar permisos (admin/rrhh o propietario)
+    const isPropietario = req.user && String(req.user.id_persona) === String(id_persona);
+    if (!isAdminOrRRHH(req) && !isPropietario) {
+      return res.status(403).json({ success: false, message: 'No autorizado para eliminar este título' });
+    }
+
+    // Eliminar título
+    const deletedTitu = await tituModel.deleteTitulo(id_titulo);
+
+    // Si había archivo asociado, limpiar si no tiene más referencias
+    if (archivo && archivo.id_archivo) {
+      try {
+        const refsEnTitulos = await tituModel.countArchivoReferencesInTitulos(archivo.id_archivo);
+        const refsEnDocumentos = await docModel.countArchivoReferences(archivo.id_archivo);
+        const totalRefs = refsEnTitulos + refsEnDocumentos;
+        
+        if (totalRefs === 0) {
+          await archivoModel.deleteArchivo(archivo.id_archivo);
+          console.log('[titu-delete] archivo eliminado (sin referencias):', archivo.id_archivo);
+        }
+      } catch (e) {
+        console.warn('[titu-delete] error al limpiar archivo:', e.message);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: deletedTitu });
+  } catch (err) {
+    console.error('[titu-delete] error:', err);
+    return next(err);
+  }
 };
