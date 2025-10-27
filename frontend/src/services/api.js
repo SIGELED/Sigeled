@@ -6,7 +6,6 @@ const api = axios.create({
   baseURL: API_URL
 });
 
-// Interceptor para agregar token a las peticiones
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -67,6 +66,11 @@ export const personaDocService = {
   listarDocumentos: (params = {}) => api.get('/persona-doc', {params}),
   getDocById: (id_persona_doc) => api.get(`/persona-doc/${id_persona_doc}`),
   createDoc: (data) => api.post('/persona-doc', data),
+  cambiarEstado:(id_persona_doc, { id_estado_verificacion, observacion }) =>
+    api.patch(`/persona-doc/${id_persona_doc}/estado`, {
+      id_estado_verificacion,
+      observacion: observacion ?? null,
+    })
 }
 
 export const estadoVerificacionService = {
@@ -107,7 +111,9 @@ export const personaBarrioService = {
 export const tituloService = {
   createTitulo:(data) => api.post(`/titulos/`, data),
   findTituloByPersona:(id_persona) => api.get(`/titulos/persona/${id_persona}`),
-  getTiposTiulos: () => api.get(`/titulos/tipos`)
-}
+  getTiposTiulos: () => api.get(`/titulos/tipos`),
+  cambiarEstado: (id_titulo, data) =>
+    api.patch(`/titulos/${id_titulo}/estado`, data),
+};
 
 export default api;

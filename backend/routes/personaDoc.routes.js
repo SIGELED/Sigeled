@@ -7,14 +7,14 @@ import {
     verificarPersonaDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
-import { soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
+import { soloRRHH } from '../middleware/authMiddleware.js';
 
 const personaDocRouter = express.Router();
 personaDocRouter.use(verificarToken);
 
 personaDocRouter.get('/tipos-documento', listarTiposDocumento);
 
-personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, soloAdministrador, verificarPersonaDocumento);
+personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, verificarPersonaDocumento);
 
 /**
  * @swagger

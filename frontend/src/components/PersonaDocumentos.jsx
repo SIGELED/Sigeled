@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
 import PdfPreviewModal from "./PdfPreviewModal";
@@ -22,6 +22,7 @@ const FALLBACK_ESTADOS = [
 export default function PersonaDocumentos({idPersona, onClose, asModal = true}) {
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [verificacion, setVerificacion] = useState({ open: false, doc:null, estado: "", obs:"" });
     
     const [tipos, setTipos] = useState(FALLBACK_TIPOS);
     const [estados, setEstados] = useState(FALLBACK_ESTADOS);
@@ -56,6 +57,19 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
 
     const closePreview = () => setPreview({open:false, url:'', title:''});
 
+    const fetchDocs = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { data } = await personaDocService.listarDocumentos({ id_persona: idPersona });
+            setDocs(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("No se pudieron cargar documentos:", error);
+            setDocs([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [idPersona]);
+
     useEffect(() => {
         const loadCatalogos = async () => {
             try {
@@ -78,23 +92,11 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
     }, []);
 
     useEffect(() => {
-        const loadDocs = async () => {
-            setLoading(true);
-            try {
-                const { data } = await personaDocService.listarDocumentos({id_persona: idPersona});
-                setDocs(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error("No se pudieron cargar documentos:", error);
-                setDocs([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadDocs();
-    }, [idPersona]);
+        fetchDocs();
+    }, [fetchDocs]);
 
     const docsOrdenados = useMemo(
-        () => [...docs].sort((a,b) => (a.creado_en || '').localeCompare(b.creado_en || '')),
+        () => [...docs].sort((a,b) => new Date(b.creado_en || 0) - new Date(a.creado_en || 0)),
         [docs]
     );
 
@@ -136,7 +138,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
         try {
             setSaving(true);
             const { data: nuevo } = await personaDocService.createDoc(payload);
-            setDocs(prev => [...prev, nuevo]);
+            await fetchDocs();
             setIdTipoDoc("");
             setIdEstado("");
             setVigente(true);
@@ -153,6 +155,39 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
 
     const tipoById = (id) => tipos.find(t => Number(t.id_tipo_doc) === Number(id));
     const estadoById = (id) => estados.find(e => Number(e.id_estado) === Number(id));
+    const requiereObs = (id_estado) => {
+        const code = String(estadoById(id_estado)?.codigo || "").toUpperCase();
+        return code === "RECHAZADO" || code === "OBSERVADO";
+    }
+
+    const openCambiarEstado = (doc) => {
+        const current = doc.id_estado ?? doc.id_estado_verificacion ?? "";
+        setVerificacion({ open: true, doc, estado: String(current), obs: "" });
+    };
+    const closeCambiarEstado = () => setVerificacion({ open: false, doc: null, estado: "", obs: "" });
+
+    const submitCambiarEstado = async (e) => {
+        e.preventDefault();
+        if(!verificacion.doc) return;
+        const id_estado_verificacion = Number(verificacion.estado);
+
+        if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
+            alert("Debés indicar una observación para Rechazado/Observado");
+            return;
+        }
+
+        try {
+            const { data: actualizado } = await personaDocService.cambiarEstado(
+                verificacion.doc.id_persona_doc,
+                { id_estado_verificacion, observacion: verificacion.obs.trim() || null }
+            );
+            await fetchDocs();
+            closeCambiarEstado();
+        } catch (error) {
+            console.error("Error al cambiar estado del documento:", err);
+            alert("No se pudo cambiar el estado");
+        }
+    }
 
     const renderPanel = () => (
         <div className="w-full max-w-none bg-[#101922] rounded-2xl p-6 shadow-xl">
@@ -241,6 +276,14 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                                 >
                                 Ver Documento
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openCambiarEstado(d)}
+                                    className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                                    title="Cambiar estado"
+                                >
+                                    Cambiar estado
+                                </button>
                             </div>
                             )}
                         </div>
@@ -260,6 +303,65 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                 title={preview.title}
                 onClose={closePreview}
                 />
+            )}
+
+            {verificacion.open && (
+                <div className="fixed inset-0 z-[80]">
+                    <div className="absolute inset-0 bg-black/60" onClick={closeCambiarEstado} />
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <div
+                            className="w-[92%] max-w-md bg-[#101922] rounded-2xl p-6 shadow-xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <h4 className="text-xl font-semibold text-[#19F124]">Cambiar estado</h4>
+                                <button onClick={closeCambiarEstado} className="p-1 rounded-lg hover:bg-[#1A2430]" aria-label="Cerrar">
+                                    <IoClose size={22} />
+                                </button>
+                            </div>
+
+                            <form className="space-y-4" onSubmit={submitCambiarEstado}>
+                                <div>
+                                    <label className="block mb-1 text-sm opacity-80">Estado</label>
+                                    <select 
+                                        value={verificacion.estado} 
+                                        onChange={(e) => setVerificacion(v => ({...v, estado: e.target.value}))}
+                                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {estados.map((e) => (
+                                            <option key={e.id_estado} value={e.id_estado}>{e.nombre}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block mb-1 text-sm opacity-80">
+                                        Observación {requiereObs(Number(verificacion.estado)) ? "(obligatoria)" : "(opcional)"}
+                                    </label>
+                                    <textarea 
+                                        value={verificacion.obs}
+                                        onChange={(e) => setVerificacion(v => ({ ...v, obs: e.target.value }))}
+                                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                                        rows={3}
+                                        placeholder="Motivo, comentarios, etc."
+                                        required={requiereObs(Number(verificacion.estado))}
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3">
+                                        <button type="button" onClick={closeCambiarEstado} className="cursor-pointer px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]">
+                                            Guardar
+                                        </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {showNew && (

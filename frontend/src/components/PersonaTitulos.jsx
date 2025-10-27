@@ -1,9 +1,19 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { tituloService, archivoService } from "../services/api";
+import { tituloService, archivoService, estadoVerificacionService } from "../services/api";
 import { IoClose } from "react-icons/io5";
 import PdfPreviewModal from "./PdfPreviewModal";
 
+const FALLBACK_ESTADOS = [
+    { id_estado: 1, codigo: "PENDIENTE", nombre: "Pendiente de Revisión" },
+    { id_estado: 2, codigo: "APROBADO", nombre: "Aprobado" },
+    { id_estado: 3, codigo: "RECHAZADO", nombre: "Rechazado" },
+    { id_estado: 4, codigo: "OBSERVADO", nombre: "Observado" },
+]
+
 export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
+    const [estados, setEstados] = useState(FALLBACK_ESTADOS);
+    const [verificacion, setVerificacion] = useState({ open:false, titulo: null , estado:"", obs:""})
+
     const [titulos, setTitulos] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -22,6 +32,42 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
     const [preview, setPreview] = useState({ open: false, url: "", title: "" });
     const tipoById = (id) =>
         tipos.find((t) => Number(t.id_tipo_titulo) === Number(id));
+
+    const estadoById = (id) => estados.find(e => Number(e.id_estado) === Number(id));
+    const requiereObs = (id_estado) => {
+        const code = String(estadoById(id_estado)?.codigo || "").toUpperCase();
+        return code === "RECHAZADO" || code === "OBSERVADO";
+    }
+
+    const openCambiarEstado = (t) => {
+        const current = t.id_estado_verificacion ?? "";
+        setVerificacion({open:true, titulo:t, estado:String(current), obs:""});
+    };
+    const closeCambiarEstado = () => setVerificacion({ open: false, titulo: null, estado: "", obs: "" });
+
+    const submitCambiarEstado = async (e) => {
+            e.preventDefault();
+            if(!verificacion.titulo) return;
+            const id_estado_verificacion = Number(verificacion.estado);
+    
+            if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
+                alert("Debés indicar una observación para Rechazado/Observado");
+                return;
+            }
+    
+            try {
+                const { data: actualizado } = await tituloService.cambiarEstado(
+                    verificacion.titulo.id_titulo,
+                    { id_estado_verificacion, observacion: verificacion.obs.trim() || null }
+                );
+                setTitulos((prev) => 
+                prev.map((x) => (x.id_titulo === actualizado.id_titulo ? actualizado : x)));
+                closeCambiarEstado();
+            } catch (error) {
+                console.error("Error al cambiar estado del documento:", error);
+                alert("No se pudo cambiar el estado");
+            }
+        }
 
     const openPreview = async (doc) => {
         if (!doc.id_archivo) return;
@@ -66,25 +112,13 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
     }, [fetchTitulos]);
 
     useEffect(() => {
-        const loadTitulos = async () => {
-        setLoading(true);
-        try {
-            const [tRes, tiposRes] = await Promise.all([
-            tituloService.findTituloByPersona(idPersona),
-            tituloService.getTiposTiulos(),
-            ]);
-            setTitulos(Array.isArray(tRes.data) ? tRes.data : []);
-            setTipos(Array.isArray(tiposRes.data) ? tiposRes.data : []);
-        } catch (error) {
-            console.error("Error cargando títulos o tipos:", error);
-            setTitulos([]);
-            setTipos([]);
-        } finally {
-            setLoading(false);
-        }
-        };
-        loadTitulos();
-    }, [idPersona]);
+        (async () => {
+            try {
+                const { data } = await estadoVerificacionService.getAll();
+                if(Array.isArray(data) && data.length) setEstados(data);
+            } catch {}
+        })();
+    }, []);
 
     const titulosOrdenados = useMemo(
         () =>
@@ -206,6 +240,14 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
                         >
                         Ver Título
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => openCambiarEstado(t)}
+                            className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                            title="Cambiar estado"
+                        >
+                            Cambiar estado
+                        </button>
                     </div>
                     )}
                 </li>
@@ -221,6 +263,65 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
             onClose={closePreview}
             />
         )}
+
+        {verificacion.open && (
+                <div className="fixed inset-0 z-[80]">
+                    <div className="absolute inset-0 bg-black/60" onClick={closeCambiarEstado} />
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <div
+                        className="w-[92%] max-w-md bg-[#101922] rounded-2xl p-6 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <h4 className="text-xl font-semibold text-[#19F124]">Cambiar estado</h4>
+                            <button onClick={closeCambiarEstado} className="p-1 rounded-lg hover:bg-[#1A2430]" aria-label="Cerrar">
+                                <IoClose size={22} />
+                            </button>
+                        </div>
+
+                            <form className="space-y-4" onSubmit={submitCambiarEstado}>
+                                <div>
+                                    <label className="block mb-1 text-sm opacity-80">Estado</label>
+                                    <select 
+                                        value={verificacion.estado} 
+                                        onChange={(e) => setVerificacion(v => ({...v, estado: e.target.value}))}
+                                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {estados.map((e) => (
+                                            <option key={e.id_estado} value={e.id_estado}>{e.nombre}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block mb-1 text-sm opacity-80">
+                                        Observación {requiereObs(Number(verificacion.estado)) ? "(obligatoria)" : "(opcional)"}
+                                    </label>
+                                    <textarea 
+                                        value={verificacion.obs}
+                                        onChange={(e) => setVerificacion(v => ({ ...v, obs: e.target.value }))}
+                                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                                        rows={3}
+                                        placeholder="Motivo, comentarios, etc."
+                                        required={requiereObs(Number(verificacion.estado))}
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3">
+                                        <button type="button" onClick={closeCambiarEstado} className="cursor-pointe px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]">
+                                            Guardar
+                                        </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         {showNew && (
             <div className="fixed inset-0 z-[80]">
