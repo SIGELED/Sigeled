@@ -36,3 +36,9 @@ export const createArchivo = async (data) => {
     );
     return res.rows[0];
 };
+
+export const deleteArchivo = async (id_archivo) => {
+    const q = `DELETE FROM archivos WHERE id_archivo = $1 RETURNING *`;
+    const r = await db.query(q, [id_archivo]);
+    return r.rows[0] || null;
+};

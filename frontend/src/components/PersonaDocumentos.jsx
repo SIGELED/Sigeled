@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { FiTrash2 } from "react-icons/fi";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
 import PdfPreviewModal from "./PdfPreviewModal";
 
@@ -21,6 +22,7 @@ const FALLBACK_ESTADOS = [
 
 export default function PersonaDocumentos({idPersona, onClose, asModal = true}) {
     const [docs, setDocs] = useState([]);
+    const [deletingId, setDeletingId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [verificacion, setVerificacion] = useState({ open: false, doc:null, estado: "", obs:"" });
     
@@ -152,6 +154,25 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
             setSaving(false);
         }
     };
+
+    const handleDelete = async (doc) => {
+        const tipo = tipoById(doc.id_tipo_doc);
+        const nombreTipo = tipo?.nombre || "Documento";
+        const ok = confirm(`¿Eliminar "${nombreTipo}"? Esta acción no se puede deshacer`);
+        if (!ok) return;
+
+        try {
+            setDeletingId(doc.id_persona_doc);
+            await personaDocService.deleteDoc(idPersona, doc.id_persona_doc);
+            setDocs(prev => prev.filter(d => d.id_persona_doc !== doc.id_persona_doc));
+        } catch (error) {
+            console.error("No se pudo eliminar el documento:", error?.response?.data || error.message);
+            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el documento";
+            alert(message);
+        } finally {
+            setDeletingId(null);
+        }
+    }
 
     const tipoById = (id) => tipos.find(t => Number(t.id_tipo_doc) === Number(id));
     const estadoById = (id) => estados.find(e => Number(e.id_estado) === Number(id));
@@ -290,6 +311,17 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                         <div className="text-xs opacity-60 whitespace-nowrap">
                             {d.creado_en?.split("T")[0] ?? ""}
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={() => handleDelete(d)}
+                            disabled= {deletingId === d.id_persona_doc}
+                            className="bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
+                            title="Eliminar documento"
+                            aria-label="Eliminar documento"
+                        >
+                            <FiTrash2 size={22}/>
+                        </button>
                         </li>
                     );
                     })}

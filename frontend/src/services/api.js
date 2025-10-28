@@ -70,7 +70,8 @@ export const personaDocService = {
     api.patch(`/persona-doc/${id_persona_doc}/estado`, {
       id_estado_verificacion,
       observacion: observacion ?? null,
-    })
+    }),
+    deleteDoc: (id_persona, id_persona_doc) => api.delete(`/persona-doc/personas/${id_persona}/documentos/${id_persona_doc}`)
 }
 
 export const estadoVerificacionService = {

@@ -3,9 +3,21 @@ import {
     getPersonaDocumentoById,
     createPersonaDocumento,
     updateEstadoDocumento,
-    getAllTiposDocumento
+    getAllTiposDocumento,
+    deletePersonaDocumento,
+    countArchivoReferences
 } from '../models/personaDocModel.js';
 import { getEstadoById } from '../models/estadoVerificacionModel.js';
+import { deleteArchivo, getArchivoById } from '../models/archivoModel.js';
+
+const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
+
+const isAdminOrRRHH = (req) => {
+    const user = req.user;
+    if (!user) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [];
+    return roles.some(r => ALLOWED_ROLES.includes(String(r)));
+};
 
 // Obtener todos los documentos de personas
 export const listarPersonasDocumentos = async (req, res) => {
@@ -64,7 +76,7 @@ export const verificarPersonaDocumento = async (req, res) => {
     }
 }
 
-// Crear documento de persona
+
 export const crearPersonaDocumento = async (req, res) => {
     try {
         const nuevoDocumento = await createPersonaDocumento(req.body);
@@ -72,6 +84,50 @@ export const crearPersonaDocumento = async (req, res) => {
     } catch (error) {
         console.error('Error en crearPersonaDocumento:', error);
         res.status(500).json({ message: 'Error al crear documento de persona', detalle: error.message });
+    }
+};
+
+export const deleteDocumento = async (req, res, next) => {
+    try {
+        console.log('[doc-delete] req.params:', req.params);
+        const { id_persona, id_persona_doc } = req.params;
+        
+        if (!id_persona || !id_persona_doc) {
+        return res.status(400).json({ success: false, message: 'id_persona e id_persona_doc requeridos' });
+        }
+
+        const doc = await getPersonaDocumentoById(id_persona_doc);
+        if (!doc) return res.status(404).json({ success: false, message: 'Documento no encontrado' });
+
+        if (String(doc.id_persona) !== String(id_persona)) {
+        return res.status(400).json({ success: false, message: 'Documento no pertenece a la persona indicada' });
+        }
+
+        const archivo = doc.id_archivo ? await getArchivoById(doc.id_archivo) : null;
+
+        const isUploader = archivo && req.user && String(req.user.id_usuario) === String(archivo.subido_por_usuario);
+        if (!isAdminOrRRHH(req) && !isUploader) {
+        return res.status(403).json({ success: false, message: 'No autorizado para eliminar este documento' });
+        }
+
+        const deletedDoc = await deletePersonaDocumento(id_persona_doc);
+
+        if (archivo && archivo.id_archivo) {
+        try {
+            const refs = await countArchivoReferences(archivo.id_archivo);
+            if (refs === 0) {
+            await deleteArchivo(archivo.id_archivo);
+            console.log('[doc-delete] archivo eliminado (sin referencias):', archivo.id_archivo);
+            }
+        } catch (e) {
+            console.warn('[doc-delete] error al limpiar archivo:', e.message);
+        }
+        }
+
+        return res.status(200).json({ success: true, data: deletedDoc });
+    } catch (err) {
+        console.error('[doc-delete] error:', err);
+        return next(err);
     }
 };
 
