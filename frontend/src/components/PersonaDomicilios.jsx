@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { FiTrash2 } from "react-icons/fi";
 import {
     domicilioService,
     domOtrosService,
@@ -16,6 +17,7 @@ export default function PersonaDomicilios({
 
     const [showWizard, setShowWizard] = useState(false);
     const [step, setStep] = useState(1);
+    const [deletingId, setDeletingId] = useState(null);
 
     const [saving, setSaving] = useState(false);
     const [calle, setCalle] = useState("");
@@ -188,6 +190,24 @@ export default function PersonaDomicilios({
         }
     };
 
+    const handleDelete = async (domi) => {
+            const ok = confirm(`¿Eliminar "${domi.calle} ${domi.altura}"? Esta acción no se puede deshacer`);
+            if (!ok) return;
+    
+            try {
+                setDeletingId(domi.id_domicilio);
+                await domicilioService.deleteDomicilio(idPersona, domi.id_domicilio);
+
+                setItems(prev => prev.filter(item => item.id_domicilio !== domi.id_domicilio));
+            } catch (error) {
+                console.error("No se pudo eliminar el domicilio:", error?.response?.data || error.message);
+                const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el domicilio";
+                alert(message);
+            } finally {
+                setDeletingId(null);
+            }
+        }
+
     const renderPanel = () => (
         <div className="w-full max-w-none rounded-2xl bg-[#101922] p-6 shadow-xl">
         <div className="flex items-start justify-between mb-4">
@@ -242,6 +262,16 @@ export default function PersonaDomicilios({
                         {d.departamento_admin ? ` • ${d.departamento_admin}` : ""}
                     </div>
                     </div>
+                    <button
+                        type="button"
+                        onClick={() => handleDelete(d)}
+                        disabled= {deletingId === d.id_domicilio}
+                        className="bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
+                        title="Eliminar domicilio"
+                        aria-label="Eliminar domicilio"
+                    >
+                        <FiTrash2 size={22}/>
+                    </button>
                 </li>
                 ))}
             </ul>
@@ -536,8 +566,8 @@ export default function PersonaDomicilios({
                         <button
                             type="button"
                             onClick={() => {
-                            resetWizard();
-                            setShowWizard(false);
+                                resetWizard();
+                                setShowWizard(false);
                             }}
                             className="cursor-pointer px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]"
                         >

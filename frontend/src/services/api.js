@@ -94,6 +94,7 @@ export const archivoService = {
 export const domicilioService = {
   getDomicilioByPersona: (id_persona) => api.get(`/persona/${id_persona}/domicilio`),
   createDomicilio: (id_persona, data) => api.post(`/persona/${id_persona}/domicilio`, data),
+  deleteDomicilio: (id_persona, id_domicilio) => api.delete(`/persona/personas/${id_persona}/domicilios/${id_domicilio}`)
 }
 
 export const domOtrosService = {

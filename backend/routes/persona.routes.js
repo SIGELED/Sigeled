@@ -28,7 +28,8 @@ import {
     crearBarrio,
     listarBarriosPersona,
     vincularBarrioPersona,
-    desvincularBarrioPersona 
+    desvincularBarrioPersona, 
+    borrarDomicilio
 } from '../controllers/personaDomi.Controller.js';
 import { verificarToken, soloRRHH, soloAdministrador } from '../middleware/authMiddleware.js';
 
@@ -75,6 +76,49 @@ personaRouter.post('/dom/localidades/:id_dom_localidad/barrios', crearBarrio);
 personaRouter.get('/:id_persona/barrios', listarBarriosPersona);
 personaRouter.post('/:id_persona/barrios', vincularBarrioPersona);
 personaRouter.delete('/:id_persona/barrios/:id_dom_barrio', desvincularBarrioPersona);
+
+/**
+ * @swagger
+ * /personas/{id_persona}/domicilios/{id_domicilio}:
+ *   delete:
+ *     summary: Eliminar domicilio de una persona
+ *     tags: [Domicilios]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID de la persona
+ *       - name: id_domicilio
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del domicilio
+ *     responses:
+ *       200:
+ *         description: Domicilio eliminado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Domicilio'
+ *       400:
+ *         description: id_persona e id_domicilio requeridos o domicilio no pertenece a la persona
+ *       403:
+ *         description: Acceso denegado (no propietario ni rol privilegiado)
+ *       404:
+ *         description: Domicilio no encontrado
+ */
+personaRouter.delete('/personas/:id_persona/domicilios/:id_domicilio', verificarToken, soloRRHH, borrarDomicilio);
 
 /**
  * @swagger

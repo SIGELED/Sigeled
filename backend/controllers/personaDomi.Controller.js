@@ -8,7 +8,18 @@ import {
     getBarriosByPersona,
     assignBarrioToPersona,
     unassignBarrioFromPersona,
+    deleteDomicilio,
+    getDomicilioById
 } from "../models/personaDomiModel.js";
+
+const isAdminOrRRHH = (req) => {
+    const user = req.user;
+    if (!user) return false;
+    const rolNum = Number(user.id_rol || user.id_perfil || user.idPerfil || 0);
+    if ([1, 2, 3].includes(rolNum)) return true;
+    const roleNames = Array.isArray(user.roles) ? user.roles : (Array.isArray(user.perfiles) ? user.perfiles.map(p => p?.codigo || p?.nombre) : []);
+    return roleNames.some(r => ['ADMIN', 'RRHH', 'ADMINISTRATIVO'].includes(String(r)));
+};
 
 export const obtenerDomicilios = async (req, res) => {
     try {
@@ -141,3 +152,26 @@ export const desvincularBarrioPersona = async (req, res) => {
         res.status(500).json({message:'Error al desvincular barrio', detalle:error.message});
     }
 }
+
+export const borrarDomicilio = async (req, res, next) => {
+    try {
+        const { id_persona, id_domicilio } = req.params;
+        if (!id_persona || !id_domicilio) return res.status(400).json({ success:false, message:'id_persona e id_domicilio requeridos' });
+
+        const dom = await getDomicilioById(id_domicilio);
+        if (!dom) return res.status(404).json({ success:false, message:'Domicilio no encontrado' });
+
+        if (String(dom.id_persona) !== String(id_persona)) return res.status(400).json({ success:false, message:'Domicilio no pertenece a la persona indicada' });
+
+        const user = req.user;
+        if (!user) return res.status(401).json({ success:false, message:'Usuario no autenticado' });
+
+        const userPersonaId = String(user.id_persona || user.id || '');
+        if (!isAdminOrRRHH(req) && userPersonaId !== String(id_persona)) {
+            return res.status(403).json({ success:false, message:'No autorizado para eliminar este domicilio' });
+        }
+
+        const deleted = await deleteDomicilio(id_domicilio);
+        return res.status(200).json({ success: true, data: deleted });
+    } catch (err) { next(err); }
+};

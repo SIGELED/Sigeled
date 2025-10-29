@@ -29,6 +29,23 @@ export const getDomiciliosByPersona = async (id_persona) => {
     return res.rows;
 };
 
+export const getDomicilioById = async (id_domicilio) => {
+    const q = `
+        SELECT pd.*,
+            b.barrio, b.manzana, b.casa as barrio_casa, b.departamento as barrio_departamento, b.piso as barrio_piso,
+            l.localidad, l.codigo_postal,
+            dep.departamento as departamento_nombre
+        FROM persona_domicilio pd
+        LEFT JOIN dom_barrio b ON pd.id_dom_barrio = b.id_dom_barrio
+        LEFT JOIN dom_localidad l ON b.id_dom_localidad = l.id_dom_localidad
+        LEFT JOIN dom_departamento dep ON l.id_dom_departamento = dep.id_dom_departamento
+        WHERE pd.id_domicilio = $1
+        LIMIT 1
+    `;
+    const r = await db.query(q, [id_domicilio]);
+    return r.rows[0] || null;
+};
+
 // Crear domicilio
 // Usar los IDs de las tablas relacionadas
 export const createDomicilio = async ({ id_persona, calle, altura, id_dom_barrio }) => {
@@ -114,3 +131,9 @@ export const unassignBarrioFromPersona = async ({ id_persona, id_dom_barrio }) =
     );
     return rowCount > 0;
 }
+
+export const deleteDomicilio = async (id_domicilio) => {
+    const q = `DELETE FROM persona_domicilio WHERE id_domicilio = $1 RETURNING *`;
+    const r = await db.query(q, [id_domicilio]);
+    return r.rows[0] || null;
+};
