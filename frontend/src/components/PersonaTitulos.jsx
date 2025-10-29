@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { tituloService, archivoService, estadoVerificacionService } from "../services/api";
 import { IoClose } from "react-icons/io5";
+import { FiTrash2 } from "react-icons/fi";
 import PdfPreviewModal from "./PdfPreviewModal";
 
 const FALLBACK_ESTADOS = [
@@ -16,6 +17,8 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
 
     const [titulos, setTitulos] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [deletingId, setDeletingId] = useState(null)
 
     const [showNew, setShowNew] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -64,7 +67,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
                 prev.map((x) => (x.id_titulo === actualizado.id_titulo ? actualizado : x)));
                 closeCambiarEstado();
             } catch (error) {
-                console.error("Error al cambiar estado del documento:", error);
+                console.error("Error al cambiar estado del título:", error);
                 alert("No se pudo cambiar el estado");
             }
         }
@@ -181,6 +184,22 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
         }
     };
 
+    const handleDelete = async (t) => {
+        const ok = confirm(`¿Eliminar el título "${t.nombre_titulo}"? Esta acción no se puede deshacer`);
+        if(!ok) return;
+        try {
+            setDeletingId(t.id_titulo);
+            await tituloService.deleteTitulo(idPersona, t.id_titulo);
+            setTitulos(prev => prev.filter(x => x.id_titulo !== t.id_titulo));
+        } catch (error) {
+            console.error("No se pudo eliminar el título:", error?.response?.data || error.message);
+            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el título";
+            alert(message);
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
     const renderPanel = () => (
         <div className="w-full max-w-none rounded-2xl bg-[#101922] p-6 shadow-xl">
         <div className="flex items-start justify-between mb-4">
@@ -212,45 +231,58 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
             ) : (
             <ul className="space-y-2">
                 {titulosOrdenados.map((t) => (
-                <li
-                    key={`t-${t.id_titulo ?? t.nombre_titulo}`}
-                    className="px-3 py-2 rounded-xl bg-[#0D1520]"
-                >
-                    <div className="font-semibold">{t.nombre_titulo}</div>
-                    <div className="text-sm opacity-80">
-                    {t.tipo_titulo ? `${t.tipo_titulo} • ` : ""}
-                    {t.institucion ? `${t.institucion} • ` : ""}
-                    {t.fecha_emision
-                        ? `Emitido: ${new Date(t.fecha_emision).toLocaleDateString()}`
-                        : ""}
-                    </div>
-                    <div className="text-xs opacity-60">
-                    Estado: {t.estado_verificacion_nombre || "Sin asignar"}
-                    {t.archivo_nombre ? ` • Archivo: ${t.archivo_nombre}` : ""}
-                    </div>
+                    <li
+                        key={`t-${t.id_titulo ?? t.nombre_titulo}`}
+                        className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl bg-[#0D1520]"
+                    >
+                        <div className="flex-1 min-w-0">
+                            <div className="font-semibold">{t.nombre_titulo}</div>
 
-                    {t.id_archivo && (
-                    <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
-                        <span>Archivo ID: {t.id_archivo}</span>
-                        <button
-                        type="button"
-                        onClick={() => openPreview(t)}
-                        className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                        title="Ver Título"
-                        >
-                        Ver Título
-                        </button>
+                            <div className="text-sm opacity-80">
+                                {t.tipo_titulo ? `${t.tipo_titulo} • ` : ""}
+                                {t.institucion ? `${t.institucion} • ` : ""}
+                                {t.fecha_emision ? `Emitido: ${new Date(t.fecha_emision).toLocaleDateString()}` : ""}
+                            </div>
+
+                            <div className="text-xs opacity-60">
+                                Estado: {t.estado_verificacion_nombre || "Sin asignar"}
+                                {t.archivo_nombre ? ` • Archivo: ${t.archivo_nombre}` : ""}
+                            </div>
+
+                            {t.id_archivo && (
+                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs opacity-80">
+                                <span>Archivo ID: {t.id_archivo}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => openPreview(t)}
+                                    className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                                    title="Ver Título"
+                                >
+                                Ver Título
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openCambiarEstado(t)}
+                                    className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
+                                    title="Cambiar estado"
+                                >
+                                Cambiar estado
+                                </button>
+                            </div>
+                            )}
+                        </div>
+
                         <button
                             type="button"
-                            onClick={() => openCambiarEstado(t)}
-                            className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                            title="Cambiar estado"
+                            onClick={() => handleDelete(t)}
+                            disabled={deletingId === t.id_titulo}
+                            className="shrink-0 bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
+                            title="Eliminar título"
+                            aria-label="Eliminar título"
                         >
-                            Cambiar estado
+                            <FiTrash2 size={22} />
                         </button>
-                    </div>
-                    )}
-                </li>
+                    </li>
                 ))}
             </ul>
             )}
@@ -310,7 +342,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
                                 </div>
 
                                 <div className="flex justify-end gap-3">
-                                        <button type="button" onClick={closeCambiarEstado} className="cursor-pointe px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]">
+                                        <button type="button" onClick={closeCambiarEstado} className="cursor-pointer px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]">
                                             Cancelar
                                         </button>
                                         <button type="submit" className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]">

@@ -1,5 +1,14 @@
-import { getTitulosByPersona, createTitulo, getTiposTitulo, updateEstadoTitulo } from "../models/personaTituModel.js";
+import { getTitulosByPersona, createTitulo, getTiposTitulo, updateEstadoTitulo, getTituloById, deleteTitulo, countArchivoReferencesInTitulos } from "../models/personaTituModel.js";
 import { getEstadoById, getEstadoByCodigo } from "../models/estadoVerificacionModel.js";
+import { getArchivoById, deleteArchivo } from '../models/archivoModel.js'
+import { countArchivoReferences } from "../models/personaDocModel.js";
+
+const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
+const isAdminOrRRHH = (req) => {
+    const rolesRaw = Array.isArray(req.user?.roles) ? req.user.roles : [];
+    const roles = rolesRaw.map(r => typeof r === 'string' ? r : r?.nombre).filter(Boolean);
+    return roles.some(r => ALLOWED_ROLES.includes(String(r).toUpperCase()));
+};
 
 export const crearTitulo = async (req, res) => {
     try {
@@ -89,3 +98,43 @@ export const verificarTitulo = async (req, res) => {
         res.status(500).json({ message: "Error al verificar título", detalle: error.message });
     }
 };
+
+export const eliminarTitulo = async (req, res, next) => {
+    try {
+        const { id_persona, id_titulo } = req.params;
+        if(!id_persona || !id_titulo){
+            return res.status(400).json({ success:false, message: 'id_persona e id_titulo requeridos' })
+        }
+
+        const titulo = await getTituloById(id_titulo);
+        if(!titulo) return res.status(404).json({ success:false, message:'Título no encontrado' });
+
+        if(String(titulo.id_persona) !== String(id_persona)){
+            return res.status(400).json({ success:false, message: 'El título no pertenece a la persona indicada' });
+        }
+
+        const archivo = titulo.id_archivo ? await getArchivoById(titulo.id_archivo) : null;
+        const isUploader = archivo && req.user && String(req.user.id_usuario) === String(archivo.subido_por_usuario);
+        if(!isAdminOrRRHH(req) && !isUploader){
+            return res.status(403).json({ success:false, message: 'No autorizado para eliminar este título' });
+        }
+
+        const deleted = await deleteTitulo(id_titulo);
+
+        if(archivo?.id_archivo){
+            try {
+                const cntDocs = await countArchivoReferences(archivo.id_archivo);
+                const cntTit = await countArchivoReferencesInTitulos(archivo.id_archivo);
+                const totalRefs = Number(cntDocs) + Number(cntTit);
+                if (totalRefs === 0) await deleteArchivo(archivo.id_archivo);
+            } catch (error) {
+                console.warn('[titulo-delete] limpieza archivo:', error.message);
+            }
+        }
+
+        return res.status(200).json({success:true, data:deleted});
+    } catch (error) {
+        console.error('[titulo-delete] error:', error);
+        return next(error);
+    }
+}

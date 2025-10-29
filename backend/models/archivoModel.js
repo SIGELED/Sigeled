@@ -55,13 +55,13 @@ export const deleteArchivo = async (id_archivo) => {
                 .remove([archivo.storage_key]);
 
             if(error){
-                console.warn(`[deleteArchivo] Error al eliminar de Supabase: ${error.messsage}`);
+                console.warn(`[deleteArchivo] Error al eliminar de Supabase: ${error.message}`);
             } else {
                 console.log(`[deleteArchivo] Archivo eliminado del bucket ${archivo.storage_bucket}: ${archivo.storage_key}`);
             }
         }
     } catch (error) {
-        console.error('[deleteArchivo] Error inesperado al borrar del bucket:', error.messsage);
+        console.error('[deleteArchivo] Error inesperado al borrar del bucket:', error.message);
     }
 
     const q = `DELETE FROM archivos WHERE id_archivo = $1 RETURNING *`;

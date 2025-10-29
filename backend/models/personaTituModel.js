@@ -176,3 +176,23 @@ export const updateEstadoTitulo = async ({
         client.release();
     }
 }
+
+export const getTituloById = async (id_titulo) => {
+    const { rows } = await db.query(
+        `SELECT * FROM personas_titulos WHERE id_titulo = $1`,
+        [id_titulo]
+    );
+    return rows[0] || null;
+}
+
+export const deleteTitulo = async (id_titulo) => {
+    const q = `DELETE FROM personas_titulos WHERE id_titulo = $1 RETURNING *`;
+    const r = await db.query(q, [id_titulo]);
+    return r.rows[0] || null;
+};
+
+export const countArchivoReferencesInTitulos = async (id_archivo) => {
+    const q = `SELECT COUNT(*)::int AS cnt FROM personas_titulos WHERE id_archivo = $1`;
+    const r = await db.query(q, [id_archivo]);
+    return r.rows[0]?.cnt ?? 0;
+}

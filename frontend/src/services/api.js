@@ -116,6 +116,7 @@ export const tituloService = {
   getTiposTiulos: () => api.get(`/titulos/tipos`),
   cambiarEstado: (id_titulo, data) =>
     api.patch(`/titulos/${id_titulo}/estado`, data),
+  deleteTitulo:(id_persona, id_titulo) => api.delete(`/titulos/personas/${id_persona}/titulos/${id_titulo}`)
 };
 
 export default api;
