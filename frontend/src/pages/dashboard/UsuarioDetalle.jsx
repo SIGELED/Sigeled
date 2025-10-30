@@ -7,10 +7,12 @@ import { userService, profileService } from "../../services/api";
 import { MdNavigateBefore } from "react-icons/md";
 import { FiTrash2, FiUser, FiClipboard, FiHome, FiArchive } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
+import { useAuth } from "../../context/AuthContext";
 
 export default function UsuarioDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user:me, updateUserPerfiles } = useAuth();
 
     const [usuario, setUsuario] = useState(null);
     const [perfilSeleccionado, setPerfilSeleccionado] = useState("");
@@ -94,18 +96,17 @@ export default function UsuarioDetalle() {
     const handleAsignarPerfil = async () => {
         if (!perfilSeleccionado) return;
         try {
-        await profileService.assignProfile(usuario.id_persona, perfilSeleccionado);
-        alert("Perfil asignado correctamente");
-        const nuevoPerfil = todosLosPerfiles.find(
-            (perfil) => perfil.id_perfil === parseInt(perfilSeleccionado)
-        );
-        setUsuario((prev) => ({
-            ...prev,
-            perfiles: [...(prev.perfiles || []), nuevoPerfil],
-        }));
-        } catch (err) {
-        console.error("Error al asignar perfil:", err);
-        alert("Error al asignar el perfil");
+            await profileService.assignProfile(usuario.id_persona, perfilSeleccionado);
+            const vigRes = await profileService.getPersonaProfile(usuario.id_persona);
+            setPerfilesVigentes(vigRes.data);
+            setPerfilSeleccionado("");
+            if(me?.id_persona === usuario.id_persona) {
+                updateUserPerfiles(vigRes.data);
+            }
+            alert("Perfil asignado correctamente");
+        } catch (error) {
+            console.error("Error al asignar perfiles:", error);
+            alert(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
         }
     };
 
@@ -126,9 +127,13 @@ export default function UsuarioDetalle() {
         if (!ok) return;
         try {
         await profileService.deleteProfile(usuario.id_persona, id_perfil);
-        setPerfilesVigentes((prev) =>
-            prev.filter((p) => p.id_perfil !== id_perfil)
-        );
+        setPerfilesVigentes((prev) =>{
+            const next = prev.filter((p) => p.id_perfil !== id_perfil)
+                if (me?.id_persona === usuario.id_persona){
+                    updateUserPerfiles(next);
+                }
+                return next;
+            });
         alert("Perfil desasignado correctamente");
         } catch (error) {
         console.error("Error al desasignar perfil", error);
@@ -144,21 +149,17 @@ export default function UsuarioDetalle() {
             profileService.assignProfile(usuario.id_persona, pid)
             )
         );
-
-        const nuevos = todosLosPerfiles.filter((p) =>
-            selectedProfiles.includes(p.id_perfil)
-        );
-        setPerfilesVigentes((prev) => [
-            ...prev,
-            ...nuevos.filter((n) => !prev.some((v) => v.id_perfil === n.id_perfil)),
-        ]);
-
+        const vigRes = await profileService.getPersonaProfile(usuario.id_persona);
+        setPerfilesVigentes(vigRes.data);
         setSelectedProfiles([]);
         setShowModal(false);
+        if(me?.id_persona === usuario.id_persona){
+            updateUserPerfiles(vigRes.data);
+        }
         alert("Perfiles asignados correctamente");
         } catch (error) {
-        console.error("Error al asignar perfiles:", error);
-        alert("Error al asignar perfiles");
+            console.error("Error al asignar perfiles:", error);
+            alert(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
         }
     };
 

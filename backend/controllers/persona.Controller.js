@@ -6,6 +6,7 @@ import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiMo
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
 import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
+import { ensureProfesorRow, deactivateProfesorIfNoProfile } from '../models/profesorModel.js';
 import db from "../models/db.js"
 import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
 import path from 'path';
@@ -117,20 +118,31 @@ export const registrarDatosPersona = async (req, res) => {
 export const asignarPerfil = async (req, res) => {
     try {
         const { id_persona, id_perfil } = req.body;
-        
-        const usuarioActor = 
-            req.user?.id_usuario ??
-            req.user?.id ??
-            req.usuario?.id_usuario ??
-            req.usuario?.id;
 
-        if(!usuarioActor){
-            return res.status(401).json({message:'No se pudo identificar el usuario autenticad'});
+        const usuarioActor =
+        req.user?.id_usuario ??
+        req.user?.id ??
+        req.usuario?.id_usuario ??
+        req.usuario?.id;
+
+        if (!usuarioActor) {
+        return res.status(401).json({ message: 'No se pudo identificar el usuario autenticado' });
         }
 
-        const resultado = await asignarPerfilPersona(id_persona, id_perfil, usuarioActor);
-        res.status(201).json({message:'Perfil asignado correctamente', resultado});
+        const perfilId = Number(id_perfil);
+        if (!Number.isInteger(perfilId)) {
+        return res.status(400).json({ message: 'id_perfil inválido' });
+        }
+
+        const resultado = await asignarPerfilPersona(id_persona, perfilId, usuarioActor);
+
+        const pf = await db.query('SELECT nombre FROM perfiles WHERE id_perfil = $1', [perfilId]);
+        if (pf.rows[0]?.nombre?.toLowerCase() === 'profesor') {
+        await ensureProfesorRow(id_persona);
+        }
+        res.status(201).json({ message: 'Perfil asignado correctamente', resultado });
     } catch (error) {
+        console.error('Error al asignar perfil:', error);
         res.status(500).json({ message: 'Error al asignar perfil', detalle: error.message });
     }
 };
@@ -145,6 +157,11 @@ export const desasignarPerfil = async (req, res) => {
             req.usuario?.id;
 
         const out = await desasignarPerfilPersona(id_persona, Number(id_perfil), usuarioActor);
+
+        const pf = await db.query('SELECT nombre FROM perfiles WHERE id_perfil = $1', [id_perfil]);
+        if(pf.rows[0]?.nombre?.toLowerCase() === 'profesor'){
+            await deactivateProfesorIfNoProfile(id_persona);
+        }
 
         if(!out) {
             return res.status(404).json({message: "No hay un perfil vigente para quitar"});

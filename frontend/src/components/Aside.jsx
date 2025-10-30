@@ -9,6 +9,10 @@ export default function Aside({activeSection, setActiveSection}) {
     const {user, logout} = useAuth();
     const navigate = useNavigate();
 
+    const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
+        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN'
+    )
+
     const handleLogout = () =>{
         logout();
         navigate("/");
@@ -39,12 +43,10 @@ export default function Aside({activeSection, setActiveSection}) {
 
     return(
         <div className="w-[20%] h-screen flex flex-col items-stretch border-r-gray-500 border-r">
-            {/* LOGO */} 
             <div className="flex justify-center ">
                 <img src={logo} alt="logo" className="h-30 w-30"/>
             </div>
 
-                {/*FOTO DE PERFIL Y NOMBRE*/}
                 <div className="flex flex-col items-center mt-6">
                     <img
                         src={null}
@@ -61,7 +63,6 @@ export default function Aside({activeSection, setActiveSection}) {
                     </p>
                 </div>
 
-            {/*BOTONES*/}
                 <div className="flex flex-col px-2 mt-8 space-y-2 font-medium ">
                 <BotonAside onClick={() => {
                     setActiveSection("dasboard"); 
@@ -83,17 +84,19 @@ export default function Aside({activeSection, setActiveSection}) {
                     <span>Mi Legajo</span>
                 </BotonAside>
 
-                <BotonAside onClick={() => {
-                    setActiveSection ("contratos");
-                    navigate("/dashboard/contratos");
-                }} 
-                    activo={activeSection === "contratos"}
-                >
-                    <FiClipboard className="w-7 h-7 shrink-0 currentColor"/>
-                    <span>Contratos</span>
-                </BotonAside>
+                {isAdmin && (
+                    <BotonAside onClick={() => {
+                        setActiveSection ("contratos");
+                        navigate("/dashboard/contratos");
+                    }} 
+                        activo={activeSection === "contratos"}
+                    >
+                        <FiClipboard className="w-7 h-7 shrink-0 currentColor"/>
+                        <span>Contratos</span>
+                    </BotonAside>
+                )}
 
-                {user?.roles?.includes("ADMIN") && (
+                {isAdmin && (
                     <BotonAside
                         onClick={() => {
                             setActiveSection("usuarios");

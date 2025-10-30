@@ -1,143 +1,228 @@
 import {
   getAllContratos,
   getContratoById,
+  getContratoByExternalId,
   createContrato,
-  updateContrato,
-  deleteContrato
+  deleteContrato,
+  getPersonaByDni,
+  getProfesorDetalles,
+  getMateriasByCarreraAnio,
+  crearContratoProfesor,
+  getEmpleados
 } from '../models/contratoModel.js';
+
+export async function listarEmpleadosContratos(req, res) {
+  try {
+    const { q = '', perfil = 'Profesor', page = 1, limit = 20 } = req.query;
+    const off = (Number(page)-1) * Number(limit);
+    const data = await getEmpleados({q, perfil, limit: Number(limit), offset: off});
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al listar empleados' });
+  }
+}
 
 // GET /api/contratos
 export async function listarContratos(req, res) {
   try {
-    const contratos = await getAllContratos();
+    const { persona } = req.query;
+    const contratos = await getAllContratos({ persona });
     res.json(contratos);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener contratos' });
+    console.error('Error en listarContratos:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contratos',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
 // GET /api/contratos/:id
 export async function obtenerContrato(req, res) {
   try {
-    const contrato = await getContratoById(req.params.id);
-    if (!contrato) return res.status(404).json({ error: 'Contrato no encontrado' });
+    const { id } = req.params;
+    const contrato = await getContratoById(id);
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
     res.json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener contrato' });
+    console.error('Error en obtenerContrato:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
 // POST /api/contratos
-export async function crearContrato(req, res) {
+export async function crearContratoHandler(req, res) {
   try {
-    const { numero_contrato, empleado_id, fecha_expedicion, fecha_vencimiento, estado, periodo, catedras } = req.body;
-    // Validaciones básicas
-    if (!numero_contrato || !empleado_id || !fecha_expedicion || !fecha_vencimiento || !estado || !periodo || !Array.isArray(catedras)) {
-      return res.status(400).json({ error: 'Faltan campos requeridos o cátedras' });
+    const data = req.body;
+    
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ 
+        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
+      });
     }
-    // Validación: debe haber al menos una cátedra
-    if (catedras.length === 0) {
-      return res.status(400).json({ error: 'Debe asignar al menos una cátedra al contrato.' });
+    
+  // Validar campos requeridos (fecha_fin es obligatoria según regla)
+  const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio', 'fecha_fin'];
+    const missingFields = requiredFields.filter(field => data[field] === undefined);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos',
+        missingFields
+      });
     }
-    // Validación: estado
-    if (estado !== 'vigente' && estado !== 'finalizado') {
-      return res.status(400).json({ error: 'El estado debe ser "vigente" o "finalizado"' });
-    }
-    // Validación: fecha de vencimiento posterior a expedición
-    if (new Date(fecha_vencimiento) <= new Date(fecha_expedicion)) {
-      return res.status(400).json({ error: 'La fecha de vencimiento debe ser posterior a la de expedición.' });
-    }
-    // Validación: no permitir contrato vigente duplicado para el mismo empleado y periodo
-    if (estado === 'vigente') {
-      const existeVigente = await req.pool.query(
-        'SELECT 1 FROM contratos WHERE empleado_id = $1 AND periodo = $2 AND estado = $3',
-        [empleado_id, periodo, 'vigente']
-      );
-      if (existeVigente.rows.length > 0) {
-        return res.status(400).json({ error: 'Ya existe un contrato vigente para este empleado en este período.' });
-      }
-    }
-    // Validación: si se crea como "vigente", debe tener todas las firmas requeridas (por ahora asumimos 2 firmas)
-    if (estado === 'vigente') {
-      // Si el sistema requiere firmas para estar vigente, aquí debería haber una lógica más compleja.
-      // Por ahora, asumimos que no se puede crear como "vigente" directamente, solo "finalizado" y luego cambiar a "vigente" tras firmar.
-      // Si quieres permitirlo, deberías comprobar la cantidad de firmas requeridas aquí.
-      // return res.status(400).json({ error: 'No se puede crear como vigente sin firmas.' });
-    }
-    const contrato = await createContrato({ numero_contrato, empleado_id, fecha_expedicion, fecha_vencimiento, estado, periodo, catedras });
+    
+    const contrato = await createContrato(data);
     res.status(201).json(contrato);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: error.message || 'Error al crear contrato' });
+    console.error('Error en crearContrato:', error);
+    res.status(400).json({ 
+      error: 'Error al crear contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
 
 // PUT /api/contratos/:id
 export async function actualizarContrato(req, res) {
-  try {
-    const { empleado_id, fecha_expedicion, fecha_vencimiento, estado, periodo, catedras } = req.body;
-    const numero_contrato = req.params.id;
-    if (!empleado_id || !fecha_expedicion || !fecha_vencimiento || !estado || !periodo || !Array.isArray(catedras)) {
-      return res.status(400).json({ error: 'Faltan campos requeridos o cátedras' });
-    }
-    // Validación: debe haber al menos una cátedra
-    if (catedras.length === 0) {
-      return res.status(400).json({ error: 'Debe asignar al menos una cátedra al contrato.' });
-    }
-    // Validación: estado
-    if (estado !== 'vigente' && estado !== 'finalizado') {
-      return res.status(400).json({ error: 'El estado debe ser "vigente" o "finalizado"' });
-    }
-    // Validación: fecha de vencimiento posterior a expedición
-    if (new Date(fecha_vencimiento) <= new Date(fecha_expedicion)) {
-      return res.status(400).json({ error: 'La fecha de vencimiento debe ser posterior a la de expedición.' });
-    }
-    // Validación: no permitir contrato vigente duplicado para el mismo empleado y periodo (excluyendo este contrato)
-    if (estado === 'vigente') {
-      const existeVigente = await req.pool.query(
-        'SELECT 1 FROM contratos WHERE empleado_id = $1 AND periodo = $2 AND estado = $3 AND numero_contrato != $4',
-        [empleado_id, periodo, 'vigente', numero_contrato]
-      );
-      if (existeVigente.rows.length > 0) {
-        return res.status(400).json({ error: 'Ya existe un contrato vigente para este empleado en este período.' });
-      }
-      // Validación: solo permitir estado "vigente" si tiene todas las firmas requeridas
-      const firmasReq = 2; // Cambia esto según tu lógica de negocio
-      const { rows: firmas } = await req.pool.query(
-        'SELECT COUNT(*) FROM firmas WHERE contrato_id = $1',
-        [numero_contrato]
-      );
-      if (parseInt(firmas[0].count) < firmasReq) {
-        return res.status(400).json({ error: `No se puede poner como vigente hasta que estén todas las firmas requeridas (${firmasReq}).` });
-      }
-    }
-    const contrato = await updateContrato(numero_contrato, { empleado_id, fecha_expedicion, fecha_vencimiento, estado, periodo, catedras });
-    res.json(contrato);
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: error.message || 'Error al actualizar contrato' });
-  }
+  // Actualización intencionalmente deshabilitada: los contratos no son editables.
+  res.status(405).json({ error: 'Actualización de contratos deshabilitada: los contratos no pueden modificarse una vez creados' });
 }
 
 // DELETE /api/contratos/:id
 export async function eliminarContrato(req, res) {
   try {
-    const numero_contrato = req.params.id;
-    // Validación: no eliminar si tiene firmas asociadas
-    const { rows: firmas } = await req.pool.query(
-      'SELECT 1 FROM firmas WHERE contrato_id = $1',
-      [numero_contrato]
-    );
-    if (firmas.length > 0) {
-      return res.status(400).json({ error: 'No se puede eliminar un contrato que ya tiene firmas.' });
+    const { id } = req.params;
+    const contrato = await deleteContrato(id);
+    
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
     }
-    const contrato = await deleteContrato(numero_contrato);
-    if (!contrato) return res.status(404).json({ error: 'Contrato no encontrado' });
-    res.json({ message: 'Contrato eliminado correctamente' });
+    
+    res.json({ message: 'Contrato eliminado exitosamente', contrato });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: error.message || 'Error al eliminar contrato' });
+    console.error('Error en eliminarContrato:', error);
+    res.status(400).json({ 
+      error: 'Error al eliminar contrato',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// GET /api/contratos/persona/dni/:dni
+export async function buscarPersonaPorDni(req, res) {
+  try {
+    const { dni } = req.params;
+    const persona = await getPersonaByDni(dni);
+    
+    if (!persona) {
+      return res.status(404).json({ error: 'Persona no encontrada' });
+    }
+    
+    res.json(persona);
+  } catch (error) {
+    console.error('Error en buscarPersonaPorDni:', error);
+    res.status(500).json({ 
+      error: 'Error al buscar persona',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// GET /api/contratos/profesor/:idPersona/detalles
+export async function obtenerDetallesProfesor(req, res) {
+  try {
+    const { idPersona } = req.params;
+    const detalles = await getProfesorDetalles(idPersona);
+    
+    if (!detalles) {
+      return res.status(404).json({ error: 'Profesor no encontrado' });
+    }
+    
+    res.json(detalles);
+  } catch (error) {
+    console.error('Error en obtenerDetallesProfesor:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener detalles del profesor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// GET /api/contratos/materias
+export async function listarMateriasPorCarreraAnio(req, res) {
+  try {
+    const { idCarrera, idAnio } = req.query;
+    
+    if (!idCarrera || !idAnio) {
+      return res.status(400).json({ 
+        error: 'Se requieren los parámetros idCarrera e idAnio' 
+      });
+    }
+    
+    const materias = await getMateriasByCarreraAnio(idCarrera, idAnio);
+    res.json(materias);
+  } catch (error) {
+    console.error('Error en listarMateriasPorCarreraAnio:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener materias',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// POST /api/contratos/profesor/crear
+export async function crearNuevoContratoProfesor(req, res) {
+  try {
+    const data = req.body;
+    
+    if (!data || typeof data !== 'object') {
+      return res.status(400).json({ 
+        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
+      });
+    }
+    
+    // Validar campos requeridos
+    const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio'];
+    const missingFields = requiredFields.filter(field => data[field] === undefined);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Faltan campos requeridos',
+        missingFields
+      });
+    }
+    
+    const contrato = await crearContratoProfesor(data);
+    res.status(201).json(contrato);
+  } catch (error) {
+    console.error('Error en crearNuevoContratoProfesor:', error);
+    res.status(400).json({ 
+      error: 'Error al crear contrato de profesor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+// GET /api/contratos/external/:external_id
+export async function obtenerContratoPorExternalId(req, res) {
+  try {
+    const { external_id } = req.params;
+    const contrato = await getContratoByExternalId(external_id);
+    if (!contrato) {
+      return res.status(404).json({ error: 'Contrato no encontrado' });
+    }
+    res.json(contrato);
+  } catch (error) {
+    console.error('Error en obtenerContratoPorExternalId:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener contrato por external_id',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

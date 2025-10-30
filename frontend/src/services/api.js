@@ -119,4 +119,30 @@ export const tituloService = {
   deleteTitulo:(id_persona, id_titulo) => api.delete(`/titulos/personas/${id_persona}/titulos/${id_titulo}`)
 };
 
+export const contratoService = {
+  getContratos: (persona) => api.get('/contratos', { params: persona ? { persona } : {} }),
+  getEmpleados: (q = '', page = 1, limit = 50) => api.get('/contratos/empleados', { params: { q, page, limit } }),
+  getById: (id) => api.get(`/contratos/${id}`),
+  create : (data) => api.post('/contratos/profesor/crear', data),
+  remove: (id) => api.delete(`/contratos/${id}`),
+
+  buscarPersonaPorDni: (dni) => api.get(`/contratos/persona/dni/${dni}`),
+  getProfesorDetalles: (idPersona) => api.get(`/contratos/profesor/${idPersona}/detalles`),
+  getMateriasByCarreraAnio: (idCarrera, idAnio) => api.get(`/contratos/materias`, {params: { idCarrera, idAnio }}),
+
+  exportarContrato : async (id, format = 'pdf') => {
+    const res = await api.get(`/contratos/${id}/export`, {
+      params: { format },
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], {
+      type: format === 'word'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/pdf'
+    });
+    const url = URL.createObjectURL(blob);
+    return { url, filename: `contrato-${id}.${format === 'word' ? 'docx' : 'pdf'}` };
+  },
+};
+
 export default api;
