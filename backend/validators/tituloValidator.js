@@ -18,3 +18,23 @@ export const tituloValidator = [
     body('id_estado')
         .optional().isInt().withMessage('El estado debe ser un número'),
 ];
+
+// Validador para actualizar título (campos opcionales)
+export const tituloValidatorUpdate = [
+    body('nombre_titulo')
+        .optional()
+        .isString().withMessage('El nombre del título debe ser texto'),
+    body('institucion')
+        .optional()
+        .isString().withMessage('La institución debe ser texto'),
+    body('fecha_emision')
+        .optional()
+        .isISO8601().withMessage('La fecha de emisión debe ser válida'),
+    body('id_tipo_titulo')
+        .optional()
+        .isInt().withMessage('El tipo de título debe ser un ID válido'),
+    body('matricula_prof')
+        .optional().isString().isLength({ max: 50 }).withMessage('La matrícula debe ser texto corto'),
+    body('id_archivo')
+        .optional().isInt().withMessage('El archivo debe ser un ID válido'),
+];

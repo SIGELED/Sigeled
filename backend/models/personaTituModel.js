@@ -53,3 +53,38 @@ export const countArchivoReferencesInTitulos = async (id_archivo) => {
   const r = await db.query(q, [id_archivo]);
   return Number(r.rows[0]?.count) || 0;
 };
+
+// Actualizar título
+export const updateTitulo = async ({
+    id_titulo,
+    id_tipo_titulo,
+    nombre_titulo,
+    institucion,
+    fecha_emision,
+    matricula_prof,
+    id_archivo
+}) => {
+  const q = `
+    UPDATE personas_titulos 
+    SET 
+      id_tipo_titulo = $1,
+      nombre_titulo = $2,
+      institucion = $3,
+      fecha_emision = $4,
+      matricula_prof = $5,
+      id_archivo = $6,
+      actualizado_en = NOW()
+    WHERE id_titulo = $7
+    RETURNING *
+  `;
+  const r = await db.query(q, [
+    id_tipo_titulo,
+    nombre_titulo,
+    institucion,
+    fecha_emision,
+    matricula_prof,
+    id_archivo,
+    id_titulo
+  ]);
+  return r.rows[0] || null;
+};

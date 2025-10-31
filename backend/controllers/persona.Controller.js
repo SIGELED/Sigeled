@@ -6,10 +6,11 @@ import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiMo
 import * as tituModel from '../models/personaTituModel.js';
 import * as archivoModel from '../models/archivoModel.js';
 import * as docModel from '../models/personaDocModel.js';
-import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { createPersona,updatePersona , desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona, getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import db from "../models/db.js"
 import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
+import { getTitulosByPersona, createTitulo, updateTitulo } from '../models/personaTituModel.js';
 
 const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
 
@@ -54,6 +55,24 @@ export const registrarDatosPersona = async (req, res) => {
     } catch (error) {
         console.error('Error al registrarDatosPersona', error);
         res.status(500).json({ message: 'Error al registrar datos personales', detalle:error.message });
+    }
+};
+
+export const actualizarDatosPersona = async (req, res) => {
+    try {
+        const { id_persona } = req.params;
+        const { nombre, apellido, fecha_nacimiento, sexo, telefono } = req.body;
+
+        const personaExistente = await getPersonaById(id_persona);
+        if (!personaExistente) {
+            return res.status(404).json({ message: 'Persona no encontrada' });
+        }
+
+        const personaActualizada = await updatePersona(id_persona, { nombre, apellido, fecha_nacimiento, sexo, telefono });
+        res.json({ message: 'Datos de persona actualizados correctamente', persona: personaActualizada });
+    } catch (error) {
+        console.error('Error al actualizarDatosPersona', error);
+        res.status(500).json({ message: 'Error al actualizar datos personales', detalle: error.message });
     }
 };
 
@@ -277,6 +296,46 @@ export const crearTitulo = async (req, res) => {
         res.status(201).json(nuevoTitulo);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+// Actualizar título
+export const actualizarTitulo = async (req, res) => {
+    try {
+        const { id_persona, id_titulo } = req.params;
+        const { id_tipo_titulo, nombre_titulo, institucion, fecha_emision, matricula_prof, id_archivo } = req.body;
+
+        // Validar que el título existe
+        const tituloExistente = await tituModel.getTituloById(id_titulo);
+        if (!tituloExistente) {
+            return res.status(404).json({ error: 'Título no encontrado' });
+        }
+
+        // Validar que el título pertenece a la persona indicada
+        if (String(tituloExistente.id_persona) !== String(id_persona)) {
+            return res.status(400).json({ error: 'El título no pertenece a la persona indicada' });
+        }
+
+        // Validar que no haya duplicado con otro título (excepto el actual)
+        const existentes = await getTitulosByPersona(id_persona);
+        if (existentes.some(e => e.id_titulo !== Number(id_titulo) && e.nombre_titulo === nombre_titulo)) {
+            return res.status(409).json({ error: 'Ya existe otro título con ese nombre para esta persona.' });
+        }
+
+        const tituloActualizado = await updateTitulo({
+            id_titulo,
+            id_tipo_titulo: id_tipo_titulo || tituloExistente.id_tipo_titulo,
+            nombre_titulo: nombre_titulo || tituloExistente.nombre_titulo,
+            institucion: institucion !== undefined ? institucion : tituloExistente.institucion,
+            fecha_emision: fecha_emision || tituloExistente.fecha_emision,
+            matricula_prof: matricula_prof !== undefined ? matricula_prof : tituloExistente.matricula_prof,
+            id_archivo: id_archivo !== undefined ? id_archivo : tituloExistente.id_archivo
+        });
+
+        res.json({ message: 'Título actualizado correctamente', titulo: tituloActualizado });
+    } catch (error) {
+        console.error('Error al actualizarTitulo:', error);
+        res.status(500).json({ error: 'Error al actualizar título', detalle: error.message });
     }
 };
 

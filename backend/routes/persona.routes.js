@@ -2,12 +2,14 @@ import { archivoValidator } from '../middleware/archivoMiddleware.js';
 import { listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
 import * as archivoCtrl from '../controllers/archivos.controller.js'; // NUEVA IMPORTACIÓN
 import { domicilioValidator } from '../validators/domicilioValidator.js';
-import { tituloValidator } from '../validators/tituloValidator.js';
+import { tituloValidator, tituloValidatorUpdate } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
 import {manejarErroresValidacion} from '../middleware/personaMiddleware.js';
+import { validarDatosPersona } from '../validators/personaValidator.js';
 import express from 'express';
 import {
     registrarDatosPersona,
+    actualizarDatosPersona,
     listarPersonas,
     obtenerPersona,
     obtenerIdentificacion,
@@ -16,6 +18,7 @@ import {
     crearDomicilio,
     obtenerTitulos,
     crearTitulo,
+    actualizarTitulo,
     asignarPerfil,
     obtenerPerfilesPersona,
     buscarPorDNI,
@@ -166,8 +169,48 @@ personaRouter.delete('/:id_persona/archivo/:id_archivo', archivoCtrl.eliminarArc
  *       500:
  *         description: Error interno
  */
-personaRouter.post('/', registrarDatosPersona);
+personaRouter.post('/', validarDatosPersona, manejarErroresValidacion, registrarDatosPersona);
 
+/**
+ * @swagger
+ * /api/persona/{id_persona}:
+ *   put:
+ *     summary: Actualizar datos de una persona
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               apellido:
+ *                 type: string
+ *               fecha_nacimiento:
+ *                 type: string
+ *                 format: date
+ *               sexo:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Persona actualizada
+ *       400:
+ *         description: Datos inválidos
+ *       500:
+ *         description: Error interno
+ */
+personaRouter.put('/:id_persona', validarDatosPersona, manejarErroresValidacion, actualizarDatosPersona);
 /**
  * @swagger
  * /api/persona:
@@ -181,6 +224,8 @@ personaRouter.post('/', registrarDatosPersona);
  *       200:
  *         description: Lista de personas
  */
+
+
 personaRouter.get('/', listarPersonas);
 
 /**
@@ -381,6 +426,58 @@ personaRouter.get('/:id_persona/titulos', obtenerTitulos);
  *         description: Error interno
  */
 personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValidacion, crearTitulo);
+
+/**
+ * @swagger
+ * /api/persona/{id_persona}/titulos/{id_titulo}:
+ *   put:
+ *     summary: Actualizar título de una persona
+ *     tags:
+ *       - Titulo
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: id_titulo
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_tipo_titulo:
+ *                 type: integer
+ *               nombre_titulo:
+ *                 type: string
+ *               institucion:
+ *                 type: string
+ *               fecha_emision:
+ *                 type: string
+ *                 format: date
+ *               matricula_prof:
+ *                 type: string
+ *               id_archivo:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Título actualizado
+ *       400:
+ *         description: Error de validación
+ *       404:
+ *         description: Título no encontrado
+ *       500:
+ *         description: Error interno
+ */
+personaRouter.put('/:id_persona/titulos/:id_titulo', tituloValidatorUpdate, manejarErroresValidacion, actualizarTitulo);
 
 /**
  * @swagger

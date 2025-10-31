@@ -102,6 +102,23 @@ export const createPersona = async ({ nombre, apellido, fecha_nacimiento, sexo, 
     return res.rows[0];
 };
 
+// Actualizar persona
+export const updatePersona = async (id_persona, { nombre, apellido, fecha_nacimiento, sexo, telefono }) => {
+    const res = await db.query(
+        `UPDATE personas
+            SET nombre = $1,
+                apellido = $2,
+                fecha_nacimiento = $3,
+                sexo = $4,
+                telefono = $5,
+                actualizado_en = NOW()
+            WHERE id_persona = $6
+            RETURNING *`,
+        [nombre, apellido, fecha_nacimiento, sexo, telefono, id_persona]
+    );
+    return res.rows[0];
+}
+
 // Asignar un perfil a una persona
 export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_editor) => {
     const up = await db.query(
