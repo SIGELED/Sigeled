@@ -129,6 +129,7 @@ export const contratoService = {
   buscarPersonaPorDni: (dni) => api.get(`/contratos/persona/dni/${dni}`),
   getProfesorDetalles: (idPersona) => api.get(`/contratos/profesor/${idPersona}/detalles`),
   getMateriasByCarreraAnio: (idCarrera, idAnio) => api.get(`/contratos/materias`, {params: { idCarrera, idAnio }}),
+  getAnios: () => api.get('/contratos/anios'),
 
   exportarContrato : async (id, format = 'pdf') => {
     const res = await api.get(`/contratos/${id}/export`, {
@@ -143,6 +144,8 @@ export const contratoService = {
     const url = URL.createObjectURL(blob);
     return { url, filename: `contrato-${id}.${format === 'word' ? 'docx' : 'pdf'}` };
   },
+
+  getCarreras:() => api.get('/contratos/carreras')
 };
 
 export default api;

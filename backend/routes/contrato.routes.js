@@ -15,13 +15,55 @@ import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.
 import { getContratoById } from '../models/contratoModel.js';
 import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
 import { createContratoValidators, handleValidation } from '../validators/contratoValidator.js';
+import { getCarreras } from '../models/carreraModel.js';
+import { getAnios } from '../models/contratoModel.js';
 
 const contratoRouter = express.Router();
 
 // Aplicar middleware de autenticación a todas las rutas
 contratoRouter.use(verificarToken);
 
+contratoRouter.get('/carreras', async (req, res) => {
+  try {
+    res.json(await getCarreras());
+  } catch (error) {
+    res.status(500).json({error:'Error al listar carreras'});
+  }
+})
+
+contratoRouter.get('/anios', soloAdministrador, async (req, res) => {
+  try {
+    res.json(await getAnios());
+  } catch (error) {
+    res.status(500).json({error: 'Error al listar años'})
+  }
+});
+
 contratoRouter.get('/empleados', soloAdministrador, listarEmpleadosContratos);
+
+/**
+ * @swagger
+ * /api/contratos:
+ *   get:
+ *     summary: Obtiene todos los contratos
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de contratos obtenida correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Contrato'
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acceso denegado, se requiere rol de administrador
+ */
+contratoRouter.get('/', soloAdministrador, listarContratos);
 
 /**
  * @swagger
@@ -83,58 +125,7 @@ contratoRouter.get('/profesor/:idPersona/detalles', soloAdministrador, obtenerDe
  *   description: Gestión de contratos de profesores
  */
 
-/**
- * @swagger
- * /api/contratos:
- *   get:
- *     summary: Obtiene todos los contratos
- *     tags: [Contratos]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de contratos obtenida correctamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Contrato'
- *       401:
- *         description: No autorizado
- *       403:
- *         description: Acceso denegado, se requiere rol de administrador
- */
-contratoRouter.get('/', soloAdministrador, listarContratos);
 
-/**
- * @swagger
- * /api/contratos/{id}:
- *   get:
- *     summary: Obtiene un contrato por ID
- *     tags: [Contratos]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del contrato a buscar
- *     responses:
- *       200:
- *         description: Contrato encontrado
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Contrato'
- *       404:
- *         description: Contrato no encontrado
- *       401:
- *         description: No autorizado
- */
-contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
 
 // In contrato.routes.js, add this before the route definition
 /**
@@ -216,30 +207,7 @@ contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, create
 
 
 
-/**
- * @swagger
- * /api/contratos/{id}:
- *   delete:
- *     summary: Elimina un contrato existente
- *     tags: [Contratos]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del contrato a eliminar
- *     responses:
- *       200:
- *         description: Contrato eliminado exitosamente
- *       401:
- *         description: No autorizado
- *       404:
- *         description: Contrato no encontrado
- */
-contratoRouter.delete('/:id', soloAdministrador, eliminarContrato);
+
 
 // Rutas adicionales para el flujo de contratos
 
@@ -387,3 +355,57 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
     });
   }
 });
+
+/**
+ * @swagger
+ * /api/contratos/{id}:
+ *   get:
+ *     summary: Obtiene un contrato por ID
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del contrato a buscar
+ *     responses:
+ *       200:
+ *         description: Contrato encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Contrato'
+ *       404:
+ *         description: Contrato no encontrado
+ *       401:
+ *         description: No autorizado
+ */
+contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
+
+/**
+ * @swagger
+ * /api/contratos/{id}:
+ *   delete:
+ *     summary: Elimina un contrato existente
+ *     tags: [Contratos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del contrato a eliminar
+ *     responses:
+ *       200:
+ *         description: Contrato eliminado exitosamente
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: Contrato no encontrado
+ */
+contratoRouter.delete('/:id', soloAdministrador, eliminarContrato);

@@ -77,6 +77,9 @@ export default function Contratos() {
     const [empleados, setEmpleados] = useState([]);
     const [loadingEmps, setLoadingEmps] = useState(true);
 
+    const [carreras, setCarreras] = useState([]);
+    const [anios, setAnios] = useState([]);
+
     const [selected, setSelected] = useState(null);
     const [loadingItems, setLoadingItems] = useState(false);
 
@@ -174,6 +177,7 @@ export default function Contratos() {
             onChange("id_persona", persona.id_persona);
             const { data: prof } = await contratoService.getProfesorDetalles(persona.id_persona);
             setLookups((s) => ({ ...s, persona, profesor: prof }));
+            if(prof?.id_profesor) onChange("id_profesor", prof.id_profesor);
         } catch (error) {
             console.error(error);
             alert("No se encontró la persona/profesor para ese DNI");
@@ -269,6 +273,31 @@ export default function Contratos() {
     };
 
     const [showCreate, setShowCreate] = useState(false);
+
+    useEffect(() => {
+        if(showCreate) {
+            contratoService.getCarreras().then(({data}) => setCarreras(data ?? []));
+            contratoService.getAnios().then(({data}) => setAnios(data ?? []));
+        }
+    }, [showCreate]);
+
+    useEffect(() => {
+        const { id_carrera, id_anio } = form;
+        if(id_carrera && id_anio) {
+            contratoService.getMateriasByCarreraAnio(id_carrera, id_anio)
+                .then(({data}) => setLookups(s => ({...s, materias: Array.isArray(data)? data: []})))
+                .catch(e => console.error(e));
+        } else {
+            setLookups(s => ({...s, materias: []}));
+        }
+    }, [form.id_carrera, form.id_anio])
+
+    useEffect(() => {
+        if(form.horas_semanales){
+            const hm = Number(form.horas_semanales) * 4;
+            onChange("horas_mensuales", String(hm));
+        }
+    }, [form.horas_semanales]);
 
     const Table = useMemo(() => {
         if (!selected) {
@@ -458,25 +487,25 @@ export default function Contratos() {
                         placeholder="Pegar id_profesor"
                         />
                     </Field>
-                    <Field label="Carrera (id)">
-                        <input
-                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                        value={form.id_carrera}
-                        onChange={(e) => onChange("id_carrera", e.target.value)}
-                        />
+                    <Field label="Carrera">
+                        <select 
+                            className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                            value={form.id_carrera}
+                            onChange={(e) => onChange("id_carrera", e.target.value)}
+                        >
+                            <option value="">Seleccionar...</option>
+                            {carreras.map(c => <option key={c.id_carrera} value={c.id_carrera}>{c.carrera_descripcion}</option>)}
+                        </select>
                     </Field>
-                    <Field label="Año (id)">
-                        <input
-                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                        value={form.id_anio}
-                        onChange={(e) => onChange("id_anio", e.target.value)}
-                        />
+                    <Field label="Año">
+                        <select className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                            value={form.id_anio}
+                            onChange={(e) => onChange("id_anio", e.target.value)}
+                        >
+                            <option value="">Seleccionar...</option>
+                            {anios.map(a => <option key={a.id_anio} value={a.id_anio}>{a.descripcion}</option>)}
+                        </select>
                     </Field>
-                    <div className="flex items-end">
-                        <OutlineBtn type="button" onClick={cargarMaterias} className="w-full">
-                        Cargar materias
-                        </OutlineBtn>
-                    </div>
 
                     <Field label="Materia">
                         <select
