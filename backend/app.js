@@ -8,14 +8,14 @@ import docenteRouter from './routes/docente.routes.js';
 import userRouter from './routes/user.routes.js';
 import roleRouter from './routes/role.routes.js';
 import contratoRouter from './routes/contrato.routes.js';
-import personaDocRouter from './routes/personaDoc.routes.js'; // corregido nombre
+import personaDocRouter from './routes/personaDoc.routes.js'; 
 import personaRouter from './routes/persona.routes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import archivosRouter from './routes/archivos.routes.js';
 import personaTituRouter from './routes/personaTitu.routes.js';
+import legajoRouter from './routes/legajo.routes.js';
 
-// Configuración básica de Swagger
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -54,6 +54,7 @@ app.use('/api/persona-doc', personaDocRouter);
 app.use('/api/archivos', archivosRouter); 
 app.use('/api/persona', personaRouter);
 app.use('/api/titulos', personaTituRouter);
+app.use('/api/legajo', legajoRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

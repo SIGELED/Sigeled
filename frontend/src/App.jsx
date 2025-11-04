@@ -1,12 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
-import Register from './components/Register';
+import Register from './pages/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Inicio from './pages/Inicio';
 import Perfil from './components/Perfil';
 import Revision from './pages/Revision';
+import RegisterArchivos from './pages/RegisterArchivos';
 import UsuarioDetalle from './pages/dashboard/UsuarioDetalle';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/perfil" element={<Perfil />} />
               <Route path="/revision" element={<Revision />}/>
+              <Route path="/registro/archivos" element={<RegisterArchivos />}/>
               
               {/* Ruta protegida */}
               <Route 

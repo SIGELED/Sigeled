@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { archivoValidator } from '../middleware/archivoMiddleware.js';
 import { subirArchivo, listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';

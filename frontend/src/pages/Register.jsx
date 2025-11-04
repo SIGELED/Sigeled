@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link} from "react-router-dom";
-import { authService, identificationService, personaService } from "../services/api";
+import { authService, identificationService, legajoService, personaService } from "../services/api";
 import { BiSolidError } from "react-icons/bi";
 import logo from "../assets/svg/logoLetras.svg";
 
@@ -59,8 +59,9 @@ const Register = () => {
           };
 
           const res = await personaService.createPersona(personaData);
-          setUserData({...userData, id_persona: res.data.persona.id_persona});
-          console.log(res.data);
+          const id_persona = res.data.persona.id_persona;
+          setUserData({...userData, id_persona});
+
           setStep(3);
         }
 
@@ -76,7 +77,7 @@ const Register = () => {
           };
 
           await identificationService.createIdentificacion(userData.id_persona, identificationData);
-          navigate("/revision");
+          navigate(`/registro/archivos?persona=${userData.id_persona}`);
         }
       } catch (err) {
         setError(err.response?.data?.message || "Error en el registro");

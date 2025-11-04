@@ -148,4 +148,11 @@ export const contratoService = {
   getCarreras:() => api.get('/contratos/carreras')
 };
 
+export const legajoService = {
+  getEstado:   (id_persona) => api.get(`/legajo/${id_persona}/estado`),
+  recalcular:  (id_persona) => api.post(`/legajo/persona/${id_persona}/recalcular`),
+  setEstado:   (id_persona, codigo) => api.post(`/legajo/${id_persona}/estado`, { codigo }),
+  setPlazo:    (id_persona, payload) => api.post(`/legajo/${id_persona}/plazo`, payload),
+};
+
 export default api;

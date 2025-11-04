@@ -59,38 +59,76 @@ export const getPersonaDocumentoById = async (id_persona_doc) => {
 };
 
 // Crear documento de persona
-export const createPersonaDocumento = async ({id_persona, id_tipo_doc, id_archivo, id_estado_verificacion = 1, vigente}) => {
-    const res = await db.query(
-    `
-        WITH ins AS (
-        INSERT INTO personas_documentos (
-            id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente
-        ) VALUES ($1,$2,$3,$4,$5)
-            RETURNING id_persona_doc
-        )
+export const createPersonaDocumento = async ({
+    id_persona,
+    id_tipo_doc,
+    id_archivo,
+    id_estado_verificacion = 1
+    }) => {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+
+        await client.query(
+        `
+        UPDATE personas_documentos
+        SET vigente = FALSE
+        WHERE id_persona = $1 AND id_tipo_doc = $2 AND vigente = TRUE
+        `,
+        [id_persona, id_tipo_doc]
+        );
+
+        const { rows: insRows } = await client.query(
+        `
+        INSERT INTO personas_documentos
+            (id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente)
+        VALUES ($1,$2,$3,$4, TRUE)
+        ON CONFLICT (id_persona, id_tipo_doc, id_archivo)
+        DO UPDATE
+            SET id_estado_verificacion = EXCLUDED.id_estado_verificacion,
+                vigente = TRUE,
+                creado_en = NOW()
+        RETURNING id_persona_doc
+        `,
+        [id_persona, id_tipo_doc, id_archivo, id_estado_verificacion]
+        );
+
+        const id_persona_doc = insRows[0].id_persona_doc;
+
+        const { rows: finalRows } = await client.query(
+        `
         SELECT
             pd.id_persona_doc,
             pd.id_persona,
             pd.id_tipo_doc,
-            t.codigo       AS tipo_codigo,
-            t.nombre       AS tipo_nombre,
+            t.codigo AS tipo_codigo,
+            t.nombre AS tipo_nombre,
             pd.id_archivo,
             a.nombre_original AS archivo_nombre,
             pd.id_estado_verificacion AS id_estado,
-            ev.codigo      AS estado_codigo,
-            ev.nombre      AS estado_nombre,
+            ev.codigo AS estado_codigo,
+            ev.nombre AS estado_nombre,
             pd.vigente,
             pd.creado_en
         FROM personas_documentos pd
         LEFT JOIN tipos_documento      t  USING (id_tipo_doc)
         LEFT JOIN archivos             a  USING (id_archivo)
         LEFT JOIN estado_verificacion  ev ON ev.id_estado = pd.id_estado_verificacion
-        WHERE pd.id_persona_doc = (SELECT id_persona_doc FROM ins)
+        WHERE pd.id_persona_doc = $1
         `,
-        [id_persona, id_tipo_doc, id_archivo, id_estado_verificacion, vigente]
-    );
-    return res.rows[0];
+        [id_persona_doc]
+        );
+
+        await client.query('COMMIT');
+        return finalRows[0];
+    } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+    } finally {
+        client.release();
+    }
 };
+
 
 export const insertVerificacionDocumento = async({
     id_persona_doc, 
