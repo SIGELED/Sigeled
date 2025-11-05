@@ -42,26 +42,26 @@ export default function Aside({activeSection, setActiveSection}) {
         : "Sin perfil asignado";
 
     return (
-        <div className="w-[18%] h-screen flex flex-col items-stretch border-r border-gray-500">
-            <div className="flex justify-center mt-4">
+        <div className="w-[18%] h-[100dvh] shrink-0 flex flex-col items-stretch bg-[#101922]">
+            <div className="flex justify-center ">
             <img src={logo} alt="logo" className="h-30 w-30" />
             </div>
 
-            <div className="flex flex-col items-center mt-6">
+            <div className="flex flex-col items-center">
                 <img
                     src={null}
                     alt="FOTO DE PERFIL"
-                    className="w-40 h-40 rounded-full bg-[#0f1d29] mb-3"
+                    className="w-40 h-40 rounded-full bg-[#030C14] mb-3"
                 />
                 <h1 className="text-2xl font-semibold text-white">
-                    {user?.apellido} {user?.nombre}
+                    {user.apellido} {user?.nombre}
                 </h1>
                 <p className="text-[1rem] text-[#19F124] font-medium mt-2 text-center">
                     {perfilesFormateados}
                 </p>
             </div>
 
-            <div className="flex-1 flex flex-col px-2 mt-8 space-y-2 font-medium">
+            <div className="flex flex-col flex-1 px-2 mt-8 space-y-2 font-medium">
                 <BotonAside
                     onClick={() => {
                     setActiveSection("dashboard");
@@ -69,7 +69,7 @@ export default function Aside({activeSection, setActiveSection}) {
                     }}
                     activo={activeSection === "dashboard"}
                 >
-                    <FiHome className="w-7 h-7 shrink-0 currentColor" />
+                    <FiHome size={25} className=" shrink-0 currentColor" />
                     <span>Dashboard</span>
                 </BotonAside>
 
@@ -80,7 +80,7 @@ export default function Aside({activeSection, setActiveSection}) {
                     }}
                     activo={activeSection === "legajo"}
                 >
-                    <FiArchive className="w-7 h-7 shrink-0 currentColor" />
+                    <FiArchive size={25} className="shrink-0 currentColor" />
                     <span>Mi Legajo</span>
                 </BotonAside>
 
@@ -92,7 +92,7 @@ export default function Aside({activeSection, setActiveSection}) {
                     }}
                     activo={activeSection === "contratos"}
                     >
-                    <FiClipboard className="w-7 h-7 shrink-0 currentColor" />
+                    <FiClipboard size={25} className=" shrink-0 currentColor" />
                     <span>Contratos</span>
                     </BotonAside>
                 )}
@@ -105,15 +105,15 @@ export default function Aside({activeSection, setActiveSection}) {
                     }}
                     activo={activeSection === "usuarios"}
                     >
-                    <FiUsers className="w-7 h-7 shrink-0 currentColor" />
+                    <FiUsers size={25} className=" shrink-0 currentColor" />
                     <span>Usuarios</span>
                     </BotonAside>
                 )}
                 </div>
 
-                <div className="mt-auto mb-4 px-2">
+                <div className="px-2 mt-auto mb-4">
                 <BotonAside onClick={handleLogout} variant="logout">
-                    <MdLogout className="w-8 h-8 shrink-0 text-[#ff2c2c]" />
+                    <MdLogout size={25} className=" shrink-0 text-[#ff2c2c]" />
                     <span>Cerrar Sesión</span>
                 </BotonAside>
             </div>

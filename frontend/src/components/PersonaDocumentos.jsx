@@ -20,7 +20,7 @@ const FALLBACK_ESTADOS = [
     { id_estado: 4, codigo: "OBSERVADO", nombre: "Observado" },
 ]
 
-export default function PersonaDocumentos({idPersona, onClose, asModal = true}) {
+export default function PersonaDocumentos({idPersona, onClose, asModal = true, showPersonaId=true, canDelete=true, canChangeState=true, onRequestDelete}) {
     const [docs, setDocs] = useState([]);
     const [deletingId, setDeletingId] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -48,8 +48,8 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
             const tipo = tipoById(doc.id_tipo_doc);
             setPreview({
                 open: true,
-                url: data.url,
-                title: tipo.nombre || 'Documento'
+                url: data.url ?? data.signedUrl,
+                title: tipo?.nombre || 'Documento'
             });
         } catch (error) {
             console.error('No se pudo abrir el documento:', error);
@@ -60,10 +60,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
     const closePreview = () => setPreview({open:false, url:'', title:''});
 
     const fetchDocs = useCallback(async () => {
+        if(!idPersona) return;
         setLoading(true);
         try {
-            const { data } = await personaDocService.listarDocumentos({ id_persona: idPersona });
-            setDocs(Array.isArray(data) ? data : []);
+            const { data } = await personaDocService.listarDocumentos(idPersona);
+            const arr = Array.isArray(data) ? data : [];
+            setDocs(arr.filter(x => String(x.id_persona) === String(idPersona)));
         } catch (error) {
             console.error("No se pudieron cargar documentos:", error);
             setDocs([]);
@@ -75,16 +77,16 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
     useEffect(() => {
         const loadCatalogos = async () => {
             try {
-                const [estRes, tiposRes] = await Promise.allSettled([
-                    estadoVerificacionService.getAll(),
-                    tipoDocService.getAllDocTypes(),
-                ]);
+                const asks = [tipoDocService.getAllDocTypes()];
+                if (canChangeState) asks.unshift(estadoVerificacionService.getAll());
+                const results = await Promise.allSettled(asks);
 
-                if (estRes.status === "fulfilled" && Array.isArray(estRes.value.data)) {
-                    setEstados(estRes.value.data);
+                if (canChangeState && results[0]?.status === "fulfilled" && Array.isArray(results[0].value.data)) {
+                    setEstados(results[0].value.data);
                 }
-                if(tiposRes.status === "fulfilled" && Array.isArray(tiposRes.value.data)) {
-                    setTipos(tiposRes.value.data);
+                const tiposIdx = canChangeState ? 1 : 0;
+                if (results[tiposIdx]?.status === "fulfilled" && Array.isArray(results[tiposIdx].value.data)) {
+                    setTipos(results[tiposIdx].value.data);
                 }
             } catch (e) {
                 
@@ -205,7 +207,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
             await fetchDocs();
             closeCambiarEstado();
         } catch (error) {
-            console.error("Error al cambiar estado del documento:", err);
+            console.error("Error al cambiar estado del documento:", error);
             alert("No se pudo cambiar el estado");
         }
     }
@@ -228,9 +230,11 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
             </div>
 
             <div className="flex items-center justify-between mb-3">
-                <p className="text-lg opacity-80">
-                    Persona: <span className="font-semibold">{idPersona}</span>
-                </p>
+                {showPersonaId && (
+                    <p className="text-lg opacity-80">
+                        Persona: <span className="font-semibold">{idPersona}</span>
+                    </p>
+                )}
                 <button
                     onClick={() => setShowNew(true)}
                     className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition flex items-center gap-2"
@@ -245,7 +249,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                 ) : docsOrdenados.length === 0 ? (
                     <p className="opacity-70">Sin documentos</p>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {docsOrdenados.map((d) => {
                         const tipo = tipoById(d.id_tipo_doc);
                         const estado = estadoById(d.id_estado_verificacion || d.id_estado);
@@ -279,7 +283,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                                 key={d.id_persona_doc}
                                 className="bg-[#0D1520] p-6 rounded-2xl shadow-md flex flex-col justify-between border border-white/10 hover:border-white/30 transition"
                             >
-                                <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center justify-between mb-2">
                                     <div className="bg-[#0f302d] p-3 rounded-xl">
                                         <FiFileText size={28} className="text-[#19F124]" />
                                     </div>
@@ -294,9 +298,9 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1 text-sm mb-3">
-                                    <p className="font-semibold text-2xl">{tipo?.nombre ?? "Tipo desconocido"}</p>
-                                    <p className="opacity-80 text-xl">{d.archivo_nombre ?? "Sin archivo adjunto"}</p>
+                                <div className="flex flex-col gap-1 mb-3 text-sm">
+                                    <p className="text-2xl font-semibold">{tipo?.nombre ?? "Tipo desconocido"}</p>
+                                    <p className="text-xl opacity-80">{d.archivo_nombre ?? "Sin archivo adjunto"}</p>
                                     <p className="text-xs opacity-60">
                                         Subido el: {d.creado_en?.split("T")[0] ?? " — "}
                                     </p>
@@ -311,19 +315,32 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                                     >
                                         <FiEye size={16} /> Ver
                                     </button>
-                                    <button
-                                        onClick={() => openCambiarEstado(d)}
-                                        className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
-                                    >
-                                        <FiRefreshCcw size={16} /> Cambiar estado
-                                    </button>
-                                    <button
+                                    {canChangeState &&(
+                                        <button
+                                            onClick={() => openCambiarEstado(d)}
+                                            className=" flex items-center pl-3 pr-3 cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                                        >
+                                            <FiRefreshCcw size={16} /> Cambiar estado
+                                        </button>
+                                    )}
+                                    {canDelete ? (
+                                        <button
                                         onClick={() => handleDelete(d)}
                                         disabled={deletingId === d.id_persona_doc}
                                         className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
-                                    >
-                                        <FiTrash2 size={16} />
-                                    </button>
+                                        >
+                                            <FiTrash2 size={16} />
+                                        </button>
+                                    ):(
+                                        <button
+                                            type="button"
+                                            onClick={() => onRequestDelete ? onRequestDelete(d) : alert("Para eliminar, enviá una solicitud a RRHH.")}
+                                            className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
+                                            title="Solicitar eliminación"
+                                        >
+                                            Solicitar eliminación
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -341,7 +358,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
                 />
             )}
 
-            {verificacion.open && (
+            {canChangeState && verificacion.open && (
                 <div className="fixed inset-0 z-[80]">
                     <div className="absolute inset-0 bg-black/60" onClick={closeCambiarEstado} />
                     <div className="absolute inset-0 flex items-center justify-center p-4">

@@ -63,7 +63,7 @@ export const profileService = {
 }
 
 export const personaDocService = {
-  listarDocumentos: (params = {}) => api.get('/persona-doc', {params}),
+  listarDocumentos: (id_persona) => api.get(`/persona-doc/personas/${id_persona}/documentos`),
   getDocById: (id_persona_doc) => api.get(`/persona-doc/${id_persona_doc}`),
   createDoc: (data) => api.post('/persona-doc', data),
   cambiarEstado:(id_persona_doc, { id_estado_verificacion, observacion }) =>
@@ -71,8 +71,9 @@ export const personaDocService = {
       id_estado_verificacion,
       observacion: observacion ?? null,
     }),
-    deleteDoc: (id_persona, id_persona_doc) => api.delete(`/persona-doc/personas/${id_persona}/documentos/${id_persona_doc}`)
-}
+  deleteDoc: (id_persona, id_persona_doc) =>
+    api.delete(`/persona-doc/personas/${id_persona}/documentos/${id_persona_doc}`)
+};
 
 export const estadoVerificacionService = {
   getAll: () => api.get('/persona/estados-verificacion'),

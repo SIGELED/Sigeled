@@ -64,7 +64,7 @@ personaRouter.use(verificarToken);
  *       200:
  *         description: Lista de estados de verificación
  */
-personaRouter.get('/estados-verificacion', soloRRHH, listarEstadosVerificacion);
+personaRouter.get('/estados-verificacion', listarEstadosVerificacion);
 
 personaRouter.get('/dom/departamentos', listarDepartamentos);
 

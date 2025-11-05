@@ -8,6 +8,7 @@ import {
     deleteDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
+import { getPersonasDocumentos } from '../models/personaDocModel.js';
 import { soloRRHH } from '../middleware/authMiddleware.js';
 
 const personaDocRouter = express.Router();
@@ -17,20 +18,20 @@ personaDocRouter.get('/tipos-documento', listarTiposDocumento);
 
 personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, verificarPersonaDocumento);
 
-/**
- * @swagger
- * /api/persona-doc:
- *   get:
- *     summary: Obtener todos los documentos de personas
- *     tags:
- *       - PersonaDoc
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de documentos de personas
- */
-personaDocRouter.get('/', listarPersonasDocumentos);
+const esPropietarioOPrivilegiado = (req,res,next) => {
+    const idParam = req.params.id_persona || req.query.id_persona;
+    const soyOwner = idParam && String(req.user?.id_persona) === String(idParam);
+    const roles = (req.user?.roles || []).map(r => (typeof r === 'string'? r : r?.codigo || r?.nombre)).map(x => String(x).toUpperCase());
+    if (soyOwner || roles.includes('RRHH') || roles.includes('ADMIN')) return next();
+    return res.status(403).json({ error: 'Acceso denegado' });
+};
+
+personaDocRouter.get('/', soloRRHH, listarPersonasDocumentos);
+
+personaDocRouter.get('/personas/:id_persona/documentos', esPropietarioOPrivilegiado, async (req,res) => {
+    const docs = await getPersonasDocumentos({ id_persona: req.params.id_persona });
+    res.json(docs);
+});
 
 /**
  * @swagger

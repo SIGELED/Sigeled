@@ -8,9 +8,13 @@ import {
 } from "../services/api";
 
 export default function PersonaDomicilios({
-    idPersona,
-    onClose,
-    asModal = true,
+        idPersona,
+        onClose,
+        asModal = true,
+        showPersonaId = true,
+        canDelete = false,
+        canCreate = true,
+        onRequestDelete,
     }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,18 +44,15 @@ export default function PersonaDomicilios({
 
     useEffect(() => {
         const run = async () => {
-        setLoading(true);
-        try {
-            const { data } = await domicilioService.getDomicilioByPersona(
-            idPersona
-            );
-            setItems(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error("No se pudieron cargar domicilios,", error);
-            setItems([]);
-        } finally {
-            setLoading(false);
-        }
+            if(!idPersona) return;
+            setLoading(true);
+            try {
+                const { data } = await domicilioService.getDomicilioByPersona(idPersona);
+                setItems(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error("No se pudieron cargar domicilios:", error);
+                setItems([]);
+            } finally { setLoading(false); }
         };
         run();
     }, [idPersona]);
@@ -222,16 +223,20 @@ export default function PersonaDomicilios({
             )}
         </div>
 
-        <div className="flex items-center justify-between mb-3">
-            <p className="text-lg opacity-80">
-            Persona: <span className="font-semibold">{idPersona}</span>
-            </p>
-            <button
-            onClick={openWizard}
-            className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition"
-            >
-            Agregar domicilio +
-            </button>
+        <div className={`flex items-center mb-3 ${canCreate ? "justify-between" : "justify-start"}`}>
+            {showPersonaId && (
+                <p className="text-lg opacity-80 max-w-[70%] truncate">
+                Persona: <span className="font-semibold break-all">{idPersona}</span>
+                </p>
+            )}
+            {canCreate && (
+                <button
+                onClick={openWizard}
+                className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition"
+                >
+                Agregar domicilio +
+                </button>
+            )}
         </div>
 
         <div className="max-h-[50vh] overflow-auto pr-1">
@@ -240,7 +245,7 @@ export default function PersonaDomicilios({
             ) : itemsOrdenados.length === 0 ? (
                 <p className="opacity-70">Sin domicilios</p>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {itemsOrdenados.map((d) => (
                     <div
                     key={d.id_domicilio}
@@ -252,14 +257,14 @@ export default function PersonaDomicilios({
                             <FiHome size={24} className="text-[#19F124]" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-semibold text-lg">Domicilio</span>
+                            <span className="text-lg font-semibold">Domicilio</span>
                         </div>
                         </div>
                     </div>
 
                     <div className="flex-1">
                         <div className="text-bg opacity-80">
-                            <p className="text-lg flex gap-2 items-center font-bold">
+                            <p className="flex items-center gap-2 text-lg font-bold">
                                 <FiMapPin className="text-[#19F124]" size={20}/>
                                 {d.calle ?? "—"} {d.altura ?? ""}
                             </p>
@@ -284,19 +289,34 @@ export default function PersonaDomicilios({
                         )}
                         </div>
 
-                        <div className="w-full m-auto border border-white/10 mb-3 mt-3"/>
+                        <div className="w-full m-auto mt-3 mb-3 border border-white/10"/>
                         
                         <div className="flex justify-end mr-3">
-                        <button
-                        type="button"
-                        onClick={() => handleDelete(d)}
-                        disabled={deletingId === d.id_domicilio}
-                        className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
-                        title="Eliminar domicilio"
-                        aria-label="Eliminar domicilio"
-                        >
-                        <FiTrash2 size={18} />
-                        </button>
+                            {canDelete ? (
+                                <button
+                                    type="button"
+                                    onClick={() => handleDelete(d)}
+                                    disabled={deletingId === d.id_domicilio}
+                                    className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
+                                    title="Eliminar domicilio"
+                                    aria-label="Eliminar domicilio"
+                                >
+                                    <FiTrash2 size={18} />
+                                </button>
+                                ) : (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                    onRequestDelete
+                                        ? onRequestDelete(d)
+                                        : alert("Para eliminar, enviá una solicitud a RRHH.")
+                                    }
+                                    className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
+                                    title="Solicitar eliminación"
+                                >
+                                    Solicitar eliminación
+                                </button>
+                            )}
                         </div>
                     </div>
 

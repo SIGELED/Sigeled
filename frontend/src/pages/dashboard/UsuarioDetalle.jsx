@@ -157,30 +157,30 @@ export default function UsuarioDetalle() {
             <div className="grid grid-cols-1 gap-6 pl-10 pr-10 mt-5 lg:grid-cols-2">
             <div className="space-y-5">
                 <section className="bg-[#101922] rounded-2xl p-5 mb-5 text-2xl">
-                <h2 className="pb-4 pl-4 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
+                <h2 className="pb-2 pl-2 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
                     Datos de usuario
                 </h2>
 
-                <section className="grid grid-cols-2 lg:grid-cols-2 gap-y-8 gap-x-20 pl-5">
+                <section className="grid grid-cols-2 pl-2 lg:grid-cols-2 gap-y-5 gap-x-25">
                     <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                            <FiMail className="text-[#4FC3F7]" size={35} />
+                            <FiMail className="text-[#4FC3F7]" size={30} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="opacity-70 text-xl">Email</span>
-                            <span>{usuario.email}</span>
+                            <span className="text-sm opacity-70">Email</span>
+                            <span className="text-bg">{usuario.email}</span>
                         </div>
                         </div>
 
                         <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
                             <FiPower
-                            size={35}
+                            size={30}
                             className={usuario.activo ? "text-[#19F124]" : "text-[#FF5252]"}
                             />
                         </div>
                         <div className="flex flex-col">
-                            <span className="opacity-70 text-xl">Estado</span>
+                            <span className="text-sm opacity-70">Estado</span>
                             <span
                             className={
                                 usuario.activo
@@ -193,13 +193,12 @@ export default function UsuarioDetalle() {
                         </div>
                         </div>
 
-                        {/* ROL */}
                         <div className="flex flex-row items-center gap-3">
                             <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                                <FiLayers className="text-[#FFD54F]" size={35} />
+                                <FiLayers className="text-[#FFD54F]" size={30} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="opacity-70 text-xl">Rol/es:</span>
+                                <span className="text-sm opacity-70">Rol/es:</span>
                                 {usuario.roles?.length > 0
                                 ? usuario.roles.map((r) => r.nombre).join(", ")
                                 : "Sin rol asignado"}
@@ -208,43 +207,43 @@ export default function UsuarioDetalle() {
                 </section>
                 </section>
 
-                <section className="bg-[#101922] rounded-2xl p-5 mb-5 text-2xl">
+                <section className="bg-[#101922] rounded-2xl p-5 text-2xl">
                 <h2 className="pb-4 pl-4 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
                     Datos personales
                 </h2>
 
                 {usuario.persona && (
-                    <section className="grid grid-cols-2 lg:grid-cols-2 gap-y-8 gap-x-20 pl-5">
+                    <section className="grid grid-cols-2 pl-2 lg:grid-cols-2 gap-y-5 gap-x-25">
 
                     <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                            <FiHash className="text-[#64B5F6]" size={35} />
+                            <FiHash className="text-[#64B5F6]" size={30} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="opacity-70 text-xl">Nombre</span>
+                            <span className="text-sm opacity-70">Nombre</span>
                             <span>{usuario.persona.nombre || "No especificado"}</span>
                         </div>
                     </div>
 
                     <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                            <FiHash className="text-[#BA68C8]" size={35} />
+                            <FiHash className="text-[#BA68C8]" size={30} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="opacity-70 text-xl">Apellido</span>
+                            <span className="text-sm opacity-70">Apellido</span>
                             <span>{usuario.persona.apellido || "No especificado"}</span>
                         </div>
                     </div>
 
                     <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                            <FiCalendar className="text-[#FFB74D]" size={35} />
+                            <FiCalendar className="text-[#FFB74D]" size={30} />
                         </div>
                         <div className="flex flex-col">
-                            <span className="opacity-70 text-xl">Fecha de Nacimiento</span>
+                            <span className="text-sm opacity-70">Fecha de Nacimiento</span>
                             <span>
                                 {usuario.persona.fecha_nacimiento
-                                ? usuario.persona.fecha_nacimiento.split("T")[0]
+                                ? new Date(usuario.persona.fecha_nacimiento).toLocaleDateString()
                                 : "No especificado"}
                             </span>
                         </div>
@@ -253,10 +252,10 @@ export default function UsuarioDetalle() {
                     {usuario.identificaciones?.[0]?.dni && (
                         <div className="flex flex-row items-center gap-3">
                             <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                                <FiCreditCard className="text-[#90CAF9]" size={35} />
+                                <FiCreditCard className="text-[#90CAF9]" size={30} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="opacity-70 text-xl">DNI</span>
+                                <span className="text-sm opacity-70">DNI</span>
                                 <span>{usuario.identificaciones[0].dni}</span>
                             </div>
                         </div>
@@ -265,10 +264,10 @@ export default function UsuarioDetalle() {
                     {usuario.identificaciones?.[0]?.cuil && (
                         <div className="flex flex-row items-center gap-3">
                             <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                                <BsPersonVcard className="text-[#81C784]" size={35} />
+                                <BsPersonVcard className="text-[#81C784]" size={30} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="opacity-70 text-xl">CUIL</span>
+                                <span className="text-sm opacity-70">CUIL</span>
                                 <span>{usuario.identificaciones[0].cuil}</span>
                             </div>
                         </div>

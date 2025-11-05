@@ -13,7 +13,7 @@ const FALLBACK_ESTADOS = [
     { id_estado: 4, codigo: "OBSERVADO", nombre: "Observado" },
 ]
 
-export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
+export default function PersonaTitulos({ idPersona, onClose, asModal = true, showPersonaId = true, canDelete = true, canChangeState = true, onRequestDelete }) {
     const [estados, setEstados] = useState(FALLBACK_ESTADOS);
     const [verificacion, setVerificacion] = useState({ open:false, titulo: null , estado:"", obs:""})
 
@@ -113,17 +113,18 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
     }, [idPersona]);
 
     useEffect(() => {
-        fetchTitulos();
-    }, [fetchTitulos]);
+        if (idPersona) fetchTitulos();
+    }, [fetchTitulos, idPersona]);
 
     useEffect(() => {
+        if(!canChangeState) return;
         (async () => {
             try {
                 const { data } = await estadoVerificacionService.getAll();
-                if(Array.isArray(data) && data.length) setEstados(data);
+                if (Array.isArray(data) && data.length) setEstados(data);
             } catch {}
         })();
-    }, []);
+    }, [canChangeState]);
 
     const titulosOrdenados = useMemo(
         () =>
@@ -214,9 +215,11 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
         </div>
 
         <div className="flex items-center justify-between mb-3">
-            <p className="text-lg opacity-80">
-            Persona: <span className="font-semibold">{idPersona}</span>
-            </p>
+            {showPersonaId && (
+                <p className="text-lg opacity-80">
+                    Persona: <span className="font-semibold">{idPersona}</span>
+                </p>
+            )}
             <button
             onClick={() => setShowNew(true)}
             className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition"
@@ -236,18 +239,18 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="text-lg font-semibold text-white mb-1">
+                    <div className="mb-1 text-lg font-semibold text-white">
                     {t.nombre_titulo}
                     </div>
 
-                    <div className="flex items-center text-sm text-gray-300 mb-1">
+                    <div className="flex items-center mb-1 text-sm text-gray-300">
                     <div className="flex items-center gap-1">
                         <LuBuilding size={20}/>
                         <span className="opacity-90">{t.institucion || "—"}</span>
                     </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-x-6 text-sm text-gray-400 mb-2">
+                    <div className="flex flex-wrap mb-2 text-sm text-gray-400 gap-x-6">
                     <div className="flex items-center font-normal gap-1 bg-[#39793c] text-white p-1 rounded-xl pl-2 pr-2  text-lg">
                         <span>{t.tipo_titulo || "Sin tipo"}</span>
                     </div>
@@ -270,23 +273,36 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
                         <FiEye size={16} /> Ver
                         </button>
                     )}
-                    <button
+                    {canChangeState && (
+                        <button
                         type="button"
                         onClick={() => openCambiarEstado(t)}
                         className="flex w-40 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
                         title="Cambiar estado"
-                    >
-                        <FiRefreshCcw size={16} /> Cambiar estado
-                    </button>
-                    <button
+                        >
+                            <FiRefreshCcw size={16} /> Cambiar estado
+                        </button>
+                    )}
+                    {canDelete ? (
+                        <button
                         type="button"
                         onClick={() => handleDelete(t)}
                         disabled={deletingId === t.id_titulo}
                         className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
                         title="Eliminar título"
-                    >
-                        <FiTrash2 size={18} />
-                    </button>
+                        >
+                            <FiTrash2 size={18} />
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => onRequestDelete ? onRequestDelete(t) : alert("Para eliminar, enviá una solicitud a RRHH.")}
+                            className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
+                            title="Solicitar eliminación"
+                        >
+                            Solicitar eliminación
+                        </button>
+                        )}
                     </div>
                 </div>
                 </li>
@@ -304,7 +320,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
             />
         )}
 
-        {verificacion.open && (
+        {canChangeState && verificacion.open && (
                 <div className="fixed inset-0 z-[80]">
                     <div className="absolute inset-0 bg-black/60" onClick={closeCambiarEstado} />
                     <div className="absolute inset-0 flex items-center justify-center p-4">

@@ -28,12 +28,31 @@ export const login = async (req, res) => {
 
         const perfiles = await getPerfilesDePersona(user.id_persona);
 
-        const token = jwt.sign(
-            { id: user.id_usuario, email: user.email, roles:roleNames, perfiles: perfiles},
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: '1h' }
-        );
-        res.json({ token, user: { id: user.id_usuario, email: user.email, nombre:persona?.nombre, apellido:persona?.apellido, roles:roleNames, perfiles: perfiles } });
+        const payload = {
+            id: user.id_usuario,
+            id_usuario: user.id_usuario,
+            id_persona: user.id_persona,
+            email: user.email,
+            roles: roleNames,
+            perfiles
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '1h' });
+
+        res.json({
+            token,
+            user: {
+                id: user.id_usuario,
+                id_usuario: user.id_usuario,
+                id_persona: user.id_persona,
+                email: user.email,
+                nombre: persona?.nombre || null,
+                apellido: persona?.apellido || null,
+                roles: roleNames,
+                perfiles,
+                persona: persona || null
+            }
+            });
     } catch (error) {
         console.error('Error en el inicio de sesión:', error);
         res.status(500).json({ message: 'Error del servidor' });

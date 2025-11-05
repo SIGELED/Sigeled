@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import DashboardLayout from './layout/DashboardLayout';
+
 import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
 import Register from './pages/Register';
@@ -8,7 +10,7 @@ import Inicio from './pages/Inicio';
 import Perfil from './components/Perfil';
 import Revision from './pages/Revision';
 import RegisterArchivos from './pages/RegisterArchivos';
-import UsuarioDetalle from './pages/dashboard/UsuarioDetalle';
+import MiLegajo from './pages/dashboard/MiLegajo';
 
 function App() {
   return (
@@ -21,19 +23,20 @@ function App() {
               <Route path="/" element={<Inicio />}/>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/perfil" element={<Perfil />} />
-              <Route path="/revision" element={<Revision />}/>
-              <Route path="/registro/archivos" element={<RegisterArchivos />}/>
+              <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+              <Route path="/revision" element={<ProtectedRoute> <Revision /> </ProtectedRoute>}/>
+              <Route path="/registro/archivos" element={<ProtectedRoute><RegisterArchivos /></ProtectedRoute>}/>
               
-              {/* Ruta protegida */}
-              <Route 
-                path="/dashboard/*" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />  
+              <Route element={<DashboardLayout/>}>
+                <Route 
+                  path="/dashboard/*" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+              </Route>  
 
               {/* Redirecciones */}
               <Route path="*" element={<Navigate to="/" />} />

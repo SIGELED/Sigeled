@@ -1,10 +1,11 @@
 import { useAuth } from '../../context/AuthContext';
-import Aside from '../../components/Aside';
 import Nav from '../../components/Nav';
 import { useState, Suspense, lazy } from 'react';
 import Contratos from './Contratos';
+import RequireRoles from '../../components/RequireRoles';
 import UsuariosSection from './UsuariosSection';
 import UsuarioDetalle from './UsuarioDetalle';
+import MiLegajo from './MiLegajo';
 import { Routes, Route } from 'react-router-dom';
 
 const DashboardHome = () => <div>Este es el dasboard</div>
@@ -16,17 +17,18 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen flex bg-[#020c14] text-white">
-      <Aside activeSection={activeSection} setActiveSection={setActiveSection}/>
-      
       <div className='relative flex-1'> 
         <Nav/>
         <main>
           <Routes>
             <Route path = "/" element={<DashboardHome />}/>
-            <Route path = "legajo" element={<Legajo />}/>
-            <Route path = "contratos" element={<Contratos />}/>
-            <Route path = "usuarios" element={<UsuariosSection user={user} />}/>
-            <Route path = "usuarios/:id" element={<UsuarioDetalle />}/>
+            <Route path = "legajo" element={<MiLegajo />}/>
+
+            <Route element={<RequireRoles anyOf={["ADMIN", "RRHH", "RECURSOS HUMANOS", "ADMINISTRADOR"]}/>}>
+              <Route path = "usuarios" element={<UsuariosSection user={user} />}/>
+              <Route path = "usuarios/:id" element={<UsuarioDetalle />}/>
+              <Route path = "contratos" element={<Contratos />}/>
+            </Route>
           </Routes>
         </main>
       </div>

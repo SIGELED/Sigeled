@@ -11,11 +11,22 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
       if (token && userData) {
-        setUser(JSON.parse(userData));
+        let parsed = JSON.parse(userData);
+        if (!parsed.id_persona) {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            try {
+              const payload = JSON.parse(atob(parts[1]));
+              if (payload?.id_persona) {
+                parsed = { ...parsed, id_persona: payload.id_persona };
+              }
+            } catch {}
+          }
+        }
+        setUser(parsed);
       }
       setLoading(false);
     };
-
     loadUser();
   }, []);
 
