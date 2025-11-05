@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import PersonaDocumentos from "../../components/PersonaDocumentos";
 import PersonaDomicilios from "../../components/PersonaDomicilios";
 import PersonaTitulos from "../../components/PersonaTitulos";
+import SegmentedTabs from "../../components/SegmentedTabs";
 import { userService, profileService } from "../../services/api";
 import { MdNavigateBefore } from "react-icons/md";
-import { FiTrash2, FiUser, FiClipboard, FiHome, FiArchive } from "react-icons/fi";
+import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard  } from "react-icons/fi";
+import { BsPersonVcard } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 
@@ -28,46 +30,6 @@ export default function UsuarioDetalle() {
 
     const TABS = { INFO: "info", DOCS: "docs", DOM: "dom", TIT: "tit" };
     const [tab, setTab] = useState(TABS.INFO);
-
-    function SegmentedTabs({ value, onChange, TABS }) {
-        const Item = ({ v, label, Icon }) => {
-            const active = value === v;
-            return (
-            <button
-                role="tab"
-                aria-selected={active}
-                onClick={() => onChange(v)}
-                title={label}
-                className={[
-                    "group flex items-center justify-center rounded-full transition-all outline-none",
-                    "focus-visible:ring-2 focus-visible:ring-[#19F124]/60 text-2xl",
-                    active
-                        ? "bg-white/10 text-white shadow-inner px-3 h-10"
-                        : "hover:bg-white/5 text-white/90 h-10 w-10 cursor-pointer"
-                ].join(" ")}
-            >
-                <Icon size={30} className={active ? "text-[#19F124]" : "text-white"} />
-                {active && (
-                <span className="ml-2 font-semibold whitespace-nowrap">{label}</span>
-                )}
-                {!active && <span className="sr-only">{label}</span>}
-            </button>
-            );
-        };
-
-        return (
-            <div
-            className="inline-flex items-center gap-1 rounded-full bg-[#0D1520] p-2 border border-white/5 shadow-lg/30"
-            role="tablist"
-            aria-label="Secciones del usuario"
-            >
-                <Item v={TABS.INFO} label="Información Personal" Icon={FiUser} />
-                <Item v={TABS.DOCS} label="Documentos"           Icon={FiClipboard} />
-                <Item v={TABS.DOM}  label="Domicilios"           Icon={FiHome} />
-                <Item v={TABS.TIT}  label="Títulos"              Icon={FiArchive} />
-            </div>
-        );
-    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -176,7 +138,7 @@ export default function UsuarioDetalle() {
                 <MdNavigateBefore size={35} className=" m-[-4px] hover:text-[#101922] text-[#19F124] transition" />
             </button>
             <div className="flex flex-row">
-                <SegmentedTabs value={tab} onChange={setTab} TABS={TABS}/>
+                <SegmentedTabs value={tab} onChange={setTab} tabs={TABS}/>
             </div>
         </div>
 
@@ -195,52 +157,122 @@ export default function UsuarioDetalle() {
             <div className="grid grid-cols-1 gap-6 pl-10 pr-10 mt-5 lg:grid-cols-2">
             <div className="space-y-5">
                 <section className="bg-[#101922] rounded-2xl p-5 mb-5 text-2xl">
-                <h2 className="pb-2 pl-4 mb-3 text-3xl font-semibold border-b-3 border-[#19F124] text-[#19F124]">
+                <h2 className="pb-4 pl-4 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
                     Datos de usuario
                 </h2>
-                <p>
-                    <strong>Email: </strong> {usuario.email}
-                </p>
-                <p>
-                    <strong>Estado: </strong>
-                    {usuario.activo ? "Activo" : "Inactivo"}
-                </p>
-                <p>
-                    <strong>Rol/es: </strong>{" "}
-                    {usuario.roles?.length > 0
-                    ? usuario.roles.map((r) => r.nombre).join(", ")
-                    : "Sin rol asignado"}
-                </p>
+
+                <section className="grid grid-cols-2 lg:grid-cols-2 gap-y-8 gap-x-20 pl-5">
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiMail className="text-[#4FC3F7]" size={35} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="opacity-70 text-xl">Email</span>
+                            <span>{usuario.email}</span>
+                        </div>
+                        </div>
+
+                        <div className="flex flex-row items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiPower
+                            size={35}
+                            className={usuario.activo ? "text-[#19F124]" : "text-[#FF5252]"}
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="opacity-70 text-xl">Estado</span>
+                            <span
+                            className={
+                                usuario.activo
+                                ? "text-[#19F124] bg-[#173519] rounded-2xl px-4"
+                                : "text-[#FF5252]"
+                            }
+                            >
+                            {usuario.activo ? "Activo" : "Inactivo"}
+                            </span>
+                        </div>
+                        </div>
+
+                        {/* ROL */}
+                        <div className="flex flex-row items-center gap-3">
+                            <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                                <FiLayers className="text-[#FFD54F]" size={35} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="opacity-70 text-xl">Rol/es:</span>
+                                {usuario.roles?.length > 0
+                                ? usuario.roles.map((r) => r.nombre).join(", ")
+                                : "Sin rol asignado"}
+                            </div>
+                        </div>
+                </section>
                 </section>
 
-                <section className="bg-[#101922] rounded-3xl p-5 mb-5">
-                <h2 className="pb-2 pl-4 mb-3 text-3xl font-semibold border-b-3 border-[#19F124] text-[#19F124]">
+                <section className="bg-[#101922] rounded-2xl p-5 mb-5 text-2xl">
+                <h2 className="pb-4 pl-4 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
                     Datos personales
                 </h2>
-                {usuario.persona && (
-                    <section className="text-2xl">
-                    <p>
-                        <strong>Nombre: </strong> {usuario.persona.nombre}
-                    </p>
-                    <p>
-                        <strong>Apellido: </strong> {usuario.persona.apellido}
-                    </p>
-                    <p>
-                        <strong>Fecha de Nacimiento: </strong>
-                        {usuario.persona.fecha_nacimiento?.split("T")[0] ||
-                        "No especificado"}
-                    </p>
-                    </section>
-                )}
 
-                {usuario.identificaciones?.length > 0 && (
-                    <section className="text-2xl">
-                    <p>
-                        <strong>DNI:</strong> {usuario.identificaciones[0].dni}
-                    </p>
-                    <p>
-                        <strong>CUIL:</strong> {usuario.identificaciones[0].cuil}
-                    </p>
+                {usuario.persona && (
+                    <section className="grid grid-cols-2 lg:grid-cols-2 gap-y-8 gap-x-20 pl-5">
+
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiHash className="text-[#64B5F6]" size={35} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="opacity-70 text-xl">Nombre</span>
+                            <span>{usuario.persona.nombre || "No especificado"}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiHash className="text-[#BA68C8]" size={35} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="opacity-70 text-xl">Apellido</span>
+                            <span>{usuario.persona.apellido || "No especificado"}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiCalendar className="text-[#FFB74D]" size={35} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="opacity-70 text-xl">Fecha de Nacimiento</span>
+                            <span>
+                                {usuario.persona.fecha_nacimiento
+                                ? usuario.persona.fecha_nacimiento.split("T")[0]
+                                : "No especificado"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {usuario.identificaciones?.[0]?.dni && (
+                        <div className="flex flex-row items-center gap-3">
+                            <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                                <FiCreditCard className="text-[#90CAF9]" size={35} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="opacity-70 text-xl">DNI</span>
+                                <span>{usuario.identificaciones[0].dni}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {usuario.identificaciones?.[0]?.cuil && (
+                        <div className="flex flex-row items-center gap-3">
+                            <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                                <BsPersonVcard className="text-[#81C784]" size={35} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="opacity-70 text-xl">CUIL</span>
+                                <span>{usuario.identificaciones[0].cuil}</span>
+                            </div>
+                        </div>
+                    )}
                     </section>
                 )}
                 </section>
@@ -248,7 +280,7 @@ export default function UsuarioDetalle() {
 
             <div className="space-y-5">
                 <section className="relative bg-[#101922] rounded-2xl p-5 text-2xl">
-                <h2 className="pb-2 pl-4 mb-3 text-3xl font-semibold border-b-3 border-[#19F124] text-[#19F124]">
+                <h2 className="pb-4 pl-4 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
                     Perfiles del usuario
                 </h2>
 
@@ -257,9 +289,9 @@ export default function UsuarioDetalle() {
                     perfilesVigentes.map((p) => (
                         <div
                         key={p.id_perfil}
-                        className="flex items-center gap-3 font-semibold"
+                        className="flex items-center gap-3 mb-4 font-semibold bg-[#10242a] p-4 border border-[#19f12423] rounded-xl"
                         >
-                        <span>• {p.nombre}</span>
+                        <span><span className="text-[#19F124] mr-2">•</span> {p.nombre}</span>
                         <button
                             onClick={() =>
                             handleEliminarPerfil(p.id_perfil, p.nombre)

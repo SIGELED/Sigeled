@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { tituloService, archivoService, estadoVerificacionService } from "../services/api";
 import { IoClose } from "react-icons/io5";
-import { FiTrash2 } from "react-icons/fi";
+import {  FiTrash2, FiCalendar, FiBookOpen, FiCheckCircle, FiEye, FiRefreshCcw} from "react-icons/fi";
+import { LuBuilding } from "react-icons/lu";
+import { IoSchoolOutline } from "react-icons/io5";
 import PdfPreviewModal from "./PdfPreviewModal";
 
 const FALLBACK_ESTADOS = [
@@ -223,70 +225,76 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true }) {
             </button>
         </div>
 
-        <div className="max-h-[50vh] overflow-auto pr-1">
-            {loading ? (
-            <p className="opacity-70">Cargando...</p>
-            ) : titulosOrdenados.length === 0 ? (
-            <p className="opacity-70">Sin títulos cargados</p>
-            ) : (
-            <ul className="space-y-2">
-                {titulosOrdenados.map((t) => (
-                    <li
-                        key={`t-${t.id_titulo ?? t.nombre_titulo}`}
-                        className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl bg-[#0D1520]"
-                    >
-                        <div className="flex-1 min-w-0">
-                            <div className="font-semibold">{t.nombre_titulo}</div>
+        <ul className="space-y-3">
+            {titulosOrdenados.map((t) => (
+                <li
+                key={`t-${t.id_titulo ?? t.nombre_titulo}`}
+                className="flex gap-4 px-5 py-4 rounded-2xl bg-[#0D1520] shadow-md hover:shadow-lg transition"
+                >
+                <div className=" w-20 h-20 rounded-xl bg-[#19F124]/10 flex items-center justify-center">
+                    <IoSchoolOutline size={45} className="text-[#19F124]"/>
+                </div>
 
-                            <div className="text-sm opacity-80">
-                                {t.tipo_titulo ? `${t.tipo_titulo} • ` : ""}
-                                {t.institucion ? `${t.institucion} • ` : ""}
-                                {t.fecha_emision ? `Emitido: ${new Date(t.fecha_emision).toLocaleDateString()}` : ""}
-                            </div>
+                <div className="flex-1 min-w-0">
+                    <div className="text-lg font-semibold text-white mb-1">
+                    {t.nombre_titulo}
+                    </div>
 
-                            <div className="text-xs opacity-60">
-                                Estado: {t.estado_verificacion_nombre || "Sin asignar"}
-                                {t.archivo_nombre ? ` • Archivo: ${t.archivo_nombre}` : ""}
-                            </div>
+                    <div className="flex items-center text-sm text-gray-300 mb-1">
+                    <div className="flex items-center gap-1">
+                        <LuBuilding size={20}/>
+                        <span className="opacity-90">{t.institucion || "—"}</span>
+                    </div>
+                    </div>
 
-                            {t.id_archivo && (
-                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs opacity-80">
-                                <span>Archivo ID: {t.id_archivo}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => openPreview(t)}
-                                    className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                                    title="Ver Título"
-                                >
-                                Ver Título
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openCambiarEstado(t)}
-                                    className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                                    title="Cambiar estado"
-                                >
-                                Cambiar estado
-                                </button>
-                            </div>
-                            )}
+                    <div className="flex flex-wrap gap-x-6 text-sm text-gray-400 mb-2">
+                    <div className="flex items-center font-normal gap-1 bg-[#39793c] text-white p-1 rounded-xl pl-2 pr-2  text-lg">
+                        <span>{t.tipo_titulo || "Sin tipo"}</span>
+                    </div>
+                    {t.fecha_emision && (
+                        <div className="flex items-center gap-1">
+                        <span className="text-[#19F124]/80"><FiCalendar size={20}/></span>
+                        <span>{new Date(t.fecha_emision).toLocaleDateString()}</span>
                         </div>
+                    )}
+                    </div>
 
+                    <div className="flex flex-wrap gap-2 mt-2">
+                    {t.id_archivo && (
                         <button
-                            type="button"
-                            onClick={() => handleDelete(t)}
-                            disabled={deletingId === t.id_titulo}
-                            className="shrink-0 bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
-                            title="Eliminar título"
-                            aria-label="Eliminar título"
+                        type="button"
+                        onClick={() => openPreview(t)}
+                        className="flex w-30 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                        title="Ver Título"
                         >
-                            <FiTrash2 size={22} />
+                        <FiEye size={16} /> Ver
                         </button>
-                    </li>
-                ))}
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => openCambiarEstado(t)}
+                        className="flex w-40 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                        title="Cambiar estado"
+                    >
+                        <FiRefreshCcw size={16} /> Cambiar estado
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleDelete(t)}
+                        disabled={deletingId === t.id_titulo}
+                        className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
+                        title="Eliminar título"
+                    >
+                        <FiTrash2 size={18} />
+                    </button>
+                    </div>
+                </div>
+                </li>
+            ))}
             </ul>
-            )}
-        </div>
+
+
+
 
         {preview.open && (
             <PdfPreviewModal

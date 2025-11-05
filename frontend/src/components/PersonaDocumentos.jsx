@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiUpload, FiFileText, FiEye, FiRefreshCcw, FiCheck, FiX , FiAlertTriangle, FiClock } from "react-icons/fi";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
 import PdfPreviewModal from "./PdfPreviewModal";
 
@@ -229,105 +229,109 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true}) 
 
             <div className="flex items-center justify-between mb-3">
                 <p className="text-lg opacity-80">
-                Persona: <span className="font-semibold">{idPersona}</span>
+                    Persona: <span className="font-semibold">{idPersona}</span>
                 </p>
                 <button
-                onClick={() => setShowNew(true)}
-                className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition"
+                    onClick={() => setShowNew(true)}
+                    className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] text-[#101922] transition flex items-center gap-2"
                 >
-                Agregar documento +
+                    <FiUpload size={18} /> Agregar Documento
                 </button>
             </div>
 
             <div className="max-h-[50vh] overflow-auto pr-1">
                 {loading ? (
-                <p className="opacity-70">Cargando...</p>
+                    <p className="opacity-70">Cargando...</p>
                 ) : docsOrdenados.length === 0 ? (
-                <p className="opacity-70">Sin documentos</p>
+                    <p className="opacity-70">Sin documentos</p>
                 ) : (
-                <ul className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {docsOrdenados.map((d) => {
-                    const t = d.tipo_nombre
-                        ? { nombre: d.tipo_nombre, obligatorio: undefined }
-                        : tipoById(d.id_tipo_doc);
-                    const e =
-                        d.estado_nombre
-                        ? { nombre: d.estado_nombre, codigo: d.estado_codigo }
-                        : estadoById(d.id_estado) ||
-                            estadoById(d.id_estado_verificacion);
-                    return (
-                        <li
-                        key={
-                            d.id_persona_doc ??
-                            `${d.id_persona}-${d.id_tipo_doc}-${d.creado_en}`
-                        }
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#0D1520]"
-                        >
-                        <div className="flex-1">
-                            <div className="font-semibold">
-                            {t?.nombre ?? `Tipo ${d.id_tipo_doc}`}
-                            {t?.obligatorio && (
-                                <span className="ml-2 text-[10px] uppercase tracking-wide bg-[#24303C] px-2 py-0.5 rounded-md">
-                                Obligatorio
-                                </span>
-                            )}
-                            </div>
-                            <div className="text-sm opacity-80">
-                            Estado:{" "}
-                            <span className="opacity-100">
-                                {e?.nombre ?? e?.codigo ?? d.id_estado}
-                            </span>
-                            {d.vigente === false && (
-                                <span className="ml-2 text-xs bg-[#24303C] px-2 py-0.5 rounded-md">
-                                No vigente
-                                </span>
-                            )}
-                            </div>
-                            {d.id_archivo && (
-                            <div className="flex items-center gap-2 mt-1 text-xs opacity-80">
-                                <span className="opacity-60">
-                                Archivo ID:{" "}
-                                {d.archivo_nombre ?? `ID ${d.id_archivo}`}
-                                </span>
-                                <button
-                                type="button"
-                                onClick={() => openPreview(d)}
-                                className="bg-[#0D1520] border-[#19F124] border-2 font-bold cursor-pointer p-2 rounded-xl text-sm  text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                                title="Ver Documento"
-                                >
-                                Ver Documento
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openCambiarEstado(d)}
-                                    className="cursor-pointer px-3 py-1 rounded-lg border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520]"
-                                    title="Cambiar estado"
-                                >
-                                    Cambiar estado
-                                </button>
-                            </div>
-                            )}
-                        </div>
-                        <div className="text-xs opacity-60 whitespace-nowrap">
-                            {d.creado_en?.split("T")[0] ?? ""}
-                        </div>
+                        const tipo = tipoById(d.id_tipo_doc);
+                        const estado = estadoById(d.id_estado_verificacion || d.id_estado);
 
-                        <button
-                            type="button"
-                            onClick={() => handleDelete(d)}
-                            disabled= {deletingId === d.id_persona_doc}
-                            className="bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
-                            title="Eliminar documento"
-                            aria-label="Eliminar documento"
-                        >
-                            <FiTrash2 size={22}/>
-                        </button>
-                        </li>
-                    );
+                        const estadoIcon =
+                            estado?.codigo === "APROBADO" ? (
+                                <FiCheck size={20} />
+                            ) : estado?.codigo === "RECHAZADO" ? (
+                                <FiX size={20} />
+                            ) : estado?.codigo === "OBSERVADO" ? (
+                                <FiAlertTriangle size={20} />
+                            ) : (
+                                <FiClock size={20} />
+                            );
+
+                        const getEstadoClasses = (codigo) => {
+                            switch (codigo) {
+                                case "APROBADO":
+                                    return "bg-green-500/15 border border-green-500/40 text-green-400";
+                                case "RECHAZADO":
+                                    return "bg-red-500/15 border border-red-500/40 text-red-400";
+                                case "OBSERVADO":
+                                    return "bg-gray-500/15 border border-gray-500/40 text-gray-400";
+                                default:
+                                    return "bg-yellow-500/15 border border-yellow-500/40 text-yellow-300";
+                            }
+                        };
+
+                        return (
+                            <div
+                                key={d.id_persona_doc}
+                                className="bg-[#0D1520] p-6 rounded-2xl shadow-md flex flex-col justify-between border border-white/10 hover:border-white/30 transition"
+                            >
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="bg-[#0f302d] p-3 rounded-xl">
+                                        <FiFileText size={28} className="text-[#19F124]" />
+                                    </div>
+
+                                    <div
+                                        className={`flex items-center pt-1 pb-1 pl-3 pr-3 rounded-3xl gap-1 transition ${getEstadoClasses(
+                                            estado?.codigo
+                                        )}`}
+                                    >
+                                        {estadoIcon}
+                                        <span className="text-sm font-medium">{estado?.nombre}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-1 text-sm mb-3">
+                                    <p className="font-semibold text-2xl">{tipo?.nombre ?? "Tipo desconocido"}</p>
+                                    <p className="opacity-80 text-xl">{d.archivo_nombre ?? "Sin archivo adjunto"}</p>
+                                    <p className="text-xs opacity-60">
+                                        Subido el: {d.creado_en?.split("T")[0] ?? " — "}
+                                    </p>
+                                </div>
+
+                                <div className="w-full m-auto border border-white/10"/>
+
+                                <div className="flex justify-between gap-2 mt-3">
+                                    <button
+                                        onClick={() => openPreview(d)}
+                                        className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                                    >
+                                        <FiEye size={16} /> Ver
+                                    </button>
+                                    <button
+                                        onClick={() => openCambiarEstado(d)}
+                                        className="flex-1 flex items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                                    >
+                                        <FiRefreshCcw size={16} /> Cambiar estado
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(d)}
+                                        disabled={deletingId === d.id_persona_doc}
+                                        className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
+                                    >
+                                        <FiTrash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
                     })}
-                </ul>
+                    </div>
                 )}
-            </div>
+                </div>
+
 
             {preview.open && (
                 <PdfPreviewModal

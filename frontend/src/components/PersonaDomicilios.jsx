@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiMapPin, FiHome } from "react-icons/fi";
 import {
     domicilioService,
     domOtrosService,
@@ -236,45 +236,74 @@ export default function PersonaDomicilios({
 
         <div className="max-h-[50vh] overflow-auto pr-1">
             {loading ? (
-            <p className="opacity-70">Cargando...</p>
+                <p className="opacity-70">Cargando...</p>
             ) : itemsOrdenados.length === 0 ? (
-            <p className="opacity-70">Sin domicilios</p>
+                <p className="opacity-70">Sin domicilios</p>
             ) : (
-            <ul className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {itemsOrdenados.map((d) => (
-                <li
+                    <div
                     key={d.id_domicilio}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#0D1520]"
-                >
+                    className="bg-[#0D1520] p-4 rounded-2xl shadow-md flex flex-col justify-between border border-white/10 hover:border-white/30 transition"
+                    >
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                        <div className="bg-[#0f302d] p-3 rounded-xl">
+                            <FiHome size={24} className="text-[#19F124]" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-lg">Domicilio</span>
+                        </div>
+                        </div>
+                    </div>
+
                     <div className="flex-1">
-                    <div className="font-semibold">
-                        {d.calle} {d.altura}
-                    </div>
-                    <div className="text-sm opacity-80">
-                        {d.barrio ? `${d.barrio}` : "Sin barrio"}
-                        {d.barrio_manzana || d.barrio_casa || d.barrio_depto || d.barrio_piso ? " • " : ""}
-                        {d.barrio_manzana ? `Mz ${d.barrio_manzana}` : ""}
-                        {d.barrio_casa ? ` Casa ${d.barrio_casa}` : ""}
-                        {d.barrio_depto ? ` Dpto ${d.barrio_depto}` : ""}
-                        {d.barrio_piso ? ` Piso ${d.barrio_piso}` : ""}
-                        {(d.localidad || d.departamento_admin) ? " • " : ""}
-                        {d.localidad ? `${d.localidad}` : ""}
-                        {d.departamento_admin ? ` • ${d.departamento_admin}` : ""}
-                    </div>
-                    </div>
-                    <button
+                        <div className="text-bg opacity-80">
+                            <p className="text-lg flex gap-2 items-center font-bold">
+                                <FiMapPin className="text-[#19F124]" size={20}/>
+                                {d.calle ?? "—"} {d.altura ?? ""}
+                            </p>
+                            <div className="ml-7">
+                                {d.barrio ? `Barrio: ${d.barrio}` : "Sin barrio"} <br />
+                                {(d.barrio_manzana || d.barrio_casa || d.barrio_depto || d.barrio_piso) ? " " : ""} 
+                                {d.barrio_manzana ? `Manzana: ${d.barrio_manzana}` : ""} <br />
+                                {d.barrio_casa ? ` № Casa: ${d.barrio_casa}` : ""} <br />
+                                {d.barrio_depto ? ` Departamento: ${d.barrio_depto}` : ""} <br />
+                                {d.barrio_piso ? ` Piso: ${d.barrio_piso}` : ""}
+                            </div>
+                        </div>
+
+                        <div className="text-bg opacity-60 ml-7">
+                        {(d.localidad || d.departamento_admin) ? (
+                            <>
+                            {d.localidad ? `${d.localidad}` : ""}
+                            {d.departamento_admin ? `, ${d.departamento_admin}` : ""}
+                            </>
+                        ) : (
+                            <span>Localidad / departamento no especificado</span>
+                        )}
+                        </div>
+
+                        <div className="w-full m-auto border border-white/10 mb-3 mt-3"/>
+                        
+                        <div className="flex justify-end mr-3">
+                        <button
                         type="button"
                         onClick={() => handleDelete(d)}
-                        disabled= {deletingId === d.id_domicilio}
-                        className="bg-[#101922] p-3 text-red-500 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition"
+                        disabled={deletingId === d.id_domicilio}
+                        className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
                         title="Eliminar domicilio"
                         aria-label="Eliminar domicilio"
-                    >
-                        <FiTrash2 size={22}/>
-                    </button>
-                </li>
+                        >
+                        <FiTrash2 size={18} />
+                        </button>
+                        </div>
+                    </div>
+
+                    
+                    </div>
                 ))}
-            </ul>
+                </div>
             )}
         </div>
         
