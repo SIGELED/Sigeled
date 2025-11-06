@@ -61,14 +61,22 @@ const UsuariosSection = ({user}) =>{
 
     const toggleUserMutation = useMutation({
         mutationFn: (usuario) => userService.toggleUsuario(usuario.id_usuario),
-        onSuccess: () => {
-            alert(`Estado actualizado`);
+        onMutate: async (usuario) => {
+            await queryClient.cancelQueries({ queryKey: ['usuarios', 'detalles'] });
+            const prev = queryClient.getQueryData(['usuarios', 'detalles']);
+            queryClient.setQueryData(['usuarios', 'detalles'], (list) =>
+                Array.isArray(list)
+                    ? list.map(u => u.id_usuario === usuario.id_usuario ? { ...u, activo: !u.activo } : u)
+                    : list
+            );
+            return { prev };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.prev) queryClient.setQueryData(['usuarios', 'detalles'], ctx.prev);
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['usuarios', 'detalles'] });
         },
-        onError: (err) => {
-            console.error("Error al cambiar estado:", err);
-            alert(err.response?.data?.message || "Error al cambiar estado del usuario");
-        }
     })
 
     const handleAssignRole = (id_usuario, id_rol) => {

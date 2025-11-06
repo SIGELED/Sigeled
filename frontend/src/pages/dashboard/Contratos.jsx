@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { contratoService } from '../../services/api';
 import { useAuth } from "../../context/AuthContext";
 import { IoClose } from "react-icons/io5";
-import { FiPlus, FiSearch, FiFileText, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi"
+import { FiPlus, FiSearch, FiFileText, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2 } from "react-icons/fi"
 
 const Panel = ({ className = "", ...props }) => (
     <div className={`bg-[#0b1420] border border-[#1b2a37] rounded-2xl ${className}`} {...props} />
@@ -21,7 +22,7 @@ const OutlineBtn = ({ className = "", ...props }) => (
 );
 const MutedBtn = ({ className = "", ...props }) => (
     <button
-        className={`px-3 py-2 rounded-xl bg-[#1a2735] text-red-400 hover:bg-[#233448] cursor-pointer transition ${className}`}
+        className={`p-2 rounded-xl bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] cursor-pointer transition ${className}`}
         {...props}
     />
 );
@@ -33,6 +34,18 @@ const Field = ({ label, children, hint }) => (
     </div>
 );
 
+const fmt = (s) => {
+    if(!s) return "-";
+    const fecha = new Date(s);
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'UTC'
+    };
+    return fecha.toLocaleDateString(undefined, options);
+};
+
 const today = () => new Date();
 const toDate = (s) => (s ? new Date(s) : null);
 const isActive = (c) => {
@@ -41,6 +54,8 @@ const isActive = (c) => {
     const t = today();
     return ini && ini <= t && (!fin || fin >= t);
 }
+
+
 const isFinished = (c) => {
     const fin = toDate(c.fecha_fin);
     return !!fin && fin < today();
@@ -49,9 +64,8 @@ const isUpcoming = (c) => {
     const fin = toDate(c.fecha_fin);
     if (!fin) return false;
     const diff = (fin - today()) / (1000 * 60 * 60 * 24);
-    return diff > 0 && diff <= 30; // vence en 30 días
+    return diff > 0 && diff <= 30;
 };
-const fmt = (s) => (s ? String(s).slice(0, 10) : "-");
 
 const StatCard = ({ icon, label, value }) => (
     <Panel className="flex items-center gap-4 p-4">
@@ -66,25 +80,17 @@ const StatCard = ({ icon, label, value }) => (
 );
 
 export default function Contratos() {
+    const qc = useQueryClient();
     const { user } = useAuth();
     const isAdmin = !!user?.roles?.includes("ADMIN");
 
-    const [ allContracts, setAllContracts ] = useState([]);
-    const [ loadingAll, setLoadingAll ] = useState(true);
-
     const [q, setQ] = useState("");
-    const [empleados, setEmpleados] = useState([]);
-    const [loadingEmps, setLoadingEmps] = useState(true);
-
-    const [carreras, setCarreras] = useState([]);
-    const [anios, setAnios] = useState([]);
-
     const [selected, setSelected] = useState(null);
-    const [loadingItems, setLoadingItems] = useState(false);
+    const selectedId = selected?.id_persona ?? null;
 
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
+    const [showCreate, setShowCreate] = useState(false);
+    const [busyId, setBusyId] = useState(null);
+
     const [form, setForm] = useState({
         dni: "",
         id_persona: "",
@@ -99,65 +105,160 @@ export default function Contratos() {
         id_carrera: "",
         id_anio: "",
     });
-    const [lookups, setLookups] = useState({
-        persona: null,
-        profesor: null,
-        materias: [],
-    });
-    const [busyId, setBusyId] = useState(null);
 
-    const fetchKPIs = useCallback(async () => {
-        setLoadingAll(true);
-        try {
-            const { data } = await contratoService.getContratos();
-            setAllContracts(Array.isArray(data) ? data : []);
-        } catch {
-            setAllContracts([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    }, []);
-
-    const fetchEmpleados = useCallback(async () => {
-        setLoadingEmps(true);
-        try {
-            const { data } = await contratoService.getEmpleados(q, 1, 50);
-            setEmpleados(Array.isArray(data) ? data : []);
-        } catch {
-            setEmpleados([]);
-        } finally {
-            setLoadingEmps(false);
-        }
-    }, [q]);
-
-    const fetchContratosByPersona = useCallback(
-        async (id_persona) => {
-            if(!id_persona) return;
-            setLoadingItems(true);
-            try {
-                const { data } = await contratoService.getContratos(id_persona);
-                setItems(Array.isArray(data) ? data : []);
-            } catch {
-                setItems([]);
-            } finally {
-                setLoadingItems(false);
-            }
-        },
-        []
-    );
-
-    useEffect(() => { 
-        fetchKPIs();
-        fetchEmpleados();
-    }, [fetchKPIs, fetchEmpleados]);
+    const onChange = (k, v) => setForm((s) => ({...s, [k]:v}));
 
     useEffect(() => {
-        if(selected?.id_persona) {
-            fetchContratosByPersona(selected.id_persona);
-        } else {
-            setItems([]);
+        if(form.horas_semanales){
+            const hm = Number(form.horas_semanales) * 4;
+            onChange("horas_mensuales", String(hm));
         }
-    }, [selected, fetchContratosByPersona]);
+    }, [form.horas_semanales]);
+
+    const {
+        data: allContracts = [],
+        isLoading: loadingAll,
+    } = useQuery({
+        queryKey: ["contratos", "all"],
+        queryFn: async () => {
+            const { data } = await contratoService.getContratos();
+            return Array.isArray(data) ? data : [];
+        },
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
+    });
+
+    const {
+        data: empleados = [],
+        isLoading: loadingEmps,
+    } = useQuery({
+        queryKey: ["empleados", q],
+        queryFn: async () => {
+            const { data } = await contratoService.getEmpleados(q, 1, 50);
+            return Array.isArray(data) ? data : [];
+        },
+        placeholderData: keepPreviousData,
+    });
+
+    const {
+        data: contratosPersona = [],
+        isLoading: loadingItems,
+    } = useQuery({
+        queryKey: ["contratos", "byPersona", selectedId],
+        enabled: !!selectedId,
+        queryFn: async () => {
+            const { data } = await contratoService.getContratos(selectedId);
+            return Array.isArray(data) ? data : [];
+        },
+    });
+
+    const { data: carreras = [] } = useQuery({
+        queryKey: ["carreras"],
+        enabled: showCreate,
+        queryFn: async () => {
+            const { data } = await contratoService.getCarreras();
+            return data ?? [];
+        },
+        staleTime: 30 * 60 * 1000,
+    });
+
+    const { data: anios = [] } = useQuery({
+        queryKey: ["anios"],
+        enabled: showCreate,
+        queryFn: async () => {
+            const { data } = await contratoService.getAnios();
+            return data ?? [];
+        },
+        staleTime: 30 * 60 * 1000,
+    });
+
+    const { data: materias = [] } = useQuery({
+        queryKey: ["materias", form.id_carrera, form.id_anio],
+        enabled: showCreate && !!form.id_carrera && !!form.id_anio,
+        queryFn: async () => {
+            const { data } = await contratoService.getMateriasByCarreraAnio(form.id_carrera, form.id_anio);
+            return Array.isArray(data) ? data : [];
+        },
+    });
+
+    const createContratoMutation = useMutation({
+        mutationFn: (payload) => contratoService.create(payload).then((r) => r.data),
+        onSuccess: (nuevo) => {
+            qc.invalidateQueries({ queryKey: ["contratos", "all"] });
+            if(selectedId && nuevo?.id_persona === selectedId) {
+                qc.invalidateQueries({ queryKey: ["contratos", "byPersona", selectedId] });
+            }
+
+            qc.invalidateQueries({queryKey: ["empleados", q]});
+            alert("Contrato creado");
+        },
+        onError: (error) => {
+        console.error(error);
+            const message =
+                error?.response?.data?.details || error?.response?.data?.error || "Error al crear contrato";
+            alert(message);
+        },
+    });
+
+    const deleteContratoMutation = useMutation({
+        mutationFn: (id_contrato_profesor) => contratoService.remove(id_contrato_profesor),
+        onSuccess: (_, id) => {
+            qc.invalidateQueries({ queryKey: ["contratos", "all"] });
+            if (selectedId) {
+                qc.setQueryData(["contratos", "byPersona", selectedId], (prev = []) =>
+                (prev || []).filter((x) => x.id_contrato_profesor !== id)
+                );
+            }
+        },
+        onError: (error) => {
+            console.error(error);
+            alert(error?.response?.data?.error || "No se pudo eliminar");
+        },
+    });
+
+        const crearContrato = async (e) => {
+        e.preventDefault();
+        if (!isAdmin) return alert("Sólo un administrador puede crear contratos");
+
+        const required = [
+            "id_persona",
+            "id_profesor",
+            "id_materia",
+            "id_periodo",
+            "horas_semanales",
+            "monto_hora",
+            "fecha_inicio",
+            "fecha_fin",
+        ];
+        const missing = required.filter((k) => !form[k]);
+        if (missing.length) {
+            return alert("Faltan campos requeridos: " + missing.join(", "));
+        }
+
+        const payload = {
+            id_persona: form.id_persona,
+            id_profesor: form.id_profesor,
+            id_materia: form.id_materia,
+            id_periodo: Number(form.id_periodo),
+            horas_semanales: Number(form.horas_semanales),
+            horas_mensuales: form.horas_mensuales ? Number(form.horas_mensuales) : null,
+            monto_hora: Number(form.monto_hora),
+            fecha_inicio: form.fecha_inicio,
+            fecha_fin: form.fecha_fin,
+        };
+
+        await createContratoMutation.mutateAsync(payload);
+
+        setShowCreate(false);
+        setForm((s) => ({
+            ...s,
+            id_materia: "",
+            horas_semanales: "",
+            monto_hora: "",
+            fecha_inicio: "",
+            fecha_fin: "",
+        }));
+    };
 
     const kpis = useMemo(() => {
         const total = allContracts.length;
@@ -167,89 +268,13 @@ export default function Contratos() {
         return { total, activos, proximos, finalizados };
     }, [allContracts]);
 
-    const onChange = (k, v) => setForm((s) => ({...s, [k]:v}));
-
-    const buscarPorDni = async() => {
-        if(!form.dni?.trim()) return alert("Ingresá un DNI");
-        try {
-            const { data: persona } = await contratoService.buscarPersonaPorDni(form.dni.trim());
-            onChange("id_persona", persona.id_persona);
-            const { data: prof } = await contratoService.getProfesorDetalles(persona.id_persona);
-            setLookups((s) => ({ ...s, persona, profesor: prof }));
-            if(prof?.id_profesor) onChange("id_profesor", prof.id_profesor);
-        } catch (error) {
-            console.error(error);
-            alert("No se encontró la persona/profesor para ese DNI");
-        }
-    };
-
-    const cargarMaterias = async () => {
-        if(!form.id_carrera || !form.id_anio) {
-            return alert("Seleccioná carrera y año");
-        }
-        try {
-            const { data } = await contratoService.getMateriasByCarreraAnio(
-                form.id_carrera,
-                form.id_anio
-            );
-            setLookups((s) => ({ ...s, materias: Array.isArray(data) ? data : [] }));
-        } catch (error) {
-            console.error(error);
-            alert("No se pudieron cargar las materias")
-        }
-    };
-
-    const crearContrato = async (e) => {
-        e.preventDefault();
-        if(!isAdmin) return alert("Sólo un administrador puede crear contratos");
-        const required = [
-            "id_persona", "id_profesor", "id_materia", "id_periodo", "horas_semanales", "monto_hora", "fecha_inicio", "fecha_fin"
-        ];
-        const missing = required.filter((k) => !form [k]);
-        if (missing.length) {
-            return alert("Faltan campos requeridos:" + missing.join(", "));
-        }
-        try {
-            setCreating(true);
-            const payload = {
-                id_persona: form.id_persona,
-                id_profesor: form.id_profesor,
-                id_materia: form.id_materia,
-                id_periodo: Number(form.id_periodo),
-                horas_semanales: Number(form.horas_semanales),
-                horas_mensuales: form.horas_mensuales ? Number(form.horas_mensuales) : null,
-                monto_hora: Number(form.monto_hora),
-                fecha_inicio: form.fecha_inicio,
-                fecha_fin: form.fecha_fin,
-            };
-            const { data: nuevo } = await contratoService.create(payload);
-            if(selected?.id_persona === payload.id_persona){
-                setItems((prev) => [nuevo, ...prev]);
-            }
-            setAllContracts((prev) => [nuevo, ...prev]);
-            setCreating(false);
-            setShowCreate(false);
-            setForm((s) => ({ ...s, id_materia:"", horas_semanales:"", monto_hora:"", fecha_inicio:"", fecha_fin: "" }));
-            alert("Contrato creado");
-        } catch (error) {
-            console.error(error);
-            setCreating(false);
-            const message = error?.response?.data?.details || error?.response?.data?.error || "Error al crear contrato";
-            alert(message);
-        }
-    };
-
     const eliminar = async (row) => {
-        if(!isAdmin) return;
+        if (!isAdmin) return;
         const ok = confirm(`¿Eliminar el contrato #${row.id_contrato_profesor}?`);
-        if(!ok) return;
+        if (!ok) return;
         try {
             setBusyId(row.id_contrato_profesor);
-            await contratoService.remove(row.id_contrato_profesor);
-            setItems((prev) => prev.filter((x) => x.id_contrato_profesor !== row.id_contrato_profesor));
-        } catch (error) {
-            console.error(error);
-            alert(error?.response?.data?.error || "No se pudo eliminar");
+        await deleteContratoMutation.mutateAsync(row.id_contrato_profesor);
         } finally {
             setBusyId(null);
         }
@@ -268,113 +293,28 @@ export default function Contratos() {
         } catch (error) {
             console.error(error);
             alert("No se pudo exportar el contrato");
+    }
+    };
+
+    const buscarPorDni = async () => {
+        if (!form.dni?.trim()) return alert("Ingresá un DNI");
+        try {
+        const { data: persona } = await contratoService.buscarPersonaPorDni(form.dni.trim());
+        onChange("id_persona", persona.id_persona);
+        const { data: prof } = await contratoService.getProfesorDetalles(persona.id_persona);
+        if (prof?.id_profesor) onChange("id_profesor", prof.id_profesor);
+        } catch (error) {
+        console.error(error);
+        alert("No se encontró la persona/profesor para ese DNI");
         }
     };
 
-    const [showCreate, setShowCreate] = useState(false);
-
-    useEffect(() => {
-        if(showCreate) {
-            contratoService.getCarreras().then(({data}) => setCarreras(data ?? []));
-            contratoService.getAnios().then(({data}) => setAnios(data ?? []));
-        }
-    }, [showCreate]);
-
-    useEffect(() => {
-        const { id_carrera, id_anio } = form;
-        if(id_carrera && id_anio) {
-            contratoService.getMateriasByCarreraAnio(id_carrera, id_anio)
-                .then(({data}) => setLookups(s => ({...s, materias: Array.isArray(data)? data: []})))
-                .catch(e => console.error(e));
-        } else {
-            setLookups(s => ({...s, materias: []}));
-        }
-    }, [form.id_carrera, form.id_anio])
-
-    useEffect(() => {
-        if(form.horas_semanales){
-            const hm = Number(form.horas_semanales) * 4;
-            onChange("horas_mensuales", String(hm));
-        }
-    }, [form.horas_semanales]);
-
-    const Table = useMemo(() => {
-        if (!selected) {
-        return (
-            <Panel className="h-[420px] flex items-center justify-center">
-            <div className="text-center">
-                <div className="mx-auto w-14 h-14 rounded-full bg-[#101922] flex items-center justify-center text-[#9fb2c1]">
-                <FiFileText size={24} />
-                </div>
-                <h3 className="mt-3 text-lg font-semibold">Selecciona un empleado</h3>
-                <p className="text-sm opacity-70">Elige un profesor de la lista para ver sus contratos</p>
-            </div>
-            </Panel>
-        );
-        }
-        return (
-        <Panel className="overflow-auto">
-            <table className="min-w-full text-sm">
-            <thead className="text-[#9fb2c1]">
-                <tr>
-                <th className="p-3 text-left">#</th>
-                <th className="p-3 text-left">Materia</th>
-                <th className="p-3 text-left">Período</th>
-                <th className="p-3 text-left">Horas (sem)</th>
-                <th className="p-3 text-left">Inicio</th>
-                <th className="p-3 text-left">Fin</th>
-                <th className="p-3 text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {items.map((r) => (
-                <tr key={r.id_contrato_profesor} className="border-t border-[#15202b]">
-                    <td className="p-3">{r.id_contrato_profesor}</td>
-                    <td className="p-3">{r.descripcion_materia ?? r.materia?.descripcion_materia}</td>
-                    <td className="p-3">{r.id_periodo}</td>
-                    <td className="p-3">{r.horas_semanales}</td>
-                    <td className="p-3">{fmt(r.fecha_inicio)}</td>
-                    <td className="p-3">{fmt(r.fecha_fin)}</td>
-                    <td className="p-3">
-                    <div className="flex items-center justify-end gap-2">
-                        <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
-                        <OutlineBtn onClick={() => exportar(r, "word")}>Word</OutlineBtn>
-                        {isAdmin && (
-                        <MutedBtn
-                            disabled={busyId === r.id_contrato_profesor}
-                            onClick={() => eliminar(r)}
-                        >
-                            {busyId === r.id_contrato_profesor ? "Eliminando..." : "Eliminar"}
-                        </MutedBtn>
-                        )}
-                    </div>
-                    </td>
-                </tr>
-                ))}
-                {!items.length && !loadingItems && (
-                <tr>
-                    <td className="p-4 opacity-70" colSpan={7}>
-                    Sin contratos
-                    </td>
-                </tr>
-                )}
-            </tbody>
-            </table>
-        </Panel>
-        );
-    }, [items, selected, busyId, isAdmin, loadingItems]);
+    const creating = createContratoMutation.isPending;
 
     return (
         <div className="p-6 space-y-5">
         <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-[#19F124]">Gestión de Contratos</h1>
-            {isAdmin && (
-            <SolidBtn onClick={() => setShowCreate(true)} className="mr-40">
-                <span className="inline-flex items-center gap-2">
-                <FiPlus /> Nuevo Contrato
-                </span>
-            </SolidBtn>
-            )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -396,8 +336,8 @@ export default function Contratos() {
             </div>
         </Panel>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <Panel className="p-0 xl:col-span-1">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+            <Panel className="p-0 xl:col-span-3 2xl:col-span-3">
             <div className="p-4 border-b border-[#1b2a37] flex items-center justify-between">
                 <div>
                 <h3 className="font-semibold">Empleados</h3>
@@ -436,8 +376,124 @@ export default function Contratos() {
             </div>
             </Panel>
 
-            <div className="xl:col-span-2">{loadingItems ? <Panel className="p-4">Cargando…</Panel> : Table}</div>
-        </div>
+            <div className="xl:col-span-9 2xl:col-span-9">
+                {!selected ? (
+                    <Panel className="h-[420px] flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="mx-auto w-14 h-14 rounded-full bg-[#101922] flex items-center justify-center text-[#9fb2c1]">
+                                <FiFileText size={24} />
+                            </div>
+                            <h3 className="mt-3 text-lg font-semibold">Selecciona un empleado</h3>
+                            <p className="text-sm opacity-70">Elige un profesor de la lista para ver sus contratos</p>
+                        </div>
+                    </Panel>
+                ) : (
+                    <Panel className="overflow-auto">
+                        <div className="flex items-center justify-between p-4 border-b border-[#1b2a37]">
+                            <h3 className="font-semibold">
+                                Contratos de: {selected.apellido} {selected.nombre}
+                            </h3>
+                            {isAdmin && (
+                                <SolidBtn
+                                    disabled={busyId} 
+                                    onClick={async () => {
+                                        try {
+                                            setBusyId(true);
+                                            const { data: profDetalles } = await contratoService.getProfesorDetalles(selected.id_persona);
+                                            if (!profDetalles?.id_profesor) {
+                                                alert("Error: Esta persona no tiene un registro de 'profesor' asociado. No se puede crear contrato.");
+                                                setBusyId(null);
+                                                return;
+                                            }
+
+                                            setForm(prev => ({
+                                                ...prev,
+                                                id_materia: "", horas_semanales: "", monto_hora: "", fecha_inicio: "", fecha_fin: "",
+                                                id_carrera: "", id_anio: "", id_periodo: 1, horas_mensuales: "",
+                                                
+                                                dni: selected.dni, 
+                                                id_persona: selected.id_persona,
+                                                id_profesor: profDetalles.id_profesor, 
+                                            }));
+                                            
+                                            setShowCreate(true); 
+
+                                        } catch (err) {
+                                            console.error("Error al obtener detalles del profesor", err);
+                                            alert("No se pudo obtener el ID de profesor para esta persona.");
+                                        } finally {
+                                            setBusyId(null); 
+                                        }
+                                    }}
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        {busyId ? "Cargando..." : (
+                                            <>
+                                                <FiPlus /> Nuevo Contrato
+                                            </>
+                                        )}
+                                    </span>
+                                </SolidBtn>
+                            )}
+                        </div>
+
+                        {loadingItems ? (
+                            <div className="p-4 opacity-70">Cargando contratos...</div>
+                        ) : (
+                            <table className="min-w-full text-sm">
+                                <thead className="text-[#9fb2c1]">
+                                    <tr>
+                                        <th className="p-3 text-left">#</th>
+                                        <th className="p-3 text-left">Materia</th>
+                                        <th className="p-3 text-left">Período</th>
+                                        <th className="p-3 text-left">Horas (sem)</th>
+                                        <th className="p-3 text-left">Inicio</th>
+                                        <th className="p-3 text-left">Fin</th>
+                                        <th className="p-3 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {contratosPersona.map((r) => (
+                                        <tr key={r.id_contrato_profesor} className="border-t border-[#15202b]">
+                                            <td className="p-3">{r.id_contrato_profesor}</td>
+                                            <td className="p-3">{r.descripcion_materia ?? r.materia?.descripcion_materia}</td>
+                                            <td className="p-3">{r.id_periodo}</td>
+                                            <td className="p-3">{r.horas_semanales}</td>
+                                            <td className="p-3">{fmt(r.fecha_inicio)}</td>
+                                            <td className="p-3">{fmt(r.fecha_fin)}</td>
+                                            <td className="p-3">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
+                                                    <OutlineBtn onClick={() => exportar(r, "word")}>Word</OutlineBtn>
+                                                    {isAdmin && (
+                                                        <MutedBtn
+                                                            disabled={busyId === r.id_contrato_profesor}
+                                                            onClick={() => eliminar(r)}
+                                                            title="Eliminar contrato"
+                                                            aria-label={`Eliminar contrato ${r.id_contrato_profesor}`}
+                                                            className={`p-2 ${busyId === r.id_contrato_profesor ? "opacity-50" : ""}`}
+                                                        >
+                                                            <FiTrash2 size={18} />
+                                                        </MutedBtn>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {!contratosPersona.length && !loadingItems && (
+                                        <tr>
+                                            <td className="p-4 opacity-70" colSpan={7}>
+                                                Sin contratos
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </Panel>
+                )}
+            </div>
+            </div>
 
         {showCreate && (
             <div className="fixed inset-0 z-[80]">
@@ -455,26 +511,10 @@ export default function Contratos() {
                 </div>
 
                 <form className="space-y-4" onSubmit={crearContrato}>
-                    <div className="grid grid-cols-3 gap-3">
-                    <Field label="DNI">
-                        <input
-                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                        value={form.dni}
-                        onChange={(e) => onChange("dni", e.target.value)}
-                        />
-                    </Field>
-                    <div className="flex items-end">
-                        <OutlineBtn type="button" onClick={buscarPorDni} className="w-full">
-                        Buscar persona
-                        </OutlineBtn>
-                    </div>
-                    <Field label="Persona (id)">
-                        <input
-                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                        disabled
-                        value={form.id_persona || ""}
-                        />
-                    </Field>
+                    <div className="p-3 rounded-lg bg-[#242E38]">
+                        Creando contrato para:
+                        <strong className="text-[#19F124]">{selected.apellido} {selected.nombre}</strong>
+                        (DNI: {form.dni})
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -514,9 +554,9 @@ export default function Contratos() {
                         required
                         >
                         <option value="">Seleccionar...</option>
-                        {lookups.materias.map((m) => (
+                        {materias.map((m) => (
                             <option key={m.id_materia} value={m.id_materia}>
-                            {m.descripcion_materia}
+                                {m.descripcion_materia}
                             </option>
                         ))}
                         </select>

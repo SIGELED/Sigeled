@@ -1,11 +1,34 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tituloService, archivoService, estadoVerificacionService } from "../services/api";
 import { IoClose } from "react-icons/io5";
-import {  FiTrash2, FiCalendar, FiBookOpen, FiCheckCircle, FiEye, FiRefreshCcw} from "react-icons/fi";
+import {  FiTrash2, FiCalendar, FiEye, FiRefreshCcw, FiCheck, FiX, FiAlertTriangle, FiClock } from "react-icons/fi";
 import { LuBuilding } from "react-icons/lu";
 import { IoSchoolOutline } from "react-icons/io5";
 import PdfPreviewModal from "./PdfPreviewModal";
+
+const estadoIconEl = (codigo) => {
+    switch (String(codigo).toUpperCase()) {
+        case "APROBADO": return <FiCheck size={20} />;
+        case "RECHAZADO": return <FiX size={20} />;
+        case "OBSERVADO": return <FiAlertTriangle size={20} />;
+        default: return <FiClock size={20} />; // PENDIENTE u otros
+    }
+};
+
+const getEstadoClasses = (codigo) => {
+    switch (String(codigo).toUpperCase()) {
+        case "APROBADO":
+        return "bg-green-500/15 border border-green-500/40 text-green-400";
+        case "RECHAZADO":
+        return "bg-red-500/15 border border-red-500/40 text-red-400";
+        case "OBSERVADO":
+        return "bg-gray-500/15 border border-gray-500/40 text-gray-400";
+        default:
+        return "bg-yellow-500/15 border border-yellow-500/40 text-yellow-300"; // PENDIENTE
+    }
+};
+
 
 const FALLBACK_ESTADOS = [
     { id_estado: 1, codigo: "PENDIENTE", nombre: "Pendiente de Revisión" },
@@ -50,10 +73,11 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             staleTime: 1000 * 60 * 60, 
         });     
 
-        const { data: estados = [] } = useQuery({
+        const { data: estados = FALLBACK_ESTADOS } = useQuery({
             queryKey: ['estadosVerificacion'], 
             queryFn: () => estadoVerificacionService.getAll().then(res => res.data),
             staleTime: 1000 * 60 * 60,
+            initialData: FALLBACK_ESTADOS,
         });
 
     const createTituloMutation = useMutation({
@@ -176,7 +200,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
         e.preventDefault();
         if (!id_tipo_titulo || !nombre_titulo) {
             return alert("Completá tipo de título y nombre de titulo");
-        }
+        }
         setSaving(true);
         const body = {
             id_persona: idPersona,
@@ -228,86 +252,104 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
                 <p className="opacity-70">Sin títulos cargados.</p>
             ): (
                 <ul className="space-y-3">
-            {titulosOrdenados.map((t) => (
-                <li
-                key={`t-${t.id_titulo ?? t.nombre_titulo}`}
-                className="flex gap-4 px-5 py-4 rounded-2xl bg-[#0D1520] shadow-md hover:shadow-lg transition"
-                >
-                <div className=" w-20 h-20 rounded-xl bg-[#19F124]/10 flex items-center justify-center">
-                    <IoSchoolOutline size={45} className="text-[#19F124]"/>
-                </div>
+            {titulosOrdenados.map((t) => {
+                const estado = estadoById(t.id_estado_verificacion || t.id_estado);
 
-                <div className="flex-1 min-w-0">
-                    <div className="mb-1 text-lg font-semibold text-white">
-                    {t.nombre_titulo}
+                return (
+                    <li
+                    key={`t-${t.id_titulo ?? t.nombre_titulo}`}
+                    className="flex gap-4 px-5 py-4 rounded-2xl bg-[#0D1520] shadow-md hover:shadow-lg transition"
+                    >
+                    <div className="w-20 h-20 rounded-xl bg-[#19F124]/10 flex items-center justify-center">
+                        <IoSchoolOutline size={45} className="text-[#19F124]" />
                     </div>
 
-                    <div className="flex items-center mb-1 text-sm text-gray-300">
-                    <div className="flex items-center gap-1">
-                        <LuBuilding size={20}/>
-                        <span className="opacity-90">{t.institucion || "—"}</span>
-                    </div>
-                    </div>
-
-                    <div className="flex flex-wrap mb-2 text-sm text-gray-400 gap-x-6">
-                    <div className="flex items-center font-normal gap-1 bg-[#39793c] text-white p-1 rounded-xl pl-2 pr-2  text-lg">
-                        <span>{t.tipo_titulo || "Sin tipo"}</span>
-                    </div>
-                    {t.fecha_emision && (
-                        <div className="flex items-center gap-1">
-                        <span className="text-[#19F124]/80"><FiCalendar size={20}/></span>
-                        <span>{new Date(t.fecha_emision).toLocaleDateString()}</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1 text-lg font-semibold text-white">
+                        <span className="truncate">{t.nombre_titulo}</span>
+                        {estado && (
+                            <div
+                            className={`flex items-center pt-1 pb-1 pl-3 pr-3 rounded-3xl gap-1 ${getEstadoClasses(
+                                estado.codigo
+                            )}`}
+                            >
+                            {estadoIconEl(estado.codigo)}
+                            <span className="text-sm font-medium">{estado.nombre}</span>
+                            </div>
+                        )}
                         </div>
-                    )}
-                    </div>
 
-                    <div className="flex flex-wrap gap-2 mt-2">
-                    {t.id_archivo && (
-                        <button
-                        type="button"
-                        onClick={() => openPreview(t)}
-                        className="flex w-30 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
-                        title="Ver Título"
-                        >
-                        <FiEye size={16} /> Ver
-                        </button>
-                    )}
-                    {canChangeState && (
-                        <button
-                        type="button"
-                        onClick={() => openCambiarEstado(t)}
-                        className="flex w-40 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
-                        title="Cambiar estado"
-                        >
-                            <FiRefreshCcw size={16} /> Cambiar estado
-                        </button>
-                    )}
-                    {canDelete ? (
-                        <button
-                        type="button"
-                        onClick={() => handleDelete(t)}
-                        disabled={deletingId === t.id_titulo}
-                        className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
-                        title="Eliminar título"
-                        >
-                            <FiTrash2 size={18} />
-                        </button>
-                    ) : (
-                        <button
+                        <div className="flex items-center mb-1 text-sm text-gray-300">
+                            <div className="flex items-center gap-1">
+                                <LuBuilding size={20} />
+                                <span className="opacity-90">{t.institucion || "—"}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap mb-2 text-sm text-gray-400 gap-x-6">
+                            <div className="flex items-center font-normal gap-1 bg-[#39793c] text-white p-1 rounded-xl pl-2 pr-2 text-lg">
+                                <span>{t.tipo_titulo || "Sin tipo"}</span>
+                            </div>
+                        {t.fecha_emision && (
+                            <div className="flex items-center gap-1">
+                                <span className="text-[#19F124]/80"><FiCalendar size={20} /></span>
+                                <span>{new Date(t.fecha_emision).toLocaleDateString()}</span>
+                            </div>
+                        )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-2">
+                        {t.id_archivo && (
+                            <button
                             type="button"
-                            onClick={() => onRequestDelete ? onRequestDelete(t) : alert("Para eliminar, enviá una solicitud a RRHH.")}
+                            onClick={() => openPreview(t)}
+                            className="flex w-30 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                            title="Ver Título"
+                            >
+                            <FiEye size={16} /> Ver
+                            </button>
+                        )}
+
+                        {canChangeState && (
+                            <button
+                            type="button"
+                            onClick={() => openCambiarEstado(t)}
+                            className="flex w-40 items-center cursor-pointer justify-center gap-2 bg-[#0f302d] border border-[#095f44] hover:bg-[#104e3a] text-[#19F124] rounded-lg py-1 text-sm font-semibold transition"
+                            title="Cambiar estado"
+                            >
+                            <FiRefreshCcw size={16} /> Cambiar estado
+                            </button>
+                        )}
+
+                        {canDelete ? (
+                            <button
+                            type="button"
+                            onClick={() => handleDelete(t)}
+                            disabled={deletingId === t.id_titulo}
+                            className="flex items-center cursor-pointer justify-center bg-red-500/5 hover:bg-red-500/20 border border-[#ff2c2c] text-[#ff2c2c] rounded-lg p-2 transition"
+                            title="Eliminar título"
+                            >
+                            <FiTrash2 size={18} />
+                            </button>
+                        ) : (
+                            <button
+                            type="button"
+                            onClick={() =>
+                                onRequestDelete ? onRequestDelete(t) : alert("Para eliminar, enviá una solicitud a RRHH.")
+                            }
                             className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
                             title="Solicitar eliminación"
-                        >
+                            >
                             Solicitar eliminación
-                        </button>
+                            </button>
                         )}
+                        </div>
                     </div>
-                </div>
-                </li>
-            ))}
+                    </li>
+                );
+                })}
             </ul>
-            )}
+        )}
 
 
 

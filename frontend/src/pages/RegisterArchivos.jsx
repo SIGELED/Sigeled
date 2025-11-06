@@ -66,7 +66,7 @@ export default function RegisterArchivos() {
                 await personaBarrioService.assignBarrio(id_persona, barrioId);
             }
 
-            await domicilioService.createDomicilio(id_persona, { calle, altura });
+            await domicilioService.createDomicilio(id_persona, { calle, altura, id_dom_barrio: barrioId });
         }
 
         for (const t of titulosTmp) {

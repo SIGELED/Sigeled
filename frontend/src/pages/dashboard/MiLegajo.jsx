@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard } from "react-icons/fi";
 import { BsPersonVcard } from "react-icons/bs";
 import SegmentedTabs from "../../components/SegmentedTabs";
@@ -20,104 +21,136 @@ const ROLE_NAME = {
 export default function MiLegajo() {
     const { user: me } = useAuth();
     const [tab, setTab] = useState(TABS.INFO);
-    const [usuario, setUsuario] = useState(null);
+
+    const myPersonId = useMemo(
+        () => me?.id_persona ?? me?.persona?.id_persona ?? null, 
+        [me]
+    );
+
+    const codeToName = (code) => {
+        const C = String(code || "").toUpperCase();
+        const map = {
+            ADMIN: "Administrador",
+            RRHH: "Recursos Humanos",
+            "RECURSOS HUMANOS": "Recursos Humanos",
+            USER: "Usuario",
+        };
+        return map[C] || (C.charAt(0) + C.slice(1).toLowerCase());
+    };
+
+    const normalizeRoles = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.map((r) =>
+            typeof r === "string"
+                ? { codigo: r, nombre: codeToName(r) }
+                : { codigo: r?.codigo ?? r?.nombre ?? "", nombre: r?.nombre ?? r?.codigo ?? "" }
+            );
+    };
 
     const displayRoleName = (r) => {
         const code = String(r?.codigo ?? r ?? "").toUpperCase();
-        const name = String(r?.nombre ?? r ?? "").trim();
-        return ROLE_NAME[code];
-    }
+        return ROLE_NAME[code] ?? codeToName(code);
+    };
 
     const hasRole = (u, names = []) => {
         if (!u?.roles) return false;
-        const targets = new Set(names.map(n => String(n).toUpperCase()));
+        const targets = new Set(names.map((n) => String(n).toUpperCase()));
         return u.roles.some((r) => {
-            const code = String(typeof r === "string" ? r : (r?.codigo ?? "")).toUpperCase();
-            const name = String(typeof r === "string" ? r : (r?.nombre ?? "")).toUpperCase();
+            const code = String(typeof r === "string" ? r : r?.codigo ?? "").toUpperCase();
+            const name = String(typeof r === "string" ? r : r?.nombre ?? "").toUpperCase();
             return targets.has(code) || targets.has(name);
         });
     };
+    
+    const {
+        data: personaData,
+        isLoading: loadingPersona,
+    } = useQuery({
+        queryKey: ["persona", myPersonId],
+        enabled: !!myPersonId,
+        queryFn: async () => {
+            const { data } = await personaService.getPersonaByID(myPersonId);
+            return data ?? null;
+        },
+    });
 
-    const isAdminOrRRHH = hasRole(usuario ?? me, ["ADMIN", "RRHH", "RECURSOS HUMANOS"]);
+    const {
+        data: identData = [],
+        isLoading: loadingIdent,
+    } = useQuery({
+        queryKey: ["identificaciones", myPersonId],
+        enabled: !!myPersonId,
+        queryFn: async () => {
+            const { data } = await identificationService.getIdentificaciones(myPersonId);
+            return Array.isArray(data) ? data : [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
 
-    const myPersonId = useMemo(() => me?.id_persona ?? me?.persona?.id_persona ?? null, [me]);
-    const codeToName = (code) => {
-        const C = String(code || "").toUpperCase();
-        const map = { ADMIN: "Administrador", RRHH: "Recursos Humanos", "RECURSOS HUMANOS": "Recursos Humanos", USER: "Usuario" };
-        return map[C] || (C.charAt(0) + C.slice(1).toLowerCase());
-            };
-            const normalizeRoles = (arr) => {
-                if (!Array.isArray(arr)) return [];
-                return arr.map((r) =>
-                typeof r === "string"
-                    ? { codigo: r, nombre: codeToName(r) }
-                    : { codigo: r?.codigo ?? r?.nombre ?? "", nombre: r?.nombre ?? r?.codigo ?? "" }
-                );
-        };
+    const {
+        data: perfilesData = [],
+        isLoading: loadingPerfiles,
+    } = useQuery({
+        queryKey: ["perfiles", myPersonId],
+        enabled: !!myPersonId,
+        queryFn: async () => {
+            const { data } = await profileService.getPersonaProfile(myPersonId);
+            return Array.isArray(data) ? data : [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
 
-    useEffect(() => {
-        let ignore = false;
-        (async () => {
-        const base = me ?? {};
-        let persona = base.persona || null;
-        let identificaciones = [];
-        let perfiles = base.perfiles || [];
-        let roles = normalizeRoles(base.roles || []);
-
-        const normalizeIdentificaciones = (arr) => {
-            if (!Array.isArray(arr)) return [];
-            const findNum = (rx) =>
-            arr.find((x) => rx.test(String(x?.tipo || "")))?.numero ??
-            arr.find((x) => x?.[rx.source.toLowerCase()])?.[rx.source.toLowerCase()] ??
-            null;
-            const dni = findNum(/DNI/i);
-            const cuil = findNum(/CUIL/i);
-            return [{ dni, cuil }];
-        };
-
-        try {
-            if (myPersonId) {
-            const results = await Promise.allSettled([
-                personaService.getPersonaByID(myPersonId),
-                identificationService.getIdentificaciones(myPersonId),
-                profileService.getPersonaProfile(myPersonId),
-            ]);
-
-            if (results[0].status === "fulfilled") {
-                persona = results[0].value.data ?? persona;
-            }
-            if (results[1].status === "fulfilled") {
-                identificaciones = normalizeIdentificaciones(results[1].value.data);
-            }
-            if (results[2].status === "fulfilled") {
-                perfiles = Array.isArray(results[2].value.data) ? results[2].value.data : perfiles;
-            }
-            }
-        } catch (_) {
+    const identificaciones = useMemo(() => {
+        if (!Array.isArray(identData)) return [];
+        const byTipo = {};
+        for (const it of identData) {
+            const tipo = (it?.tipo ?? it?.Tipo ?? "").toString().toUpperCase();
+            const numero = it?.numero ?? it?.Numero ?? it?.valor ?? null;
+            if (tipo) byTipo[tipo] = numero;
         }
+        const dni =
+            byTipo.DNI ??
+            identData.find((x) => /DNI/i.test(String(x?.tipo)))?.numero ??
+            null;
+        const cuil =
+            byTipo.CUIL ??
+            identData.find((x) => /CUIL/i.test(String(x?.tipo)))?.numero ??
+            null;
+        return [{ dni, cuil }];
+    }, [identData]);
 
-        const view = {
-            ...base,
-            id_persona: base.id_persona ?? persona?.id_persona ?? myPersonId ?? null,
+    const roles = normalizeRoles(me?.roles || []);
+    const persona = personaData ?? me?.persona ?? null;
+
+    const usuario = useMemo(
+        () => ({
+            ...me,
+            id_persona: me?.id_persona ?? persona?.id_persona ?? myPersonId ?? null,
             persona,
             identificaciones,
-            perfiles,
+            perfiles: perfilesData,
             roles,
-        };
-        if (!ignore) setUsuario(view);
-        })();
-        return () => { ignore = true; };
-    }, [myPersonId, me]);
+        }),
+        [me, persona, myPersonId, identificaciones, perfilesData, roles]
+    );
 
-    if (!usuario) {
+    const isAdminOrRRHH = hasRole(usuario ?? me, ["ADMIN", "RRHH", "RECURSOS HUMANOS"]);
+    const isActive = typeof usuario?.activo === "boolean" ? usuario.activo : true;
+
+    const loadingAll =
+        (!!myPersonId && (loadingPersona || loadingIdent || loadingPerfiles)) &&
+        !usuario?.persona;
+
+    if (loadingAll) {
         return <div className="px-10 text-2xl text-white mt-7">Cargando mi legajo...</div>;
     }
 
-    const persona = usuario.persona ?? {
-        nombre: me?.nombre, apellido: me?.apellido, fecha_nacimiento: me?.fecha_nacimiento,
+    const personaView =
+        usuario.persona ?? {
+        nombre: me?.nombre,
+        apellido: me?.apellido,
+        fecha_nacimiento: me?.fecha_nacimiento,
     };
-    const isActive = (typeof usuario?.activo === "boolean") ? usuario.activo : true;
-
 
     return (
         <div className="text-white mt-7">
@@ -129,7 +162,7 @@ export default function MiLegajo() {
             <h1 className="text-4xl font-medium">
             Mi Legajo —{" "}
             <span className="text-[#19F124] font-black">
-                {persona?.nombre ?? ""} {persona?.apellido ?? ""}
+                {personaView?.nombre ?? ""} {personaView?.apellido ?? ""}
             </span>
             </h1>
         </div>
@@ -192,7 +225,7 @@ export default function MiLegajo() {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-sm opacity-70">Nombre</span>
-                        <span>{persona?.nombre || "No especificado"}</span>
+                        <span>{personaView?.nombre || "No especificado"}</span>
                     </div>
                     </div>
 
@@ -202,7 +235,7 @@ export default function MiLegajo() {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-sm opacity-70">Apellido</span>
-                        <span>{persona?.apellido || "No especificado"}</span>
+                        <span>{personaView?.apellido || "No especificado"}</span>
                     </div>
                     </div>
 
@@ -213,8 +246,8 @@ export default function MiLegajo() {
                     <div className="flex flex-col">
                         <span className="text-sm opacity-70">Fecha de Nacimiento</span>
                         <span>
-                        {persona?.fecha_nacimiento
-                            ? new Date(persona.fecha_nacimiento).toLocaleDateString()
+                        {personaView?.fecha_nacimiento
+                            ? new Date(personaView.fecha_nacimiento).toLocaleDateString()
                             : "No especificado"}
                         </span>
                     </div>
@@ -231,6 +264,7 @@ export default function MiLegajo() {
                         </div>
                     </div>
                     )}
+
                     {usuario.identificaciones?.[0]?.cuil && (
                     <div className="flex items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
@@ -252,17 +286,17 @@ export default function MiLegajo() {
                     Mis perfiles
                 </h2>
 
-                <div className="space-y-2 text-2xl">
-                    {usuario.perfiles?.length ? (
-                    usuario.perfiles.map((p) => (
-                        <div
-                        key={p.id_perfil ?? p.nombre}
-                        className="flex items-center gap-3 mb-4 font-semibold bg-[#10242a] p-4 border border-[#19f12423] rounded-xl"
-                        >
-                        <span>
-                            <span className="text-[#19F124] mr-2">•</span> {p.nombre}
-                        </span>
-                        </div>
+                    <div className="space-y-2 text-2xl">
+                        {usuario.perfiles?.length ? (
+                            usuario.perfiles.map((p) => (
+                                <div
+                                key={p.id_perfil ?? p.nombre}
+                                className="flex items-center gap-3 mb-4 font-semibold bg-[#10242a] p-4 border border-[#19f12423] rounded-xl"
+                                >
+                                <span>
+                                    <span className="text-[#19F124] mr-2">•</span> {p.nombre}
+                                </span>
+                    </div>
                     ))
                     ) : (
                     <p className="opacity-70">Sin perfiles asignados</p>
@@ -289,14 +323,16 @@ export default function MiLegajo() {
         )}
 
         {tab === TABS.DOM && (
-            <PersonaDomicilios
-                idPersona={usuario.id_persona ?? me?.id_persona}
-                asModal={false}
-                showPersonaId={false}
-                canDelete={isAdminOrRRHH}
-                canCreate={true} 
-                onRequestDelete={(dom) => alert(`Solicitud enviada para eliminar: ${dom.calle} ${dom.altura}`)}
-            />
+            <div className="px-10 mt-6">
+                <PersonaDomicilios
+                    idPersona={usuario.id_persona ?? me?.id_persona}
+                    asModal={false}
+                    showPersonaId={false}
+                    canDelete={isAdminOrRRHH}
+                    canCreate={true} 
+                    onRequestDelete={(dom) => alert(`Solicitud enviada para eliminar: ${dom.calle} ${dom.altura}`)}
+                />
+            </div>
         )}
 
         {tab === TABS.TIT && (

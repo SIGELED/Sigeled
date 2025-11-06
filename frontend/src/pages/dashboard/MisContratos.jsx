@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { contratoService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { FiFileText, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
@@ -34,6 +35,7 @@ const isActive = (c) => {
     const t = today();
     return ini && ini <= t && (!fin || fin >= t);
 }
+
 const isFinished = (c) => {
     const fin = toDate(c.fecha_fin);
     return !!fin && fin < today();
@@ -59,42 +61,18 @@ const StatCard = ({ icon, label, value }) => (
 
 
 export default function MisContratos(){
-    const { user } = useAuth();
-    const [contratos, setContratos] = useState([]);
-    const [loading, setLoading] = useState(true);
-    
-    const fetchContratos = useCallback(async () => {
-        setLoading(true);
-        try {
-            const { data } = await contratoService.getMisContratos();
-            setContratos(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error(error);
-            setContratos([]);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchContratos();
-    }, [fetchContratos]);
-
-    const exportar = async (row, format = "pdf") => {
-        try {
-            const { url, filename } = await contratoService.exportarContrato(row.id_contrato_profesor, format);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error(error);
-            alert("No se pudo exportar el contrato");
-        }
-    };
+    const {
+        data: contratos = [],
+        isLoading,
+        isError,
+        error,
+    } = useQuery({
+        queryKey: ["contratos", "mios"],
+        queryFn: async () => {
+        const { data } = await contratoService.getMisContratos();
+        return Array.isArray(data) ? data : [];
+        },
+    });
 
     const kpis = useMemo(() => {
         const total = contratos.length;
@@ -104,11 +82,30 @@ export default function MisContratos(){
         return { total, activos, proximos, finalizados };
     }, [contratos]);
 
+    const exportar = async (row, format = "pdf") => {
+        try {
+            const { url, filename } = await contratoService.exportarContrato(
+                row.id_contrato_profesor,
+                format
+        );
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            alert("No se pudo exportar el contrato");
+        }
+    };
+
     return(
         <div className="p-6 space-y-6">
             <h1 className="text-2xl font-semibold text-[#19F124]">Mis Contratos</h1>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard icon={<FiFileText />} label="Total Contratos" value={kpis.total} />
                 <StatCard icon={<FiCheckCircle />} label="Activos" value={kpis.activos} />
                 <StatCard icon={<FiClock />} label="Próximos a vencer" value={kpis.proximos} />
@@ -116,9 +113,16 @@ export default function MisContratos(){
             </div>
 
             <Panel className="overflow-auto">
-                {loading ? (
-                    <div className="p-6 text-center opacity-70">Cargando contratos...</div>
-                ) : contratos.length ? (
+                {isLoading && <div className="p-6 text-center opacity-70">Cargando contratos...</div>}
+
+                {isError && (
+                    <div className="p-6 text-center text-red-400">
+                        Ocurrió un error al cargar tus contratos.
+                        <div className="mt-1 text-xs opacity-60">{String(error?.message || "")}</div>
+                    </div>
+                )}
+
+                {!isLoading && !isError && (contratos.length ? (
                     <table className="min-w-full text-sm">
                         <thead className="text-[#9fb2c1]">
                             <tr>
@@ -134,25 +138,25 @@ export default function MisContratos(){
                         <tbody>
                             {contratos.map((r) => (
                                 <tr key={r.id_contrato_profesor} className="border-t border-[#15202b]">
-                                    <td className="p-3">{r.id_contrato_profesor}</td>
-                                    <td className="p-3">{r.descripcion_materia ?? r.materia?.descripcion_materia}</td>
-                                    <td className="p-3">{r.id_periodo}</td>
-                                    <td className="p-3">{r.horas_semanales}</td>
-                                    <td className="p-3">{fmt(r.fecha_inicio)}</td>
-                                    <td className="p-3">{fmt(r.fecha_fin)}</td>
-                                    <td className="p-3 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
-                                            <OutlineBtn onClick={() => exportar(r, "word")}>WORD</OutlineBtn>
-                                        </div>
-                                    </td>
+                                <td className="p-3">{r.id_contrato_profesor}</td>
+                                <td className="p-3">{r.descripcion_materia ?? r.materia?.descripcion_materia}</td>
+                                <td className="p-3">{r.id_periodo}</td>
+                                <td className="p-3">{r.horas_semanales}</td>
+                                <td className="p-3">{fmt(r.fecha_inicio)}</td>
+                                <td className="p-3">{fmt(r.fecha_fin)}</td>
+                                <td className="p-3 text-right">
+                                    <div className="flex justify-end gap-2">
+                                    <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
+                                    <OutlineBtn onClick={() => exportar(r, "word")}>WORD</OutlineBtn>
+                                    </div>
+                                </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 ) : (
-                    <div className="p-6 text-center opacity-70">No tenés contratos asignados</div>
-                )}
+                <div className="p-6 text-center opacity-70">No tenés contratos asignados</div>
+                ))}
             </Panel>
         </div>
     )

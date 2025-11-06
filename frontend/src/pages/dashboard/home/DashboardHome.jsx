@@ -1,5 +1,5 @@
+import { useMemo } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import { FiBell, FiUser } from "react-icons/fi";
 import HomeAdmin from "./HomeAdmin";
 import HomeEmpleado from "./HomeEmpleado";
 
@@ -10,16 +10,25 @@ const getFormattedDate = () => {
     return dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 };
 
+const hasAnyRole = (roles, targets = []) => {
+    if (!Array.isArray(roles)) return false;
+    const tset = new Set(targets.map((s) => String(s).toUpperCase()));
+    return roles.some((r) => {
+        const code = String(typeof r === "string" ? r : r?.codigo ?? r?.nombre ?? "").toUpperCase();
+        const name = String(typeof r === "string" ? r : r?.nombre ?? r?.codigo ?? "").toUpperCase();
+        return tset.has(code) || tset.has(name);
+    });
+};
+
 export default function DashboardHome(){
     const { user } = useAuth();
-
-    const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
-        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN' ||
-        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'RRHH' ||
-        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'RECURSOS HUMANOS'
+    
+    const isAdmin = useMemo(
+        () => hasAnyRole(user?.roles, ["ADMIN", "RRHH", "RECURSOS HUMANOS"]),
+        [user?.roles]
     );
 
-    const nombreUsuario = user?.nombre?.split(' ')[0] || 'Usuario';
+    const nombreUsuario = (user?.nombre?.split(' ')[0] || 'Usuario');
     const fechaActual = getFormattedDate();
 
     return(

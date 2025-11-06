@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { IoClose } from "react-icons/io5";
 import { FiTrash2, FiMapPin, FiHome } from "react-icons/fi";
 import {
@@ -16,23 +17,18 @@ export default function PersonaDomicilios({
         canCreate = true,
         onRequestDelete,
     }) {
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const qc = useQueryClient();
 
     const [showWizard, setShowWizard] = useState(false);
     const [step, setStep] = useState(1);
     const [deletingId, setDeletingId] = useState(null);
 
-    const [saving, setSaving] = useState(false);
     const [calle, setCalle] = useState("");
     const [altura, setAltura] = useState("");
 
-    const [personaBarrios, setPersonaBarrios] = useState([]);
     const [selectedBarrioId, setSelectedBarrioId] = useState("");
-
     const [showCrearBarrio, setShowCrearBarrio] = useState(false);
-    const [departamentos, setDepartamentos] = useState([]);
-    const [localidades, setLocalidades] = useState([]);
+
     const [id_depto, setIdDepto] = useState("");
     const [id_localidad, setIdLocalidad] = useState("");
 
@@ -42,73 +38,106 @@ export default function PersonaDomicilios({
     const [barrioDepto, setBarrioDepto] = useState("");
     const [barrioPiso, setBarrioPiso] = useState("");
 
-    useEffect(() => {
-        const run = async () => {
-            if(!idPersona) return;
-            setLoading(true);
-            try {
-                const { data } = await domicilioService.getDomicilioByPersona(idPersona);
-                setItems(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error("No se pudieron cargar domicilios:", error);
-                setItems([]);
-            } finally { setLoading(false); }
-        };
-        run();
-    }, [idPersona]);
+    const {
+        data: domicilios = [],
+        isLoading: isLoadingDomicilios,
+    } = useQuery({
+        queryKey: ["domicilios", idPersona],
+        enabled: !!idPersona,
+        queryFn: async () => {
+            const { data } = await domicilioService.getDomicilioByPersona(idPersona);
+            return Array.isArray(data) ? data : [];
+        },
+    });
 
-    const loadPersonaBarrios = async () => {
-        try {
-        const { data } = await personaBarrioService.getBarrioByPersona(
-            idPersona
-        );
-        setPersonaBarrios(Array.isArray(data) ? data : []);
-        } catch (e) {
-        console.error("Error al cargar barrios de la persona:", e);
-        setPersonaBarrios([]);
-        }
-    };
+    const {
+        data: personaBarrios = [],
+        refetch: refetchPersonaBarrios,
+        isFetching: isFetchingBarrios,
+    } = useQuery({
+        queryKey: ["personaBarrios", idPersona],
+        enabled: !!idPersona && showWizard, 
+        queryFn: async () => {
+        const { data } = await personaBarrioService.getBarrioByPersona(idPersona);
+        return Array.isArray(data) ? data : [];
+        },
+    });
 
-    const openWizard = async () => {
-        setShowWizard(true);
-        setStep(1);
-        setSelectedBarrioId("");
-        await loadPersonaBarrios();
-    };
+    const { data: departamentos = [] } = useQuery({
+        queryKey: ["departamentos"],
+        queryFn: async () => {
+        const { data } = await domOtrosService.getDepartamentos();
+        return data ?? [];
+        },
+        staleTime: 1000 * 60 * 30,
+    });
 
-    useEffect(() => {
-        const loadDeptos = async () => {
-        try {
-            const { data } = await domOtrosService.getDepartamentos();
-            setDepartamentos(data);
-        } catch (error) {
-            console.error("Error al cargar deptos:", error);
-        }
-        };
-        loadDeptos();
-    }, []);
+    const { data: localidades = [] } = useQuery({
+        queryKey: ["localidades", id_depto],
+        enabled: !!id_depto,
+        queryFn: async () => {
+        const { data } = await domOtrosService.getLocalidades(id_depto);
+        return data ?? [];
+        },
+    });
 
-    useEffect(() => {
-        const loadLocalidades = async () => {
-        setLocalidades([]);
-        setIdLocalidad("");
-        if (!id_depto) return;
-        try {
-            const { data } = await domOtrosService.getLocalidades(id_depto);
-            setLocalidades(data);
-        } catch (error) {
-            console.error("Error al cargar localidades:", error);
-        }
-        };
-        loadLocalidades();
-    }, [id_depto]);
+    const createBarrioMutation = useMutation({
+    mutationFn: async ({
+        id_localidad,
+        barrio,
+        manzana,
+        casa,
+        departamento,
+        piso,
+    }) => {
+        const { data } = await domOtrosService.createBarrio(id_localidad, {
+            barrio,
+            manzana: manzana || null,
+            casa: casa || null,
+            departamento: departamento || null,
+            piso: piso || null,
+        });
+        return data;
+        },
+    });
+
+    const assignBarrioMutation = useMutation({
+        mutationFn: ({ idPersona, id_dom_barrio }) =>
+            personaBarrioService.assignBarrio(idPersona, id_dom_barrio),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: ["personaBarrios", idPersona] }),
+    });
+
+    const createDomicilioMutation = useMutation({
+        mutationFn: ({ idPersona, payload }) =>
+        domicilioService
+            .createDomicilio(idPersona, payload)
+            .then((r) => r.data),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] }),
+        onError: () => alert("No se pudo crear el domicilio"),
+    });
+
+    const deleteDomicilioMutation = useMutation({
+        mutationFn: ({ idPersona, id_domicilio }) =>
+            domicilioService.deleteDomicilio(idPersona, id_domicilio),
+        onSuccess: () =>
+            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] }),
+        onError: (error) => {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.detalle ||
+                "No se pudo eliminar el domicilio";
+            alert(message);
+        },
+    });
 
     const itemsOrdenados = useMemo(
         () =>
-        [...items].sort((a, b) =>
-            String(b.id_domicilio).localeCompare(String(a.id_domicilio))
-        ),
-        [items]
+            [...(domicilios || [])].sort((a, b) =>
+                String(b.id_domicilio).localeCompare(String(a.id_domicilio))
+            ),
+        [domicilios]
     );
 
     const resetWizard = () => {
@@ -126,39 +155,47 @@ export default function PersonaDomicilios({
         setAltura("");
     };
 
+    const openWizard = async () => {
+        if(!canCreate) return;
+        setShowWizard(true);
+        setStep(1);
+        setSelectedBarrioId("");
+        await refetchPersonaBarrios();
+    };
     const handleCrearBarrio = async (e) => {
         e.preventDefault();
         if (!id_localidad) return alert("Seleccioná una localidad primero");
         if (!barrioNombre.trim()) return alert("Ingresá el nombre del barrio");
 
         try {
-        const { data: nuevo } = await domOtrosService.createBarrio(
-            id_localidad,
-            {
-            barrio: barrioNombre,
-            manzana: barrioManzana || null,
-            casa: barrioCasa || null,
-            departamento: barrioDepto || null,
-            piso: barrioPiso || null,
-            }
-        );
+            const nuevo = await createBarrioMutation.mutateAsync({
+                id_localidad,
+                barrio: barrioNombre,
+                manzana: barrioManzana,
+                casa: barrioCasa,
+                departamento: barrioDepto,
+                piso: barrioPiso,
+        });
 
-        await personaBarrioService.assignBarrio(idPersona, nuevo.id_dom_barrio);
+        await assignBarrioMutation.mutateAsync({
+            idPersona,
+            id_dom_barrio: nuevo.id_dom_barrio,
+        });
 
-        await loadPersonaBarrios();
-        setSelectedBarrioId(String(nuevo.id_dom_barrio));
+            setSelectedBarrioId(String(nuevo.id_dom_barrio));
+            await refetchPersonaBarrios();
 
-        setBarrioNombre("");
-        setBarrioManzana("");
-        setBarrioCasa("");
-        setBarrioDepto("");
-        setBarrioPiso("");
-        setShowCrearBarrio(false);
-        setIdDepto("");
-        setIdLocalidad("");
+            setBarrioNombre("");
+            setBarrioManzana("");
+            setBarrioCasa("");
+            setBarrioDepto("");
+            setBarrioPiso("");
+            setShowCrearBarrio(false);
+            setIdDepto("");
+            setIdLocalidad("");
         } catch (error) {
-        console.error("Error al crear/vincular barrio:", error);
-        alert("No se pudo crear el barrio");
+            console.error("Error al crear/vincular barrio:", error);
+            alert("No se pudo crear el barrio");
         }
     };
 
@@ -167,43 +204,31 @@ export default function PersonaDomicilios({
         if (!selectedBarrioId) return alert("Primero seleccioná/creá un barrio");
         if (!calle || !altura) return alert("Completá calle y altura");
 
-        try {
-        setSaving(true);
-        const payload = {
-            calle,
-            altura,
-            id_dom_barrio: Number(selectedBarrioId),
-        };
-
-        const { data: nuevo } = await domicilioService.createDomicilio(
+        await createDomicilioMutation.mutateAsync({
             idPersona,
-            payload
-        );
-        setItems((prev) => [nuevo, ...prev]);
+            payload: {
+                calle,
+                altura,
+                id_dom_barrio: Number(selectedBarrioId),
+            },
+        });
 
         resetWizard();
         setShowWizard(false);
-        } catch (error) {
-        console.error("Error al crear domicilio:", error);
-        alert("No se pudo crear el domicilio");
-        } finally {
-        setSaving(false);
-        }
     };
 
     const handleDelete = async (domi) => {
-            const ok = confirm(`¿Eliminar "${domi.calle} ${domi.altura}"? Esta acción no se puede deshacer`);
+            const ok = confirm(
+                `¿Eliminar "${domi.calle} ${domi.altura}"? Esta acción no se puede deshacer`
+            );
             if (!ok) return;
-    
+
             try {
                 setDeletingId(domi.id_domicilio);
-                await domicilioService.deleteDomicilio(idPersona, domi.id_domicilio);
-
-                setItems(prev => prev.filter(item => item.id_domicilio !== domi.id_domicilio));
-            } catch (error) {
-                console.error("No se pudo eliminar el domicilio:", error?.response?.data || error.message);
-                const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el domicilio";
-                alert(message);
+                await deleteDomicilioMutation.mutateAsync({
+                    idPersona,
+                    id_domicilio: domi.id_domicilio,
+                });
             } finally {
                 setDeletingId(null);
             }
@@ -240,7 +265,7 @@ export default function PersonaDomicilios({
         </div>
 
         <div className="max-h-[50vh] overflow-auto">
-            {loading ? (
+            {isLoadingDomicilios ? (
                 <p className="opacity-70">Cargando...</p>
             ) : itemsOrdenados.length === 0 ? (
                 <p className="opacity-70">Sin domicilios</p>
@@ -329,10 +354,7 @@ export default function PersonaDomicilios({
         
         {showWizard && (
             <div className="fixed inset-0 z-[80]">
-            <div
-                className="absolute inset-0 bg-black/60"
-                onClick={() => setShowWizard(false)}
-            />
+            <div className="absolute inset-0 bg-black/60" onClick={() => setShowWizard(false)} />
             <div className="absolute inset-0 flex items-center justify-center p-4">
                 <div
                 className="w-full max-w-3xl bg-[#101922] rounded-2xl p-6 shadow-xl"
@@ -344,31 +366,16 @@ export default function PersonaDomicilios({
                         ? "Paso 1: Seleccioná o creá un barrio"
                         : "Paso 2: Datos del domicilio"}
                     </h4>
-                    <button
-                    onClick={() => setShowWizard(false)}
-                    className="p-1 rounded-lg hover:bg-[#1A2430]"
-                    >
+                    <button onClick={() => setShowWizard(false)} className="p-1 rounded-lg hover:bg-[#1A2430]">
                     <IoClose size={22} />
                     </button>
                 </div>
 
                 <div className="flex gap-2 mb-6">
-                    <span
-                    className={`px-2 py-1 rounded-lg text-sm ${
-                        step === 1
-                        ? "bg-[#19F124] text-[#101922]"
-                        : "bg-[#242E38]"
-                    }`}
-                    >
+                    <span className={`px-2 py-1 rounded-lg text-sm ${step === 1 ? "bg-[#19F124] text-[#101922]" : "bg-[#242E38]"}`}>
                     1. Barrio
                     </span>
-                    <span
-                    className={`px-2 py-1 rounded-lg text-sm ${
-                        step === 2
-                        ? "bg-[#19F124] text-[#101922]"
-                        : "bg-[#242E38]"
-                    }`}
-                    >
+                    <span className={`px-2 py-1 rounded-lg text-sm ${step === 2 ? "bg-[#19F124] text-[#101922]" : "bg-[#242E38]"}`}>
                     2. Domicilio
                     </span>
                 </div>
@@ -377,46 +384,32 @@ export default function PersonaDomicilios({
                     <div className="space-y-5">
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-semibold">
-                            Barrios vinculados a esta persona
-                        </h5>
+                        <h5 className="font-semibold">Barrios vinculados a esta persona</h5>
                         <button
                             type="button"
                             onClick={() => setShowCrearBarrio((v) => !v)}
                             className="text-xs underline text-[#19F124]"
                         >
-                            {showCrearBarrio
-                            ? "Ocultar creación de barrio"
-                            : "Crear nuevo barrio"}
+                            {showCrearBarrio ? "Ocultar creación de barrio" : "Crear nuevo barrio"}
                         </button>
                         </div>
 
-                        {personaBarrios.length === 0 ? (
-                        <p className="text-sm opacity-70">
-                            Aún no hay barrios vinculados.
-                        </p>
+                        {isFetchingBarrios ? (
+                        <p className="text-sm opacity-70">Cargando barrios…</p>
+                        ) : personaBarrios.length === 0 ? (
+                        <p className="text-sm opacity-70">Aún no hay barrios vinculados.</p>
                         ) : (
                         <ul className="space-y-2">
                             {personaBarrios.map((b) => (
-                            <li
-                                key={b.id_dom_barrio}
-                                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#0D1520]"
-                            >
+                            <li key={b.id_dom_barrio} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#0D1520]">
                                 <input
                                 type="radio"
                                 name="barrio_sel"
-                                checked={
-                                    String(b.id_dom_barrio) ===
-                                    String(selectedBarrioId)
-                                }
-                                onChange={() =>
-                                    setSelectedBarrioId(String(b.id_dom_barrio))
-                                }
+                                checked={String(b.id_dom_barrio) === String(selectedBarrioId)}
+                                onChange={() => setSelectedBarrioId(String(b.id_dom_barrio))}
                                 />
                                 <div className="flex-1 text-sm">
-                                <div className="font-semibold">
-                                    Barrio: {b.barrio}
-                                </div>
+                                <div className="font-semibold">Barrio: {b.barrio}</div>
                                 <div className="opacity-80">
                                     {b.manzana ? `Mz: ${b.manzana} ` : ""}
                                     {b.casa ? `Casa: ${b.casa} ` : ""}
@@ -431,14 +424,9 @@ export default function PersonaDomicilios({
                     </div>
 
                     {showCrearBarrio && (
-                        <form
-                        className="grid grid-cols-2 gap-3 mt-3 text-sm"
-                        onSubmit={handleCrearBarrio}
-                        >
+                        <form className="grid grid-cols-2 gap-3 mt-3 text-sm" onSubmit={handleCrearBarrio}>
                         <div>
-                            <label className="block mb-1 opacity-80">
-                            Departamento
-                            </label>
+                            <label className="block mb-1 opacity-80">Departamento</label>
                             <select
                             value={id_depto}
                             onChange={(e) => setIdDepto(e.target.value)}
@@ -447,10 +435,7 @@ export default function PersonaDomicilios({
                             >
                             <option value="">Seleccionar...</option>
                             {departamentos.map((d) => (
-                                <option
-                                key={d.id_dom_departamento}
-                                value={d.id_dom_departamento}
-                                >
+                                <option key={d.id_dom_departamento} value={d.id_dom_departamento}>
                                 {d.departamento}
                                 </option>
                             ))}
@@ -458,9 +443,7 @@ export default function PersonaDomicilios({
                         </div>
 
                         <div>
-                            <label className="block mb-1 opacity-80">
-                            Localidad
-                            </label>
+                            <label className="block mb-1 opacity-80">Localidad</label>
                             <select
                             value={id_localidad}
                             onChange={(e) => setIdLocalidad(e.target.value)}
@@ -470,10 +453,7 @@ export default function PersonaDomicilios({
                             >
                             <option value="">Seleccionar...</option>
                             {localidades.map((l) => (
-                                <option
-                                key={l.id_dom_localidad}
-                                value={l.id_dom_localidad}
-                                >
+                                <option key={l.id_dom_localidad} value={l.id_dom_localidad}>
                                 {l.localidad}
                                 </option>
                             ))}
@@ -507,9 +487,7 @@ export default function PersonaDomicilios({
                             />
                         </div>
                         <div>
-                            <label className="block mb-1 opacity-80">
-                            Departamento (unidad)
-                            </label>
+                            <label className="block mb-1 opacity-80">Departamento (unidad)</label>
                             <input
                             value={barrioDepto}
                             onChange={(e) => setBarrioDepto(e.target.value)}
@@ -533,10 +511,7 @@ export default function PersonaDomicilios({
                             >
                             Cancelar
                             </button>
-                            <button
-                            type="submit"
-                            className="px-3 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]"
-                            >
+                            <button type="submit" className="px-3 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]">
                             Crear y seleccionar
                             </button>
                         </div>
@@ -570,19 +545,16 @@ export default function PersonaDomicilios({
                         <div className="font-semibold">
                         {(() => {
                             const sel = personaBarrios.find(
-                            (b) =>
-                                String(b.id_dom_barrio) === String(selectedBarrioId)
+                            (b) => String(b.id_dom_barrio) === String(selectedBarrioId)
                             );
                             return sel ? sel.barrio : selectedBarrioId;
                         })()}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-2">
-                        <label className="block mb-1 text-sm opacity-80">
-                            Calle
-                        </label>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div className="md:col-span-2">
+                        <label className="block mb-1 text-sm opacity-80">Calle</label>
                         <input
                             value={calle}
                             onChange={(e) => setCalle(e.target.value)}
@@ -591,9 +563,7 @@ export default function PersonaDomicilios({
                         />
                         </div>
                         <div>
-                        <label className="block mb-1 text-sm opacity-80">
-                            Altura
-                        </label>
+                        <label className="block mb-1 text-sm opacity-80">Altura</label>
                         <input
                             value={altura}
                             onChange={(e) => setAltura(e.target.value)}
@@ -615,8 +585,8 @@ export default function PersonaDomicilios({
                         <button
                             type="button"
                             onClick={() => {
-                                resetWizard();
-                                setShowWizard(false);
+                            resetWizard();
+                            setShowWizard(false);
                             }}
                             className="cursor-pointer px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430]"
                         >
@@ -624,10 +594,9 @@ export default function PersonaDomicilios({
                         </button>
                         <button
                             type="submit"
-                            disabled={saving}
-                            className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
+                            className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922]"
                         >
-                            {saving ? "Guardando..." : "Guardar domicilio"}
+                            Guardar domicilio
                         </button>
                         </div>
                     </div>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from "react-router-dom";
 import PersonaDocumentos from "../../components/PersonaDocumentos";
 import PersonaDomicilios from "../../components/PersonaDomicilios";
 import PersonaTitulos from "../../components/PersonaTitulos";
 import SegmentedTabs from "../../components/SegmentedTabs";
-import { userService, profileService } from "../../services/api";
+import { userService, profileService, legajoService } from "../../services/api";
 import { MdNavigateBefore } from "react-icons/md";
 import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard } from "react-icons/fi";
 import { BsPersonVcard } from "react-icons/bs";
@@ -22,11 +23,75 @@ export default function UsuarioDetalle() {
     const [selectedProfiles, setSelectedProfiles] = useState([]);
     const TABS = { INFO: "info", DOCS: "docs", DOM: "dom", TIT: "tit" };
     const [tab, setTab] = useState(TABS.INFO);
+    const [visitedTabs, setVisitedTabs] = useState(new Set([TABS.INFO]));
+    const [showNudge, setShowNudge] = useState(false);
+    const [openNudge, setOpenNudge] = useState(false);
+    const [forzarMismoEstado, setForzarMismoEstado] = useState(false);
+
+    useEffect(() => {
+        setVisitedTabs(new Set([TABS.INFO]));
+        setTab(TABS.INFO);
+        setShowNudge(false);
+        setOpenNudge(false);
+        setForzarMismoEstado(false);
+    }, [id]);
+
+    useEffect(() => {
+        setVisitedTabs(prev => {
+            const next = new Set(prev);
+            next.add(tab);
+            return next;
+        });
+    }, [tab]);
+
+    useEffect(() => {
+        setVisitedTabs(new Set([TABS.INFO]));
+        setTab(TABS.INFO);
+        setShowNudge(false);
+        setOpenNudge(false);
+    }, [id]);
+
+    const hasVisitedAll = [TABS.INFO, TABS.DOCS, TABS.DOM, TABS.TIT].every(t => visitedTabs.has(t));
+
+    const esAdminRRHH = (me?.roles || []).some(r => {
+        const n = (typeof r === 'string' ? r : r?.nombre || r?.codigo || '').toUpperCase();
+        return n === 'ADMIN' || n === 'RRHH' || n === 'RECURSOS HUMANOS';
+    });
 
     const { data: usuario, isLoading: isLoadingUsuario } = useQuery({
-        queryKey: ['usuario', id], 
+        queryKey: ['usuario', id],
         queryFn: () => userService.getUsuarioById(id).then(res => res.data),
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        refetchOnMount: 'always',
+        staleTime: 0,
     });
+
+    const { data: legajoEstado } = useQuery({
+        queryKey: ['legajo-estado', usuario?.id_persona],
+        enabled: !!usuario?.id_persona,
+        queryFn: () => legajoService.getEstado(usuario.id_persona).then(r => r.data),
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        refetchOnMount: 'always',
+        staleTime: 0,
+    });
+
+
+    const [activarAhora, setActivarAhora] = useState(false);
+    const isSelf = me?.id_persona === usuario?.id_persona;
+    const [estadoSeleccionado, setEstadoSeleccionado] = useState('VALIDADO');
+
+    const sameEstado = estadoSeleccionado === legajoEstado?.estado?.codigo;
+    const noChanges = (usuario?.activo || !activarAhora) && sameEstado && !forzarMismoEstado;
+
+    const shouldShowNudge = hasVisitedAll && !isSelf && esAdminRRHH && !isLoadingUsuario;
+
+    useEffect(() => {
+        if (!shouldShowNudge) { setShowNudge(false); return; }
+        const t = setTimeout(() => setShowNudge(true), 400);
+        return () => clearTimeout(t);
+    }, [shouldShowNudge]);
 
     const { data: todosLosPerfiles = [] } = useQuery({
         queryKey: ['perfiles'],
@@ -40,13 +105,44 @@ export default function UsuarioDetalle() {
         enabled: !!usuario?.id_persona, 
     });
 
+    const ESTADOS = [
+        { codigo: 'INCOMPLETO', label: 'Legajo incompleto' },
+        { codigo: 'PENDIENTE', label: 'Pendiente de verificación' },
+        { codigo: 'VALIDADO', label: 'Legajo validado' },
+        { codigo: 'BLOQUEADO', label: 'Legajo bloqueado' },
+    ]
+
     useEffect(() => {
-        if (me?.id_persona === usuario?.id_persona && perfilesVigentes) {
+        const actual = legajoEstado?.estado?.codigo;
+        if(actual) setEstadoSeleccionado(actual);
+        setActivarAhora(!usuario?.activo);
+    }, [legajoEstado?.estado?.codigo, usuario?.activo]);
+
+    const legajoCodigo = legajoEstado?.estado?.codigo || 'INCOMPLETO';
+    const legajoLabel =
+    ESTADOS.find(e => e.codigo === legajoCodigo)?.label || legajoCodigo;
+
+    const getLegajoClasses = (codigo) => {
+        switch (codigo) {
+            case 'VALIDADO':  
+            return 'bg-green-500/10 border border-green-500/40 text-green-400';
+            case 'PENDIENTE': 
+            return 'bg-yellow-500/15 border border-yellow-500/40 text-yellow-300';
+            case 'BLOQUEADO': 
+            return 'bg-gray-500/15 border border-gray-500/40 text-gray-300';
+            case 'INCOMPLETO':
+            default:
+            return 'bg-red-500/15 border border-red-500/40 text-red-400';
+        }
+    };
+
+    useEffect(() => {
+        if (me?.id_persona === usuario?.id_persona && perfilesVigentes) {
             if (me.perfiles !== perfilesVigentes) {
                 updateUserPerfiles(perfilesVigentes);
             }
-        }
-    }, [
+        }
+    }, [
         perfilesVigentes,        
         me?.id_persona,          
         usuario?.id_persona,     
@@ -105,6 +201,62 @@ export default function UsuarioDetalle() {
         );
     };
 
+    const toggleUserMutation = useMutation({
+        mutationFn: () => userService.toggleUsuario(id),
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ['usuario', id] });
+            const prev = queryClient.getQueryData(['usuario', id]);
+            queryClient.setQueryData(['usuario', id], (u) => u ? ({ ...u, activo: !u.activo }) : u);
+            return { prev };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.prev) queryClient.setQueryData(['usuario', id], ctx.prev);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['usuario', id] });
+            queryClient.invalidateQueries({ queryKey: ['usuarios', 'detalles'] });
+        },
+    })
+
+    const setEstadoMutation = useMutation({
+        mutationFn: (codigo) => legajoService.setEstado(usuario.id_persona, codigo),
+        onMutate: async (codigo) => {
+            await queryClient.cancelQueries({ queryKey: ['legajo-estado', usuario.id_persona] });
+            const prev = queryClient.getQueryData(['legajo-estado', usuario.id_persona]);
+            queryClient.setQueryData(['legajo-estado', usuario.id_persona], (d) =>
+                d ? ({ ...d, estado: { ...(d.estado || {}), codigo } }) : d
+            );
+            return { prev };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.prev) queryClient.setQueryData(['legajo-estado', usuario.id_persona], ctx.prev);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['legajo-estado', usuario.id_persona] });
+            queryClient.invalidateQueries({ predicate: ({ queryKey }) => Array.isArray(queryKey) && queryKey.includes('adminStats') });
+        },
+    })
+
+    const saving = toggleUserMutation.isLoading || setEstadoMutation.isLoading;
+
+    const handleConfirm = async () => {
+        try {
+            const ops = [];
+            if (activarAhora && !usuario.activo) ops.push(toggleUserMutation.mutateAsync());
+            if (estadoSeleccionado && (!sameEstado || forzarMismoEstado)) {
+            ops.push(setEstadoMutation.mutateAsync(estadoSeleccionado));
+            }
+            if (ops.length === 0) { setOpenNudge(false); return; }
+            await Promise.all(ops);
+            alert('Cambios aplicados correctamente');
+            setOpenNudge(false);
+            setForzarMismoEstado(false);
+        } catch (error) {
+            console.error(error);
+            alert('No se pudieron aplicar los cambios');
+        }
+    };
+
     if (isLoadingUsuario) {
         return <div className="p-6 text-2xl text-white">Cargando información...</div>
     }
@@ -114,16 +266,24 @@ export default function UsuarioDetalle() {
 
     return (
         <div className="text-white mt-7">
-        <div className="flex items-center gap-4 ml-18">
+        <div className="flex items-center gap-4 ml-16">
             <button
-            onClick={() => navigate(-1)}
-            className="flex-none shrink-0 p-1 border-2 border-[#19F124] rounded-full hover:bg-[#19F124]  cursor-pointer transition"
+                onClick={() => navigate(-1)}
+                className="flex-none shrink-0 p-1 border-2 border-[#19F124] rounded-full hover:bg-[#19F124] cursor-pointer transition"
             >
-                <MdNavigateBefore size={35} className=" m-[-4px] hover:text-[#101922] text-[#19F124] transition" />
+                <MdNavigateBefore size={35} className="m-[-4px] hover:text-[#101922] text-[#19F124] transition" />
             </button>
-            <div className="flex flex-row">
-                <SegmentedTabs value={tab} onChange={setTab} tabs={TABS}/>
-            </div>
+
+            <div className="flex items-center gap-3">
+                <SegmentedTabs value={tab} onChange={setTab} tabs={TABS} />
+                <div
+                className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl ${getLegajoClasses(legajoCodigo)} transition`}
+                title={`Estado actual: ${legajoLabel}`}
+                >
+                    <span className="text-xs opacity-80">Estado de legajo:</span>
+                    <span className="text-sm font-semibold">{legajoLabel}</span>
+                </div>
+        </div>
         </div>
 
         <div className="px-10 mt-4">
@@ -145,14 +305,14 @@ export default function UsuarioDetalle() {
                     Datos de usuario
                 </h2>
 
-                <section className="grid grid-cols-2 pl-2 lg:grid-cols-2 gap-y-5 gap-x-25">
+                <section className="grid grid-cols-2 pl-2 lg:grid-cols-2 gap-y-5 gap-x-8">
                     <div className="flex flex-row items-center gap-3">
                         <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
                             <FiMail className="text-[#4FC3F7]" size={30} />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-sm opacity-70">Email</span>
-                            <span className="text-bg">{usuario.email}</span>
+                            <span className="text-white">{usuario.email}</span>
                         </div>
                         </div>
 
@@ -293,7 +453,7 @@ export default function UsuarioDetalle() {
 
                 <button
                     onClick={() => setShowModal(true)}
-                    className="mt-4 w-full bg-[#101922] border-3 border-dashed text-[#19F124] py-2 rounded-2xl font-black hover:border-[#19F124] hover:bg-[#19F124] hover:text-[#101922] transition cursor-pointer"
+                    className="mt-4 w-full bg-[#101922] border-2 border-dashed text-[#19F124] py-2 rounded-2xl font-black hover:border-[#19F124] hover:bg-[#19F124] hover:text-[#101922] transition cursor-pointer"
                 >
                     Asignar perfil +
                 </button>
@@ -310,13 +470,22 @@ export default function UsuarioDetalle() {
 
         {tab === TABS.DOM && (
             <div className="px-10 mt-6">
-            <PersonaDomicilios idPersona={usuario.id_persona} asModal={false} />
+            <PersonaDomicilios
+                    idPersona={usuario.id_persona}
+                    asModal={false}
+                    showPersonaId={esAdminRRHH}
+                    canCreate={esAdminRRHH}
+                    canDelete={esAdminRRHH}
+                    onRequestDelete={(d) => alert(`Solicitud enviada para eliminar domicilio #${d.id_domicilio}`)}
+                />
             </div>
         )}
 
         {tab === TABS.TIT && (
             <div className="px-10 mt-6">
-            <PersonaTitulos idPersona={usuario.id_persona} asModal={false} />
+            <PersonaTitulos
+                idPersona={usuario.id_persona} asModal={false} 
+            />
             </div>
         )}
         {showModal && (
@@ -398,6 +567,86 @@ export default function UsuarioDetalle() {
             </div>
             </div>
         )}
+
+        {showNudge && !openNudge && createPortal(
+            <button
+                type="button"
+                aria-label="Activar cuenta y definir estado del legajo"
+                onClick={() => setOpenNudge(true)}
+                className="fixed bottom-6 right-6 z-[9999] px-4 py-3 rounded-2xl font-semibold shadow-lg bg-[#19F124] text-[#0D1520] hover:bg-[#2af935] transition"
+                title="Activar cuenta y definir estado del legajo"
+            >
+                ¿Listo para activar y validar?
+            </button>,
+            document.body
+        )}
+
+        {openNudge && createPortal(
+            <div className="fixed bottom-6 right-6 z-[9999] w-[22rem] max-w-[92vw] rounded-2xl shadow-2xl bg-[#101922] border border-[#1b2a37] p-4">
+                <div className="flex items-start justify-between mb-2">
+                <h3 className="text-lg font-semibold text-white">Activación y estado de legajo</h3>
+                <button
+                    onClick={() => setOpenNudge(false)}
+                    className="p-1 rounded-lg hover:bg-[#1A2430] text-white/70"
+                    aria-label="Cerrar"
+                >
+                    <IoClose size={18} />
+                </button>
+                </div>
+
+                <div className="space-y-3">
+                {sameEstado && (
+                    <label className="flex items-center gap-2 mt-1 text-xs text-white/70">
+                        <input
+                        type="checkbox"
+                        className="accent-[#19F124] w-4 h-4"
+                        checked={forzarMismoEstado}
+                        onChange={(e) => setForzarMismoEstado(e.target.checked)}
+                        />
+                        Re-marcar el estado actual ({estadoSeleccionado})
+                    </label>
+                )}
+
+                <div className="space-y-1">
+                    <div className="text-sm text-white/80">Estado del legajo</div>
+                    <select
+                        value={estadoSeleccionado}
+                        onChange={(e) => setEstadoSeleccionado(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#242E38] rounded-xl text-white"
+                    >
+                        {ESTADOS.map(op => (
+                            <option key={op.codigo} value={op.codigo}>{op.label}</option>
+                        ))}
+                    </select>
+                    {legajoEstado?.estado?.codigo && (
+                    <div className="text-xs text-white/60">
+                        Actual: <span className="font-medium">{legajoEstado.estado.codigo}</span>
+                    </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                    <button
+                        type="button"
+                        onClick={() => setOpenNudge(false)}
+                        className="px-3 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] text-white/90"
+                    >
+                        Luego
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleConfirm}
+                        disabled = {saving || noChanges}
+                        aria-busy = {saving ? "true" : "false"}
+                        className="px-3 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] hover:bg-[#2af935]"
+                    >
+                        { saving ? 'Guardando...' : 'Guardar' }
+                    </button>
+                </div>
+                </div>
+            </div>,
+            document.body
+            )}
         </div>
     );
 }

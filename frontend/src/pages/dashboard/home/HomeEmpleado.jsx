@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { contratoService, legajoService, personaDocService } from "../../../services/api";
@@ -7,8 +8,8 @@ import { FiArchive, FiFileText, FiCheckCircle, FiAlertCircle, FiClock, FiList } 
 
 const fmt = (s) => {
     if (!s) return "-";
-        const fecha = new Date(s);
-        return fecha.toLocaleDateString(undefined, { timeZone: 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const d = s instanceof Date ? s : new Date(s);
+    return d.toLocaleDateString(undefined, { timeZone: "UTC", year: "numeric", month: "2-digit", day: "2-digit" });
 };
 const toDate = (s) => (s ? new Date(s) : null);
 const today = () => new Date();
@@ -17,7 +18,7 @@ const isActive = (c) => {
     const fin = toDate(c.fecha_fin);
     const t = today();
     return ini && ini <= t && (!fin || fin >= t);
-}
+};
 
 const getStatusIcon = (id_estado) => {
     switch (id_estado) {
@@ -35,79 +36,92 @@ const getStatusIcon = (id_estado) => {
 export default function HomeEmpleado() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState({ activos: 0, vencimiento: '-', estadoLegajo:'Cargando...' });
-    const [documentos, setDocumentos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const idPersona = user?.id_persona ?? null;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!user?.id_persona) return;
-            try {
-                setLoading(true);
-                const { data: contratosData } = await contratoService.getMisContratos();
-                const contratosActivos = contratosData.filter(isActive);
-                const proximoVencimiento = contratosActivos.length
-                    ? fmt(Math.min(...contratosActivos.map(c => toDate(c.fecha_fin))))
-                    : '-';
+    const {
+        data: contratosInfo = { list: [], activos: 0, proximoVenc: "-" },
+        isLoading: loadingContratos,
+    } = useQuery({
+        queryKey: ["misContratos"],
+        enabled: !!idPersona,
+        queryFn: async () => {
+            const { data } = await contratoService.getMisContratos();
+            const list = Array.isArray(data) ? data : [];
+            const activos = list.filter(isActive);
+            const finDates = activos.map((c) => toDate(c.fecha_fin)).filter(Boolean);
+            const minTs = finDates.length ? Math.min(...finDates.map((d) => d.getTime())) : null;
+            return {
+                list,
+                activos: activos.length,
+                proximoVenc: minTs ? fmt(new Date(minTs)) : "-",
+            };
+        },
+        staleTime: 5 * 60 * 1000,
+        keepPreviousData: true,
+    });
 
-                const { data: legajoData } = await legajoService.getEstado(user.id_persona);
-                const { data: docData } = await personaDocService.listarDocumentos(user.id_persona);
+    const {
+        data: legajoEstado = "No definido",
+        isLoading: loadingLegajo,
+    } = useQuery({
+        queryKey: ["legajo", "estado", idPersona],
+        enabled: !!idPersona,
+        queryFn: async () => {
+            const { data } = await legajoService.getEstado(idPersona);
+            return data?.estado?.descripcion || "No definido";
+        },
+        staleTime: 5 * 60 * 1000,
+    });
 
-                setStats({
-                    activos: contratosActivos.length,
-                    vencimiento: proximoVencimiento,
-                    estadoLegajo: legajoData?.estado?.descripcion || 'No definido'
-                });
-                setDocumentos(docData.slice(0, 5));
-            } catch (error) {
-                console.error("Error al cargar datos del dashboard", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        if(user?.id_persona){
-            fetchData();
-        }
-    }, [user?.id_persona]);
+    const {
+        data: documentos = [],
+        isLoading: loadingDocs,
+    } = useQuery({
+        queryKey: ["personaDocs", idPersona, { limit: 5 }],
+        enabled: !!idPersona,
+        queryFn: async () => {
+            const { data } = await personaDocService.listarDocumentos(idPersona);
+            const arr = Array.isArray(data) ? data : [];
+            return arr.slice(0, 5);
+        },
+        keepPreviousData: true,
+        staleTime: 60 * 1000,
+    });
 
-    return(
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <KpiCard label="Contratos activos" value={loading ? '...' : stats.activos}/>
-            <KpiCard label="Próximo vencimiento" value={loading ? '...' : stats.vencimiento}/>
-            <KpiCard label="Estado del Legajo" value={loading ? '...' : stats.estadoLegajo}/>
+    const loading = loadingContratos || loadingLegajo || loadingDocs;
 
-            <BentoPanel className="lg:col-span-2 p-4 space-y-3">
-                <h2 className="text-lg font-semibold text-white">Estado de Documentos</h2>
-                <div className="space-y-2">
-                    {loading && <p className="text-gray-400">Cargando documentos...</p>}
-                    {!loading && documentos.length === 0 && (
-                        <p className="text-gray-400">No hay documentos cargados.</p>
-                    )}
-                    {documentos.map(doc => (
-                        <div key={doc.id_persona_doc} className="flex items-center justify-between p-2 bg-[#101922] rounded-md">
-                            <span className="truncate">{doc.tipo_documento?.descripcion || 'Documento'}</span>
-                            <div className="flex items-center gap-2 text-sm">
-                                {getStatusIcon(doc.id_estado_verificacion)}
-                                <span className="w-20 text-right">{doc.estado_verificacion?.descripcion}</span>
-                            </div>
+    return (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <KpiCard label="Contratos activos" value={loading ? "..." : contratosInfo.activos} />
+        <KpiCard label="Próximo vencimiento" value={loading ? "..." : contratosInfo.proximoVenc} />
+        <KpiCard label="Estado del Legajo" value={loading ? "..." : legajoEstado} />
+
+        <BentoPanel className="p-4 space-y-3 lg:col-span-2">
+            <h2 className="text-lg font-semibold text-white">Estado de Documentos</h2>
+            <div className="space-y-2">
+                {loading && <p className="text-gray-400">Cargando documentos...</p>}
+                {!loading && documentos.length === 0 && <p className="text-gray-400">No hay documentos cargados.</p>}
+                {documentos.map((doc) => (
+                    <div key={doc.id_persona_doc} className="flex items-center justify-between p-2 bg-[#101922] rounded-md">
+                    <span className="truncate">{doc.tipo_documento?.descripcion || "Documento"}</span>
+                        <div className="flex items-center gap-2 text-sm">
+                            {getStatusIcon(doc.id_estado_verificacion)}
+                            <span className="w-20 text-right">{doc.estado_verificacion?.descripcion}</span>
                         </div>
-                    ))}
-                </div>
-            </BentoPanel>
+                    </div>
+                ))}
+            </div>
+        </BentoPanel>
 
-            <BentoPanel className="lg:col-span-1 p-4 space-y-3">
-                <h2 className="text-lg font-semibold text-white">Accesos Rápidos</h2>
-                <QuickLinkButton
-                    label="Ver Mi Legajo"
-                    icon={<FiArchive/>}
-                    onClick={() => navigate('/dashboard/legajo')}
-                />
-                <QuickLinkButton
-                    label="Ver Mis Contratos"
-                    icon={<FiFileText/>}
-                    onClick={() => navigate('/dashboard/mis-contratos')}
-                />
-            </BentoPanel>
+        <BentoPanel className="p-4 space-y-3 lg:col-span-1">
+            <h2 className="text-lg font-semibold text-white">Accesos Rápidos</h2>
+            <QuickLinkButton label="Ver Mi Legajo" icon={<FiArchive />} onClick={() => navigate("/dashboard/legajo")} />
+            <QuickLinkButton
+                label="Ver Mis Contratos"
+                icon={<FiFileText />}
+                onClick={() => navigate("/dashboard/mis-contratos")}
+            />
+        </BentoPanel>
         </div>
-    )
+    );
 }

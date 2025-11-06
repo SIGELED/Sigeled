@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { FiTrash2, FiUpload, FiFileText, FiEye, FiRefreshCcw, FiCheck, FiX , FiAlertTriangle, FiClock } from "react-icons/fi";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
