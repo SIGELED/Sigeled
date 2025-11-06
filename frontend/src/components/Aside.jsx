@@ -1,13 +1,14 @@
 import BotonAside from "./BotonAside"
-import { FiHome, FiArchive, FiClipboard, FiUsers } from "react-icons/fi";
+import { FiHome, FiArchive, FiClipboard, FiUsers, FiFileText } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/svg/logoAncho.svg";
 
-export default function Aside({activeSection, setActiveSection}) {
+export default function Aside() {
     const {user, logout} = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
         (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN'
@@ -41,6 +42,21 @@ export default function Aside({activeSection, setActiveSection}) {
             .join(" • ")
         : "Sin perfil asignado";
 
+    const getActiveSection = () => {
+        const path = location.pathname;
+
+        if (path.startsWith("/dashboard/legajo")) return "legajo";
+        if (path.startsWith("/dashboard/mis-contratos")) return "mis-contratos";
+        if (path.startsWith("/dashboard/contratos")) return "contratos";
+        if (path.startsWith("/dashboard/usuarios")) return "usuarios";
+
+        if (path.startsWith("/dashboard")) return "dashboard";
+
+        return "dashboard";
+    };
+
+    const activeSection = getActiveSection();
+
     return (
         <div className="w-[18%] h-[100dvh] shrink-0 flex flex-col items-stretch bg-[#101922]">
             <div className="flex justify-center ">
@@ -64,7 +80,6 @@ export default function Aside({activeSection, setActiveSection}) {
             <div className="flex flex-col flex-1 px-2 mt-8 space-y-2 font-medium">
                 <BotonAside
                     onClick={() => {
-                    setActiveSection("dashboard");
                     navigate("/dashboard");
                     }}
                     activo={activeSection === "dashboard"}
@@ -75,7 +90,6 @@ export default function Aside({activeSection, setActiveSection}) {
 
                 <BotonAside
                     onClick={() => {
-                    setActiveSection("legajo");
                     navigate("/dashboard/legajo");
                     }}
                     activo={activeSection === "legajo"}
@@ -84,10 +98,19 @@ export default function Aside({activeSection, setActiveSection}) {
                     <span>Mi Legajo</span>
                 </BotonAside>
 
+                <BotonAside
+                    onClick={() => {
+                    navigate("/dashboard/mis-contratos");
+                    }}
+                    activo={activeSection === "mis-contratos"}
+                    >
+                    <FiFileText size={25} className="shrink-0 currentColor" />
+                    <span>Mis Contratos</span>
+                </BotonAside>
+
                 {isAdmin && (
                     <BotonAside
                     onClick={() => {
-                        setActiveSection("contratos");
                         navigate("/dashboard/contratos");
                     }}
                     activo={activeSection === "contratos"}
@@ -100,13 +123,12 @@ export default function Aside({activeSection, setActiveSection}) {
                 {isAdmin && (
                     <BotonAside
                     onClick={() => {
-                        setActiveSection("usuarios");
                         navigate("/dashboard/usuarios");
                     }}
                     activo={activeSection === "usuarios"}
                     >
-                    <FiUsers size={25} className=" shrink-0 currentColor" />
-                    <span>Usuarios</span>
+                        <FiUsers size={25} className=" shrink-0 currentColor" />
+                        <span>Usuarios</span>
                     </BotonAside>
                 )}
                 </div>

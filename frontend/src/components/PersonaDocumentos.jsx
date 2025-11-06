@@ -3,6 +3,7 @@ import { IoClose } from "react-icons/io5";
 import { FiTrash2, FiUpload, FiFileText, FiEye, FiRefreshCcw, FiCheck, FiX , FiAlertTriangle, FiClock } from "react-icons/fi";
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
 import PdfPreviewModal from "./PdfPreviewModal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const FALLBACK_TIPOS = [
     {id_tipo_doc: 1, codigo:"DNI", nombre: "Documento Nacional de Identidad"},
@@ -21,14 +22,9 @@ const FALLBACK_ESTADOS = [
 ]
 
 export default function PersonaDocumentos({idPersona, onClose, asModal = true, showPersonaId=true, canDelete=true, canChangeState=true, onRequestDelete}) {
-    const [docs, setDocs] = useState([]);
+    const queryClient = useQueryClient();
     const [deletingId, setDeletingId] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [verificacion, setVerificacion] = useState({ open: false, doc:null, estado: "", obs:"" });
-    
-    const [tipos, setTipos] = useState(FALLBACK_TIPOS);
-    const [estados, setEstados] = useState(FALLBACK_ESTADOS);
-
     const [showNew, setShowNew] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -40,6 +36,88 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
     const [archivoInfo, setArchivoInfo] = useState(null);
 
     const [preview, setPreview] = useState({open: false, url: '', title: ''});
+
+    const { data: docs = [], isLoading: isLoadingDocs } = useQuery({
+        queryKey: ['documentos', idPersona],
+        queryFn: async () => {
+            if (!idPersona) return [];
+            const { data } = await personaDocService.listarDocumentos(idPersona);
+            const arr = Array.isArray(data) ? data : [];
+            return arr.filter(x => String(x.id_persona) === String(idPersona));
+        },
+        enabled: !!idPersona, 
+    });
+
+    const { data: tipos = FALLBACK_TIPOS } = useQuery({
+        queryKey: ['tiposDocumento'],
+        queryFn: () => tipoDocService.getAllDocTypes().then(res => res.data),
+        staleTime: 1000 * 60 * 60, 
+        initialData: FALLBACK_TIPOS,
+    });
+    
+    const { data: estados = FALLBACK_ESTADOS } = useQuery({
+        queryKey: ['estadosVerificacion'],
+        queryFn: () => estadoVerificacionService.getAll().then(res => res.data),
+        staleTime: 1000 * 60 * 60, 
+        enabled: canChangeState,
+        initialData: FALLBACK_ESTADOS,
+    });
+
+    const createDocMutation = useMutation({
+        mutationFn: (payload) => personaDocService.createDoc(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
+            resetForm();
+            setShowNew(false);
+        },
+        onError: (err) => {
+            console.error("Error al crear documento:", err);
+            alert("No se pudo crear el documento");
+        },
+        onSettled: () => {
+            setSaving(false);
+            setArchivoSubiendo(false);
+        }
+    });
+
+    const deleteDocMutation = useMutation({
+        mutationFn: (doc) => personaDocService.deleteDoc(idPersona, doc.id_persona_doc),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+        },
+        onError: (error) => {
+            console.error("No se pudo eliminar el documento:", error?.response?.data || error.message);
+            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el documento";
+            alert(message);
+        },
+        onSettled: () => {
+            setDeletingId(null);
+        }
+    });
+
+    const changeStateMutation = useMutation({
+        mutationFn: ({ docId, payload }) => personaDocService.cambiarEstado(docId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
+            closeCambiarEstado();
+        },
+        onError: (error) => {
+            console.error("Error al cambiar estado:", error);
+            alert("No se pudo cambiar el estado");
+        }
+    });
+
+    const resetForm = () => {
+        setIdTipoDoc("");
+        setIdEstado("");
+        setVigente(true);
+        setFile(null);
+        setArchivoInfo(null);
+    }
 
     const openPreview = async (doc) => {
         if(!doc.id_archivo) return;
@@ -59,46 +137,6 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
 
     const closePreview = () => setPreview({open:false, url:'', title:''});
 
-    const fetchDocs = useCallback(async () => {
-        if(!idPersona) return;
-        setLoading(true);
-        try {
-            const { data } = await personaDocService.listarDocumentos(idPersona);
-            const arr = Array.isArray(data) ? data : [];
-            setDocs(arr.filter(x => String(x.id_persona) === String(idPersona)));
-        } catch (error) {
-            console.error("No se pudieron cargar documentos:", error);
-            setDocs([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [idPersona]);
-
-    useEffect(() => {
-        const loadCatalogos = async () => {
-            try {
-                const asks = [tipoDocService.getAllDocTypes()];
-                if (canChangeState) asks.unshift(estadoVerificacionService.getAll());
-                const results = await Promise.allSettled(asks);
-
-                if (canChangeState && results[0]?.status === "fulfilled" && Array.isArray(results[0].value.data)) {
-                    setEstados(results[0].value.data);
-                }
-                const tiposIdx = canChangeState ? 1 : 0;
-                if (results[tiposIdx]?.status === "fulfilled" && Array.isArray(results[tiposIdx].value.data)) {
-                    setTipos(results[tiposIdx].value.data);
-                }
-            } catch (e) {
-                
-            }
-        };
-        loadCatalogos();
-    }, []);
-
-    useEffect(() => {
-        fetchDocs();
-    }, [fetchDocs]);
-
     const docsOrdenados = useMemo(
         () => [...docs].sort((a,b) => new Date(b.creado_en || 0) - new Date(a.creado_en || 0)),
         [docs]
@@ -114,66 +152,34 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         } catch (e) {
             console.error("Error subiendo archivo:", e);
             alert("No se pudo subir el archivo");
+            setArchivoSubiendo(false); 
             return null;
-        } finally{
-            setArchivoSubiendo(false);
         }
     };
 
     const handleCreate = async (e) => {
         e.preventDefault();
-        if (!id_tipo_doc) return alert("Elegí un tipo de documento");
-        if (!id_estado) return alert("Elegí un estado");
-
+        if (!id_tipo_doc || !id_estado) return alert("Elegí tipo y estado");
+        
+        setSaving(true);
         let id_archivo = null;
         if(file){
             id_archivo = await handleUploadArchivo();
-            if(file && !id_archivo) return;
-        }
+            if(file && !id_archivo) {
+                    setSaving(false); 
+                    return;
+                }
+            }
 
-        const payload = {
-            id_persona: idPersona,
-            id_tipo_doc: Number(id_tipo_doc),
-            id_archivo: id_archivo,
-            id_estado_verificacion: Number(id_estado),
-            vigente: Boolean(vigente),
-        };
-
-        try {
-            setSaving(true);
-            const { data: nuevo } = await personaDocService.createDoc(payload);
-            await fetchDocs();
-            setIdTipoDoc("");
-            setIdEstado("");
-            setVigente(true);
-            setFile(null);
-            setArchivoInfo(null);
-            setShowNew(false);
-        } catch (err) {
-            console.error("Error al crear documento:", err);
-            alert("No se pudo crear el documento");
-        } finally {
-            setSaving(false);
-        }
+        const payload = { id_persona: idPersona, id_tipo_doc: Number(id_tipo_doc), id_archivo, id_estado_verificacion: Number(id_estado), vigente: Boolean(vigente) };
+        createDocMutation.mutate(payload);
     };
 
     const handleDelete = async (doc) => {
         const tipo = tipoById(doc.id_tipo_doc);
-        const nombreTipo = tipo?.nombre || "Documento";
-        const ok = confirm(`¿Eliminar "${nombreTipo}"? Esta acción no se puede deshacer`);
-        if (!ok) return;
-
-        try {
-            setDeletingId(doc.id_persona_doc);
-            await personaDocService.deleteDoc(idPersona, doc.id_persona_doc);
-            setDocs(prev => prev.filter(d => d.id_persona_doc !== doc.id_persona_doc));
-        } catch (error) {
-            console.error("No se pudo eliminar el documento:", error?.response?.data || error.message);
-            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el documento";
-            alert(message);
-        } finally {
-            setDeletingId(null);
-        }
+        if (!confirm(`¿Eliminar "${tipo?.nombre || "Documento"}"? Esta acción no se puede deshacer`)) return;
+        setDeletingId(doc.id_persona_doc);
+        deleteDocMutation.mutate(doc);
     }
 
     const tipoById = (id) => tipos.find(t => Number(t.id_tipo_doc) === Number(id));
@@ -193,24 +199,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         e.preventDefault();
         if(!verificacion.doc) return;
         const id_estado_verificacion = Number(verificacion.estado);
-
         if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
-            alert("Debés indicar una observación para Rechazado/Observado");
-            return;
+            return alert("Debés indicar una observación para Rechazado/Observado");
         }
-
-        try {
-            const { data: actualizado } = await personaDocService.cambiarEstado(
-                verificacion.doc.id_persona_doc,
-                { id_estado_verificacion, observacion: verificacion.obs.trim() || null }
-            );
-            await fetchDocs();
-            closeCambiarEstado();
-        } catch (error) {
-            console.error("Error al cambiar estado del documento:", error);
-            alert("No se pudo cambiar el estado");
-        }
-    }
+        const payload = { id_estado_verificacion, observacion: verificacion.obs.trim() || null };
+        changeStateMutation.mutate({ docId: verificacion.doc.id_persona_doc, payload });
+        };
 
     const renderPanel = () => (
         <div className="w-full max-w-none bg-[#101922] rounded-2xl p-6 shadow-xl">
@@ -244,7 +238,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
             </div>
 
             <div className="max-h-[50vh] overflow-auto pr-1">
-                {loading ? (
+                {isLoadingDocs ? (
                     <p className="opacity-70">Cargando...</p>
                 ) : docsOrdenados.length === 0 ? (
                     <p className="opacity-70">Sin documentos</p>

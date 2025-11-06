@@ -10,6 +10,7 @@ import {
   listarMateriasPorCarreraAnio,
   crearNuevoContratoProfesor,
   listarEmpleadosContratos,
+  listarMisContratos,
 } from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoModel.js';
@@ -40,6 +41,8 @@ contratoRouter.get('/anios', soloAdministrador, async (req, res) => {
 });
 
 contratoRouter.get('/empleados', soloAdministrador, listarEmpleadosContratos);
+
+contratoRouter.get('/mis-contratos', listarMisContratos);
 
 /**
  * @swagger

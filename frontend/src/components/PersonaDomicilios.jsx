@@ -210,7 +210,7 @@ export default function PersonaDomicilios({
         }
 
     const renderPanel = () => (
-        <div className="w-full max-w-none rounded-2xl bg-[#101922] p-6 shadow-xl">
+        <div className="w-full p-6 max-w-none rounded-2xl bg-[#101922] shadow-xl">
         <div className="flex items-start justify-between mb-4">
             <h3 className="text-2xl font-semibold text-[#19F124]">Domicilios</h3>
             {onClose && asModal && (
@@ -239,7 +239,7 @@ export default function PersonaDomicilios({
             )}
         </div>
 
-        <div className="max-h-[50vh] overflow-auto pr-1">
+        <div className="max-h-[50vh] overflow-auto">
             {loading ? (
                 <p className="opacity-70">Cargando...</p>
             ) : itemsOrdenados.length === 0 ? (

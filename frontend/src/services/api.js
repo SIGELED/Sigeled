@@ -122,6 +122,7 @@ export const tituloService = {
 
 export const contratoService = {
   getContratos: (persona) => api.get('/contratos', { params: persona ? { persona } : {} }),
+  getMisContratos: () => api.get('/contratos/mis-contratos'),
   getEmpleados: (q = '', page = 1, limit = 50) => api.get('/contratos/empleados', { params: { q, page, limit } }),
   getById: (id) => api.get(`/contratos/${id}`),
   create : (data) => api.post('/contratos/profesor/crear', data),
@@ -155,5 +156,10 @@ export const legajoService = {
   setEstado:   (id_persona, codigo) => api.post(`/legajo/${id_persona}/estado`, { codigo }),
   setPlazo:    (id_persona, payload) => api.post(`/legajo/${id_persona}/plazo`, payload),
 };
+
+export const dashboardService = {
+  getAdminStats: () => api.get('/dashboard/admin-stats'),
+  getDocumentosPendientes: (limit = 5) => api.get('/dashboard/documentos-pendientes', {params: {limit}})
+}
 
 export default api;

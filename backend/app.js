@@ -15,6 +15,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import archivosRouter from './routes/archivos.routes.js';
 import personaTituRouter from './routes/personaTitu.routes.js';
 import legajoRouter from './routes/legajo.routes.js';
+import dashboardRouter from './routes/dashboard.routes.js';
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -55,6 +56,7 @@ app.use('/api/archivos', archivosRouter);
 app.use('/api/persona', personaRouter);
 app.use('/api/titulos', personaTituRouter);
 app.use('/api/legajo', legajoRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

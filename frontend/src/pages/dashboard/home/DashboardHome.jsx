@@ -1,0 +1,39 @@
+import { useAuth } from "../../../context/AuthContext";
+import { FiBell, FiUser } from "react-icons/fi";
+import HomeAdmin from "./HomeAdmin";
+import HomeEmpleado from "./HomeEmpleado";
+
+const getFormattedDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const today = new Date();
+    let dateStr = today.toLocaleDateString('es-ES', options);
+    return dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+};
+
+export default function DashboardHome(){
+    const { user } = useAuth();
+
+    const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
+        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN' ||
+        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'RRHH' ||
+        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'RECURSOS HUMANOS'
+    );
+
+    const nombreUsuario = user?.nombre?.split(' ')[0] || 'Usuario';
+    const fechaActual = getFormattedDate();
+
+    return(
+        <div className="p-6 space-y-6">
+            <header className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-white">¡Hola {nombreUsuario}!</h1>
+                    <p className="text-[#19F124] mt-1">{fechaActual}</p>
+                </div>
+            </header>
+
+            <div>
+                {isAdmin ? <HomeAdmin /> : <HomeEmpleado />}
+            </div>
+        </div>
+    )
+}

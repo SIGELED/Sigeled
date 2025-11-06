@@ -226,3 +226,22 @@ export async function obtenerContratoPorExternalId(req, res) {
     });
   }
 }
+
+export async function listarMisContratos(req, res) {
+  try {
+    const id_persona = req.user?.id_persona;
+
+    if(!id_persona) {
+      return res.status(401).json({ error: 'No se pudo identificar el usuario desde el token' });
+    }
+
+    const contratos = await getAllContratos({persona: id_persona});
+    res.json(contratos);
+  } catch (error) {
+    console.error('Error en listarMisContratos:', error);
+    res.status(500).json({
+      error: 'Error al obtener mis contratos',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}

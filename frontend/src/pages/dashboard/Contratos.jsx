@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { contratoService } from '../../services/api';
 import { useAuth } from "../../context/AuthContext";
-import {IoClose} from "react-icons/io5";
+import { IoClose } from "react-icons/io5";
 import { FiPlus, FiSearch, FiFileText, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi"
 
 const Panel = ({ className = "", ...props }) => (
@@ -53,7 +53,6 @@ const isUpcoming = (c) => {
 };
 const fmt = (s) => (s ? String(s).slice(0, 10) : "-");
 
-// --- small card ---
 const StatCard = ({ icon, label, value }) => (
     <Panel className="flex items-center gap-4 p-4">
         <div className="w-10 h-10 rounded-xl bg-[#101922] flex items-center justify-center text-[#9fb2c1]">

@@ -6,70 +6,93 @@ import PersonaTitulos from "../../components/PersonaTitulos";
 import SegmentedTabs from "../../components/SegmentedTabs";
 import { userService, profileService } from "../../services/api";
 import { MdNavigateBefore } from "react-icons/md";
-import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard  } from "react-icons/fi";
+import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard } from "react-icons/fi";
 import { BsPersonVcard } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function UsuarioDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user:me, updateUserPerfiles } = useAuth();
-
-    const [usuario, setUsuario] = useState(null);
-    const [perfilSeleccionado, setPerfilSeleccionado] = useState("");
-    const [todosLosPerfiles, setTodosLosPerfiles] = useState([]);
+    const queryClient = useQueryClient();
 
     const [showModal, setShowModal] = useState(false);
     const [selectedProfiles, setSelectedProfiles] = useState([]);
-    const [perfilesVigentes, setPerfilesVigentes] = useState([]);
-
-    const [showDocs, setShowDocs] = useState(false);
-    const [showDomicilios, setShowDomicilios] = useState(false);
-    const [showTitulos, setShowTitulos] = useState(false);
-
     const TABS = { INFO: "info", DOCS: "docs", DOM: "dom", TIT: "tit" };
     const [tab, setTab] = useState(TABS.INFO);
 
+    const { data: usuario, isLoading: isLoadingUsuario } = useQuery({
+        queryKey: ['usuario', id], 
+        queryFn: () => userService.getUsuarioById(id).then(res => res.data),
+    });
+
+    const { data: todosLosPerfiles = [] } = useQuery({
+        queryKey: ['perfiles'],
+        queryFn: () => profileService.getProfiles().then(res => res.data),
+        staleTime: 1000 * 60 * 60,
+    });
+
+    const { data: perfilesVigentes = [] } = useQuery({
+        queryKey: ['perfiles', 'asignados', usuario?.id_persona],
+        queryFn: () => profileService.getPersonaProfile(usuario.id_persona).then(res => res.data),
+        enabled: !!usuario?.id_persona, 
+    });
+
     useEffect(() => {
-        const fetchData = async () => {
-        try {
-            const [userRes, perfilesRes] = await Promise.all([
-            userService.getUsuarioById(id),
-            profileService.getProfiles(),
-            ]);
-            setTodosLosPerfiles(perfilesRes.data);
-            setUsuario(userRes.data);
-
-            if (userRes.data?.id_persona) {
-            const vigRes = await profileService.getPersonaProfile(
-                userRes.data.id_persona
-            );
-            setPerfilesVigentes(vigRes.data);
+        if (me?.id_persona === usuario?.id_persona && perfilesVigentes) {
+            if (me.perfiles !== perfilesVigentes) {
+                updateUserPerfiles(perfilesVigentes);
             }
-        } catch (err) {
-            console.error("Error al obtener datos del usuario", err);
-        }
-        };
+        }
+    }, [
+        perfilesVigentes,        
+        me?.id_persona,          
+        usuario?.id_persona,     
+        updateUserPerfiles     
+    ]);
 
-        fetchData();
-    }, [id]);
-
-    const handleAsignarPerfil = async () => {
-        if (!perfilSeleccionado) return;
-        try {
-            await profileService.assignProfile(usuario.id_persona, perfilSeleccionado);
-            const vigRes = await profileService.getPersonaProfile(usuario.id_persona);
-            setPerfilesVigentes(vigRes.data);
-            setPerfilSeleccionado("");
-            if(me?.id_persona === usuario.id_persona) {
-                updateUserPerfiles(vigRes.data);
-            }
-            alert("Perfil asignado correctamente");
-        } catch (error) {
+    const assignProfilesMutation = useMutation({
+        mutationFn: (perfilIds) => 
+            Promise.all(
+                perfilIds.map((pid) => profileService.assignProfile(usuario.id_persona, pid))
+            ),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['perfiles', 'asignados', usuario.id_persona] });
+            alert("Perfiles asignados correctamente");
+            setShowModal(false);
+            setSelectedProfiles([]);
+        },
+        onError: (error) => {
             console.error("Error al asignar perfiles:", error);
             alert(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
         }
+    });
+
+    const deleteProfileMutation = useMutation({
+        mutationFn: (id_perfil) => 
+            profileService.deleteProfile(usuario.id_persona, id_perfil),
+        onSuccess: (data, id_perfil_eliminado) => {
+            alert("Perfil desasignado correctamente");
+            queryClient.invalidateQueries({ queryKey: ['perfiles', 'asignados', usuario.id_persona] });
+        },
+        onError: (error) => {
+            console.error("Error al desasignar perfil", error);
+            alert("No se pudo desasignar el perfil");
+        }
+    });
+
+    const handleEliminarPerfil = async (id_perfil, nombre) => {
+        const ok = confirm(`¿Esta seguro que quiere quitar el perfil "${nombre}" de este usuario?`);
+        if (ok) {
+            deleteProfileMutation.mutate(id_perfil);
+        }
+    };
+
+    const handleAssignarMultiples = () => {
+        if (!usuario || selectedProfiles.length === 0) return;
+            assignProfilesMutation.mutate(selectedProfiles);
     };
 
     const assignedIds = new Set(perfilesVigentes.map((p) => p.id_perfil));
@@ -82,51 +105,12 @@ export default function UsuarioDetalle() {
         );
     };
 
-    const handleEliminarPerfil = async (id_perfil, nombre) => {
-        const ok = confirm(
-        `¿Esta seguro que quiere quitar el perfil "${nombre}" de este usuario?`
-        );
-        if (!ok) return;
-        try {
-        await profileService.deleteProfile(usuario.id_persona, id_perfil);
-        setPerfilesVigentes((prev) =>{
-            const next = prev.filter((p) => p.id_perfil !== id_perfil)
-                if (me?.id_persona === usuario.id_persona){
-                    updateUserPerfiles(next);
-                }
-                return next;
-            });
-        alert("Perfil desasignado correctamente");
-        } catch (error) {
-        console.error("Error al desasignar perfil", error);
-        alert("No se pudo desasignar el perfil");
-        }
-    };
-
-    const handleAssignarMultiples = async () => {
-        if (!usuario || selectedProfiles.length === 0) return;
-        try {
-        await Promise.all(
-            selectedProfiles.map((pid) =>
-            profileService.assignProfile(usuario.id_persona, pid)
-            )
-        );
-        const vigRes = await profileService.getPersonaProfile(usuario.id_persona);
-        setPerfilesVigentes(vigRes.data);
-        setSelectedProfiles([]);
-        setShowModal(false);
-        if(me?.id_persona === usuario.id_persona){
-            updateUserPerfiles(vigRes.data);
-        }
-        alert("Perfiles asignados correctamente");
-        } catch (error) {
-            console.error("Error al asignar perfiles:", error);
-            alert(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
-        }
-    };
+    if (isLoadingUsuario) {
+        return <div className="p-6 text-2xl text-white">Cargando información...</div>
+    }
 
     if (!usuario)
-        return <div className="text-2xl text-white">Cargando información...</div>;
+        return <div className="text-2xl text-white">Error: Usuario no encontrado</div>;
 
     return (
         <div className="text-white mt-7">
@@ -147,7 +131,7 @@ export default function UsuarioDetalle() {
             <h1 className="text-4xl font-medium">
                     Informacion de{" "}
                     <span className="text-[#19F124] font-black">
-                        {usuario.persona.nombre} {usuario.persona.apellido}
+                        {usuario.persona?.nombre} {usuario.persona?.apellido}
                     </span>
                 </h1>
             </div>
@@ -413,25 +397,6 @@ export default function UsuarioDetalle() {
                 </div>
             </div>
             </div>
-        )}
-
-        {showDocs && (
-            <PersonaDocumentos
-            idPersona={usuario.id_persona}
-            onClose={() => setShowDocs(false)}
-            />
-        )}
-        {showDomicilios && (
-            <PersonaDomicilios
-            idPersona={usuario.id_persona}
-            onClose={() => setShowDomicilios(false)}
-            />
-        )}
-        {showTitulos && (
-            <PersonaTitulos
-            idPersona={usuario.id_persona}
-            onClose={() => setShowTitulos(false)}
-            />
         )}
         </div>
     );

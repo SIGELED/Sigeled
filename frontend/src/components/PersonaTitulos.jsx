@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tituloService, archivoService, estadoVerificacionService } from "../services/api";
 import { IoClose } from "react-icons/io5";
 import {  FiTrash2, FiCalendar, FiBookOpen, FiCheckCircle, FiEye, FiRefreshCcw} from "react-icons/fi";
@@ -14,18 +15,15 @@ const FALLBACK_ESTADOS = [
 ]
 
 export default function PersonaTitulos({ idPersona, onClose, asModal = true, showPersonaId = true, canDelete = true, canChangeState = true, onRequestDelete }) {
-    const [estados, setEstados] = useState(FALLBACK_ESTADOS);
-    const [verificacion, setVerificacion] = useState({ open:false, titulo: null , estado:"", obs:""})
+    const queryClient = useQueryClient();
 
-    const [titulos, setTitulos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [verificacion, setVerificacion] = useState({ open:false, titulo: null , estado:"", obs:""})
 
     const [deletingId, setDeletingId] = useState(null)
 
     const [showNew, setShowNew] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    const [tipos, setTipos] = useState([]);
 
     const [id_tipo_titulo, setIdTipoTitulo] = useState("");
     const [nombre_titulo, setNombreTitulo] = useState("");
@@ -35,6 +33,81 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
     const [archivo, setArchivo] = useState(null);
 
     const [preview, setPreview] = useState({ open: false, url: "", title: "" });
+
+    const { data: titulos = [], isLoading: isLoadingTitulos } = useQuery({
+        queryKey: ['titulos', idPersona],
+        queryFn: async () => {
+            if (!idPersona) return [];
+            const { data } = await tituloService.findTituloByPersona(idPersona);
+            return Array.isArray(data) ? data : [];
+        },
+        enabled: !!idPersona,
+    });
+
+        const { data: tipos = [] } = useQuery({
+            queryKey: ['tiposTitulo'],
+            queryFn: () => tituloService.getTiposTiulos().then(res => res.data),
+            staleTime: 1000 * 60 * 60, 
+        });     
+
+        const { data: estados = [] } = useQuery({
+            queryKey: ['estadosVerificacion'], 
+            queryFn: () => estadoVerificacionService.getAll().then(res => res.data),
+            staleTime: 1000 * 60 * 60,
+        });
+
+    const createTituloMutation = useMutation({
+        mutationFn: async (body) => {
+            let id_archivo = null;
+            if (archivo) { 
+                const up = await archivoService.uploadForPersona(idPersona, archivo);
+                id_archivo = up?.data?.id_archivo ?? up?.data?.archivo?.id_archivo ?? null;
+            }
+            return tituloService.createTitulo({ ...body, id_archivo });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
+            resetForm();
+            setShowNew(false);
+        },
+        onError: (error) => {
+            console.error("Error al crear título:", error);
+            alert("No se pudo crear el título");
+        },
+        onSettled: () => {
+            setSaving(false);
+        }
+        });     
+
+    const deleteTituloMutation = useMutation({
+        mutationFn: (t) => tituloService.deleteTitulo(idPersona, t.id_titulo),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
+        },
+        onError: (error) => {
+            console.error("No se pudo eliminar el título:", error?.response?.data || error.message);
+            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el título";
+            alert(message);
+        },
+        onSettled: () => {
+            setDeletingId(null);
+        }
+        });
+
+        const changeStateMutation = useMutation({
+        mutationFn: ({ tituloId, payload }) => tituloService.cambiarEstado(tituloId, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
+            closeCambiarEstado();
+        },
+        onError: (error) => {
+            console.error("Error al cambiar estado:", error);
+            alert("No se pudo cambiar el estado");
+        }
+        });
+    
     const tipoById = (id) =>
         tipos.find((t) => Number(t.id_tipo_titulo) === Number(id));
 
@@ -54,25 +127,13 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             e.preventDefault();
             if(!verificacion.titulo) return;
             const id_estado_verificacion = Number(verificacion.estado);
-    
+
             if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
-                alert("Debés indicar una observación para Rechazado/Observado");
-                return;
+                return alert("Debés indicar una observación para Rechazado/Observado");
             }
-    
-            try {
-                const { data: actualizado } = await tituloService.cambiarEstado(
-                    verificacion.titulo.id_titulo,
-                    { id_estado_verificacion, observacion: verificacion.obs.trim() || null }
-                );
-                setTitulos((prev) => 
-                prev.map((x) => (x.id_titulo === actualizado.id_titulo ? actualizado : x)));
-                closeCambiarEstado();
-            } catch (error) {
-                console.error("Error al cambiar estado del título:", error);
-                alert("No se pudo cambiar el estado");
-            }
-        }
+            const payload = { id_estado_verificacion, observacion: verificacion.obs.trim() || null };
+            changeStateMutation.mutate({ tituloId: verificacion.titulo.id_titulo, payload });
+        };
 
     const openPreview = async (doc) => {
         if (!doc.id_archivo) return;
@@ -94,38 +155,6 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
 
     const closePreview = () => setPreview({ open: false, url: "", title: "" });
 
-    const fetchTitulos = useCallback(async () => {
-        setLoading(true);
-        try {
-        const [tRes, tiposRes] = await Promise.all([
-            tituloService.findTituloByPersona(idPersona),
-            tituloService.getTiposTiulos(),
-        ]);
-        setTitulos(Array.isArray(tRes.data) ? tRes.data : []);
-        setTipos(Array.isArray(tiposRes.data) ? tiposRes.data : []);
-        } catch (error) {
-        console.error("Error cargando títulos o tipos:", error);
-        setTitulos([]);
-        setTipos([]);
-        } finally {
-        setLoading(false);
-        }
-    }, [idPersona]);
-
-    useEffect(() => {
-        if (idPersona) fetchTitulos();
-    }, [fetchTitulos, idPersona]);
-
-    useEffect(() => {
-        if(!canChangeState) return;
-        (async () => {
-            try {
-                const { data } = await estadoVerificacionService.getAll();
-                if (Array.isArray(data) && data.length) setEstados(data);
-            } catch {}
-        })();
-    }, [canChangeState]);
-
     const titulosOrdenados = useMemo(
         () =>
         [...titulos].sort((a, b) =>
@@ -146,21 +175,9 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!id_tipo_titulo || !nombre_titulo) {
-        return alert("Completá tipo de título y nombre de titulo");
-        }
-        try {
+            return alert("Completá tipo de título y nombre de titulo");
+        }
         setSaving(true);
-
-        let id_archivo = null;
-        if (archivo) {
-            const up = await archivoService.uploadForPersona(idPersona, archivo);
-            id_archivo =
-            up?.data?.id_archivo ??
-            up?.data?.archivo?.id_archivo ??
-            up?.data?.result?.id_archivo ??
-            null;
-        }
-
         const body = {
             id_persona: idPersona,
             id_tipo_titulo: Number(id_tipo_titulo),
@@ -168,39 +185,16 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             institucion: institucion || null,
             fecha_emision: fecha_emision || null,
             matricula_prof: matricula_prof || null,
-            id_archivo,
-            id_estado_verificacion: 1,
+            id_estado_verificacion: 1, 
         };
-
-        const { data: nuevoTitulo } = await tituloService.createTitulo(body);
-
-        setTitulos((prev) => [nuevoTitulo, ...prev]);
-
-        await fetchTitulos();
-        resetForm();
-        setShowNew(false);
-        } catch (error) {
-        console.error("Error al crear título:", error);
-        alert("No se pudo crear el título");
-        } finally {
-        setSaving(false);
-        }
+        createTituloMutation.mutate(body);
     };
 
     const handleDelete = async (t) => {
         const ok = confirm(`¿Eliminar el título "${t.nombre_titulo}"? Esta acción no se puede deshacer`);
         if(!ok) return;
-        try {
-            setDeletingId(t.id_titulo);
-            await tituloService.deleteTitulo(idPersona, t.id_titulo);
-            setTitulos(prev => prev.filter(x => x.id_titulo !== t.id_titulo));
-        } catch (error) {
-            console.error("No se pudo eliminar el título:", error?.response?.data || error.message);
-            const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el título";
-            alert(message);
-        } finally {
-            setDeletingId(null);
-        }
+        setDeletingId(t.id_titulo);
+        deleteTituloMutation.mutate(t);
     }
 
     const renderPanel = () => (
@@ -228,7 +222,12 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             </button>
         </div>
 
-        <ul className="space-y-3">
+            {isLoadingTitulos ? (
+                <p className="opacity-70">Cargando títulos...</p>
+            ) : titulosOrdenados.length === 0 ? (
+                <p className="opacity-70">Sin títulos cargados.</p>
+            ): (
+                <ul className="space-y-3">
             {titulosOrdenados.map((t) => (
                 <li
                 key={`t-${t.id_titulo ?? t.nombre_titulo}`}
@@ -308,6 +307,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
                 </li>
             ))}
             </ul>
+            )}
 
 
 
