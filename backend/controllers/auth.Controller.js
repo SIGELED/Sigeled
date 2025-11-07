@@ -1,9 +1,11 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { io } from '../app.js';
+import { createNotificacion, getAdminAndRRHHIds } from '../models/notificacionModel.js';
 import { findUserByEmail, createUser } from '../models/userModel.js';
 import { getRolesByUserId } from '../models/roleModel.js';
 import { getPerfilesDePersona, getPersonaById } from '../models/personaModel.js';
-import db from '../models/db.js';
+
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -69,6 +71,23 @@ export const register = async (req, res) => {
 
         const password_hash = await bcrypt.hash(password, 10);
         const newUser = await createUser({ email, password_hash });
+
+        try {
+            const adminIds = await getAdminAndRRHHIds();
+            const mensaje = `Nuevo usuario registrado: ${email}. Requiere activación`;
+            const link = `/dashboard/usuarios/${newUser.id_usuario}`;
+
+            for (const adminId of adminIds) {
+                const notif = await createNotificacion({
+                    id_usuario: adminId,
+                    mensaje: mensaje,
+                    link: link
+                });
+                io.to(adminId.toString()).emit('nueva_notificacion', notif);
+            }
+        } catch (notifError) {
+            console.error("Error al notificar a admins:", notifError);
+        }
 
         const token = jwt.sign(
             { id: newUser.id_usuario, email: newUser.email },

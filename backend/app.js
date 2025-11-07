@@ -3,6 +3,9 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
 import authRouter from './routes/auth.routes.js';
 import docenteRouter from './routes/docente.routes.js';
 import userRouter from './routes/user.routes.js';
@@ -16,6 +19,7 @@ import archivosRouter from './routes/archivos.routes.js';
 import personaTituRouter from './routes/personaTitu.routes.js';
 import legajoRouter from './routes/legajo.routes.js';
 import dashboardRouter from './routes/dashboard.routes.js';
+import notificacionRouter from './routes/notificacion.routes.js';
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -34,12 +38,37 @@ const swaggerDefinition = {
 
 const options = {
   swaggerDefinition,
-  apis: ['./routes/*.js'], // Documenta todas las rutas
+  apis: ['./routes/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
-const app = express(); // debe ir antes de usar app.use
+const app = express();
+
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PATCH"]
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log(`[Socket.IO] Cliente conectado: ${socket.id}`);
+
+  socket.on('join_room', (roomName) => {
+    if(roomName) {
+      socket.join(roomName.toString());
+      console.log(`[Socket.IO] Cliente ${socket.id} se unió a la sala: ${roomName}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`[Socket.IO] Cliente desconectado: ${socket.id}`);
+  })
+})
+
+export { io };
 
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
@@ -57,8 +86,10 @@ app.use('/api/persona', personaRouter);
 app.use('/api/titulos', personaTituRouter);
 app.use('/api/legajo', legajoRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/notificaciones', notificacionRouter);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+
+httpServer.listen(PORT, () => {
+  console.log(`Servidor (y Socket.IO) corriendo en el puerto ${PORT}`);
 });

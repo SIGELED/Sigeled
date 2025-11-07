@@ -1,45 +1,123 @@
 import { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { io } from 'socket.io-client';
+import { notificacionService } from '../services/api';
 
 const AuthContext = createContext();
+
+const getSocketURL = (apiUrl) => {
+  try {
+    const url = new URL(apiUrl);
+    return url.origin;
+  } catch (error) {
+    console.error("VITE_API_URL inválida:", apiUrl);
+    return 'http://localhost:4000';
+  }
+}
+
+const socketURL = getSocketURL(import.meta.env.VITE_API_URL);
+
+const socket = io(socketURL, {
+  autoConnect: false
+})
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setNotifications([]);
+  }, []);
 
   useEffect(() => {
+    const onNewNotification = (notificacion) => {
+      console.log('[Socket.IO] Nueva notificación recibida:', notificacion);
+      setNotifications(prev => [notificacion, ...prev]);
+    };
+
+    socket.on('connect', () => console.log('[Socket.IO] Conectado'));
+    socket.on('disconnect', () => console.log('[Socket.IO] Desconectado'));
+    socket.on('nueva_notificacion', onNewNotification);
+
     const loadUser = () => {
       const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
-      if (token && userData) {
+
+      if(token && userData){
         let parsed = JSON.parse(userData);
-        if (!parsed.id_persona) {
+
+        if(!parsed.id_persona){
           const parts = token.split('.');
-          if (parts.length === 3) {
+          if(parts.length === 3) {
             try {
               const payload = JSON.parse(atob(parts[1]));
-              if (payload?.id_persona) {
+              if(payload?.id_persona) {
                 parsed = { ...parsed, id_persona: payload.id_persona };
               }
-            } catch {}
+            } catch{}
           }
         }
         setUser(parsed);
       }
       setLoading(false);
     };
-    loadUser();
-  }, []);
 
-  const login = useCallback((userData, token) => {
+    loadUser();
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('nueva_notificacion', onNewNotification);
+    };
+  }, [logout]);
+
+  useEffect(() => {
+    if(user && user.id_usuario) {
+      if(!socket.connected){
+        socket.connect();
+      }
+
+      socket.emit('join_room', user.id_usuario.toString());
+      const isAdmin = (user.roles || []).some(r => {
+        const roleName = (typeof r === 'string' ? r : r?.nombre)?.toUpperCase();
+        return roleName === 'ADMIN' || roleName === 'RRHH';
+      });
+      if(isAdmin){
+        socket.emit('join_room', 'ADMIN_ROOM');
+      }
+
+      const fetchNotificaciones = async () => {
+        try {
+          const { data } = await notificacionService.getMisNotificaciones();
+          setNotifications(Array.isArray(data) ? data : []);
+        } catch (error) {
+          console.error("Error al carga notificaciones:", error);
+          if(error.response?.status === 401){
+            logout();
+          }
+        }
+      };
+      fetchNotificaciones();
+
+  } else if(!loading) {
+    socket.disconnect();
+  }
+}, [user, loading, logout]);
+
+  const login = useCallback(async (userData, token) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-  }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+    try {
+      const { data } = await notificacionService.getMisNotificaciones();
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error al cargar notificaciones en login:", error);
+    }
   }, []);
 
   const updateUser = useCallback((partialOrUpdater) => {
@@ -57,7 +135,7 @@ export const AuthProvider = ({ children }) => {
   }, [updateUser]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser, updateUserPerfiles }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser, updateUserPerfiles, notifications,  setNotifications}}>
       {children}
     </AuthContext.Provider>
   );

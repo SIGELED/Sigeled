@@ -7,6 +7,9 @@ import {
     deletePersonaDocumento,
     countArchivoReferences
 } from '../models/personaDocModel.js';
+import { io } from '../app.js';
+import { createNotificacion } from '../models/notificacionModel.js';
+import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getEstadoById } from '../models/estadoVerificacionModel.js';
 import { deleteArchivo, getArchivoById } from '../models/archivoModel.js';
 
@@ -68,6 +71,22 @@ export const verificarPersonaDocumento = async (req, res) => {
             observacion,
             verificado_por_usuario
         });
+
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(actualizado.id_persona);
+            if(usuarioDestino) {
+                const id_usuario_destino = usuarioDestino.id_usuario;
+                const notif = await createNotificacion({
+                    id_usuario: id_usuario_destino,
+                    mensaje: `Tu documento "${actualizado.tipo_nombre}" ha sido ${actualizado.estado_nombre}`,
+                    observacion: observacion || null,
+                    link: '/dashboard/legajo'
+                });
+                io.to(id_usuario_destino.toString()).emit('nueva_notificacion', notif);
+            }
+        } catch (notifError) {
+            console.error("Error al notificar al empleado:", notifError);
+        }
 
         res.json(actualizado);
     } catch (error) {

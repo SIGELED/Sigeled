@@ -203,12 +203,10 @@ const Register = () => {
   return (
     <div className="min-h-screen w-screen bg-[#030C14]">
       <div className="grid w-full min-h-screen grid-cols-1 md:grid-cols-2">
-        {/* Columna izquierda*/}
         <div className="bg-[#0C1A27] rounded-2xl m-5 md:m-5 flex items-center justify-center">
           <img src={logo} alt="SIGELED" className="max-h-[70vh] w-auto" />
         </div>
 
-        {/* Columna derecha*/}
         <div className="flex flex-col justify-center p-8 pl-20 pr-20">
         <div className="w-full bg-[#0E1F30] h-4 rounded-xl">
           <div

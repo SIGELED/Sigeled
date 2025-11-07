@@ -169,4 +169,9 @@ export const dashboardService = {
   getDocumentosPendientes: (limit = 5) => api.get('/dashboard/documentos-pendientes', {params: {limit}})
 }
 
+export const notificacionService = {
+  getMisNotificaciones: () => api.get('/notificaciones/mis-notificaciones'),
+  marcarComoLeido:async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+}
+
 export default api;
