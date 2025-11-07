@@ -1,41 +1,21 @@
 import { useEffect, useState, Suspense, lazy } from "react";
 import { personaService, profileService, roleService, userService } from "../../services/api";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useDebounce } from "use-debounce";
 
 const UsuariosTable = lazy(() => import('./Usuarios'));
 
 const UsuariosSection = ({user}) =>{
     const queryClient = useQueryClient();
+    const [filtros, setFiltros] = useState({ search: '', perfil: '' });
+    const [debouncedSearch] = useDebounce(filtros.search, 300);
 
-    const fetchUsuariosDetallados = async () => {
-                const usuariosRes = await userService.getUsuarios();
-                const usuariosData = usuariosRes.data;
-
-                const usuariosConRolesYPersona = await Promise.all(
-                    usuariosData.map(async (u) =>{
-                        const rolesRes = await roleService.getRolesByUser(u.id_usuario);
-                        let personaData = {};
-                        if(u.id_persona){
-                            try {
-                                const personaRes = await personaService.getPersonaByID(u.id_persona);
-                                personaData = personaRes.data;
-                            } catch (err) {
-                                console.warn(`No se encontró persona para usuario ${u.id_usuario}`);
-                            }
-                        }
-                        return{
-                            ...u,
-                            rolesAsignados: rolesRes.data,
-                            ...personaData
-                        };
-                    })
-                );
-                return usuariosConRolesYPersona;
-    };
+    const queryKey = ['usuarios', 'busqueda', debouncedSearch, filtros.perfil];
 
     const { data: usuarios = [], isLoading: isLoadingUsuarios } = useQuery({
-        queryKey: ['usuarios', 'detalles'],
-        queryFn: fetchUsuariosDetallados,
+        queryKey: queryKey,
+        queryFn: () => personaService.buscadorAvanzadoUsuarios(debouncedSearch, filtros.perfil).then(res => res.data),
+        placeholderData: keepPreviousData,
     });
 
     const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
@@ -52,7 +32,7 @@ const UsuariosSection = ({user}) =>{
         mutationFn: ({ id_usuario, id_rol }) => roleService.assignRoleToUser(id_usuario, id_rol, user.id),
         onSuccess: () => {
             alert("Rol asignado correctamente");
-            queryClient.invalidateQueries({queryKey: ['usuarios', 'detalles']});
+            queryClient.invalidateQueries({queryKey: queryKey});
         },
         onError: (err) => {
             alert(err.response?.data?.message || 'Error al asignar rol');
@@ -62,9 +42,9 @@ const UsuariosSection = ({user}) =>{
     const toggleUserMutation = useMutation({
         mutationFn: (usuario) => userService.toggleUsuario(usuario.id_usuario),
         onMutate: async (usuario) => {
-            await queryClient.cancelQueries({ queryKey: ['usuarios', 'detalles'] });
-            const prev = queryClient.getQueryData(['usuarios', 'detalles']);
-            queryClient.setQueryData(['usuarios', 'detalles'], (list) =>
+            await queryClient.cancelQueries({ queryKey: queryKey });
+            const prev = queryClient.getQueryData(queryKey);
+            queryClient.setQueryData(queryKey, (list) =>
                 Array.isArray(list)
                     ? list.map(u => u.id_usuario === usuario.id_usuario ? { ...u, activo: !u.activo } : u)
                     : list
@@ -72,10 +52,10 @@ const UsuariosSection = ({user}) =>{
             return { prev };
         },
         onError: (_err, _vars, ctx) => {
-            if (ctx?.prev) queryClient.setQueryData(['usuarios', 'detalles'], ctx.prev);
+            if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
         },
         onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['usuarios', 'detalles'] });
+            queryClient.invalidateQueries({ queryKey: queryKey });
         },
     })
 
@@ -91,19 +71,22 @@ const UsuariosSection = ({user}) =>{
         toggleUserMutation.mutate(usuario);
     }
 
-    if (isLoadingUsuarios || isLoadingRoles || isLoadingProfiles) {
-        return <div>Cargando datos de usuarios...</div>
+    if (isLoadingRoles || isLoadingProfiles) {
+        return <div>Cargando datos...</div>
     }
 
     return (
         <Suspense fallback={<div>Cargando...</div>}>
             <UsuariosTable
                 users={usuarios}
+                isLoading={isLoadingUsuarios}
                 roles = {roles}
                 profiles = {profiles}
                 onEdit = {handleEdit}
                 onToggle = {handleToggle}
                 onAssignRole = {handleAssignRole}
+                filtros={filtros}
+                onFiltroChange={setFiltros}
             />
         </Suspense>
     )

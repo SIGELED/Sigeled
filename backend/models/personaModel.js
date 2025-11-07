@@ -49,41 +49,67 @@ export const buscarPersonaPorDNI = async (dni) => {
 
 // Buscador avanzado de personas (ahora permite filtrar por DNI)
 export const getPersonasFiltros = async (filtros) => {
-    let query = `
-        SELECT DISTINCT p.*
-        FROM personas p
-        LEFT JOIN personas_perfiles pp ON p.id_persona = pp.id_persona AND pp.vigente = true
-        LEFT JOIN perfiles pf ON pp.id_perfil = pf.id_perfil
-        LEFT JOIN personas_identificacion pi ON p.id_persona = pi.id_persona
-        WHERE 1=1
+    let query = `SELECT
+                p.id_persona, p.nombre, p.apellido, p.fecha_nacimiento, p.sexo, p.telefono,
+                u.id_usuario, u.email, u.activo,
+                pi.dni,
+                (
+                    SELECT json_agg(r)
+                    FROM (
+                        SELECT r.nombre FROM usuarios_roles ur
+                        JOIN roles r ON ur.id_rol = r.id_rol
+                        WHERE ur.id_usuario = u.id_usuario
+                    ) as r
+                ) as rolesAsignados,
+                (
+                    SELECT json_agg(pf)
+                    FROM(
+                        SELECT pf.nombre FROM personas_perfiles pp
+                        JOIN perfiles pf ON pp.id_perfil = pf.id_perfil
+                        WHERE pp.id_persona = p.id_persona AND pp.vigente = true
+                    ) as pf
+                ) as perfilesAsignados
+            FROM personas p
+            LEFT JOIN usuarios u ON p.id_persona = u.id_persona
+            LEFT JOIN personas_identificacion pi ON p.id_persona = pi.id_persona
+            LEFT JOIN personas_perfiles pp_filter ON p.id_persona = pp_filter.id_persona AND pp_filter.vigente = true
+            LEFT JOIN perfiles pf_filter ON pp_filter.id_perfil = pf_filter.id_perfil
+            WHERE 1=1
     `;
+
     const params = [];
     let idx = 1;
 
-    if (filtros.nombre) {
-        query += ` AND LOWER(p.nombre) LIKE LOWER($${idx})`;
-        params.push(`%${filtros.nombre}%`);
+    if(filtros.search) {
+        query += ` AND (
+            p.nombre ILIKE $${idx} OR
+            p.apellido ILIKE $${idx} OR
+            pi.dni ILIKE $${idx} OR
+            u.email ILIKE $${idx}
+        )`;
+        params.push(`%${filtros.search}%`);
         idx++;
     }
-    if (filtros.apellido) {
-        query += ` AND LOWER(p.apellido) LIKE LOWER($${idx})`;
-        params.push(`%${filtros.apellido}%`);
-        idx++;
-    }
-    if (filtros.dni) {
-        query += ` AND pi.dni = $${idx}`;
-        params.push(filtros.dni);
-        idx++;
-    }
-    if (filtros.perfil) {
-        query += ` AND LOWER(pf.nombre) = LOWER($${idx})`;
+
+    if(filtros.perfil){
+        query += ` AND pf_filter.nombre = $${idx}`;
         params.push(filtros.perfil);
         idx++;
     }
 
-    const res = await db.query(query, params);
-    return res.rows;
-};
+    query += ` GROUP BY
+                    p.id_persona, p.nombre, p.apellido, p.fecha_nacimiento, p.sexo, p.telefono,
+                    u.id_usuario, u.email, u.activo,
+                    pi.dni`;
+
+    try {
+        const res = await db.query(query, params);
+        return res.rows;
+    } catch (sqlError) {
+        console.error("Error en getPersonasFiltros:", sqlError);
+        throw sqlError;
+    }
+}
 
 
 // Obtener persona por ID

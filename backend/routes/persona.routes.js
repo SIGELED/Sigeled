@@ -53,6 +53,38 @@ personaRouter.use(verificarToken);
 
 /**
  * @swagger
+ * /api/persona/buscar:
+ *   get:
+ *     summary: Buscador avanzado de personal (solo RRHH/Admin)
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: nombre
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: apellido
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: dni
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: perfil
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resultados del buscador avanzado
+ */
+personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
+
+/**
+ * @swagger
  * /api/persona/estados-verificacion:
  *   get:
  *     summary: Listar estados de verificación
@@ -143,6 +175,33 @@ personaRouter.get('/perfiles', async (req, res) => {
         res.status(500).json({ message: 'Error del servidor' });
     }
 });
+
+
+/**
+ * @swagger
+ * /api/persona/{id_persona}/perfiles:
+ *   get:
+ *     summary: Obtener perfiles vigentes de una persona
+ *     tags:
+ *       - Persona
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id_persona
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Lista de perfiles vigentes
+ *       404:
+ *         description: Persona no encontrada
+ */
+
+// Buscar persona por DNI
+personaRouter.get('/buscar-por-dni', soloRRHH, buscarPorDNI);
 
 /**
  * @swagger
@@ -460,38 +519,6 @@ personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValida
  *       200:
  *         description: Resultados del buscador avanzado
  */
-personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
-
-/**
- * @swagger
- * /api/persona/buscar:
- *   get:
- *     summary: Buscador avanzado de personal (solo RRHH/Admin)
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: nombre
- *         in: query
- *         schema:
- *           type: string
- *       - name: apellido
- *         in: query
- *         schema:
- *           type: string
- *       - name: dni
- *         in: query
- *         schema:
- *           type: string
- *       - name: perfil
- *         in: query
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Resultados del buscador avanzado
- */
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
 
@@ -529,32 +556,6 @@ personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministr
 
 // Obtener perfiles vigentes de una persona
 personaRouter.get('/:id_persona/perfiles', obtenerPerfilesPersona);
-
-/**
- * @swagger
- * /api/persona/{id_persona}/perfiles:
- *   get:
- *     summary: Obtener perfiles vigentes de una persona
- *     tags:
- *       - Persona
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id_persona
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Lista de perfiles vigentes
- *       404:
- *         description: Persona no encontrada
- */
-
-// Buscar persona por DNI
-personaRouter.get('/buscar-por-dni', soloRRHH, buscarPorDNI);
 
 /**
  * @swagger

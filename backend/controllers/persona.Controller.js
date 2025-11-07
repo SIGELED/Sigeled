@@ -72,9 +72,9 @@ export const subirArchivo = async (req, res) => {
 
         const archivoGuardado = await createArchivo(archivoData);
         return res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado, id_archivo: archivoGuardado.id_archivo });
-    } catch (err) {
-        console.error('Error en subirArchivo:', err);
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en subirArchivo:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -83,8 +83,9 @@ export const listarEstadosVerificacion = async (req, res) => {
     try {
         const estados = await getEstadosVerificacion();
         res.json(estados);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en listarEstadosVerificacion:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -179,6 +180,7 @@ export const listarPersonas = async (req, res) => {
         const personas = await getAllPersonas();
         res.json(personas);
     } catch (error) {
+        console.error('Error en listarPersonas:', error);
         res.status(500).json({ message: 'Error al obtener personas' });
     }
 };
@@ -189,6 +191,7 @@ export const obtenerPerfilesPersona = async (req, res) => {
         const perfiles = await getPerfilesDePersona(id_persona);
         res.json(perfiles);
     } catch (error) {
+        console.error('Error en obtenerPerfilesPersona:', error);
         res.status(500).json({ message: 'Error al obtener perfiles', detalle: error.message });
     }
 };
@@ -200,21 +203,23 @@ export const buscarPorDNI = async (req, res) => {
         const personas = await buscarPersonaPorDNI(dni);
         res.json(personas);
     } catch (error) {
+        console.error('Error en buscarPorDNI:', error);
         res.status(500).json({ message: 'Error al buscar por DNI', detalle: error.message });
     }
 };
 
 export const buscadorAvanzado = async (req, res) => {
+    console.log("[Debug Controller] /api/persona/buscar - Query Params:", req.query); 
+    
     try {
-        const { nombre, apellido, dni, perfil } = req.query;
-        const filtros = {};
-        if (nombre) filtros.nombre = nombre;
-        if (apellido) filtros.apellido = apellido;
-        if (dni) filtros.dni = dni;
-        if (perfil) filtros.perfil = perfil;
+        const { search, perfil } = req.query;
+        const filtros = {}; 
+        if(search) filtros.search = search;
+        if(perfil) filtros.perfil = perfil; 
         const personas = await getPersonasFiltros(filtros);
         res.json(personas);
     } catch (error) {
+        console.error('Error fatal en el controller buscadorAvanzado:', error.stack || error.message || error);
         res.status(500).json({ message: 'Error en el buscador avanzado', detalle: error.message });
     }
 };
@@ -229,6 +234,7 @@ export const obtenerPersona = async (req, res) => {
         }
         res.json(persona);
     } catch (error) {
+        console.log("Error en obtenerPersona", error);
         res.status(500).json({ message: 'Error al obtener persona' });
     }
 };
@@ -239,7 +245,8 @@ export const obtenerIdentificacion = async (req, res) => {
         const { id_persona } = req.params;
         const identificacion = await getIdentificacionByPersona(id_persona);
         res.json(identificacion);
-    } catch (err) {
+    } catch (error) {
+        console.error('Error en obtenerIdentificacion:', error);
         res.status(500).json({ error: err.message });
     }
 };
@@ -266,9 +273,9 @@ export const crearIdentificacion = async (req, res) => {
             message:'Identificación creada correctamente.',
             identificacion: nuevaIdentificacion
         })
-    } catch (err) {
-        console.error('Eror en crearIdentificacion:', err);
-        res.status(500).json({ error: 'Error al crear identificación', detalle: err.message});
+    } catch (error) {
+        console.error('Eror en crearIdentificacion:', error);
+        res.status(500).json({ error: 'Error al crear identificación', detalle: error.message});
     }
 };
 
@@ -278,15 +285,15 @@ export const obtenerDomicilios = async (req, res) => {
         const { id_persona } = req.params;
         const domicilios = await getDomiciliosByPersona(id_persona);
         res.json(domicilios);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en obtenerDomicilios:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
 export const crearDomicilio = async (req, res) => {
     try {
         let datos = req.body;
-        // Si la tabla persona_domicilio tiene id_estado, aplica la lógica
         if ('id_estado' in datos) {
             if (!datos.id_estado) {
                 const { getIdEstadoPendiente } = await import('../models/estadoVerificacionModel.js');
@@ -301,14 +308,14 @@ export const crearDomicilio = async (req, res) => {
                 }
             }
         }
-        // Auditoría: guardar el usuario que realiza el cambio
         if (req.usuario && req.usuario.id_usuario) {
             datos.actualizado_por = req.usuario.id_usuario;
         }
         const nuevoDomi = await createDomicilio(datos);
         res.status(201).json(nuevoDomi);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en crearDomicilio:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -318,15 +325,15 @@ export const obtenerTitulos = async (req, res) => {
         const { id_persona } = req.params;
         const titulos = await getTitulosByPersona(id_persona);
         res.json(titulos);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en obtenerTitulos:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
 export const crearTitulo = async (req, res) => {
     try {
         let datos = req.body;
-        // Control de duplicados de título para la persona
         const existentes = await getTitulosByPersona(datos.id_persona);
         if (existentes.some(e => e.nombre_titulo === datos.nombre_titulo)) {
             return res.status(409).json({ error: 'Ya existe un título con ese nombre para esta persona.' });
@@ -343,13 +350,13 @@ export const crearTitulo = async (req, res) => {
                 return res.status(400).json({ error: 'El estado de verificación no es válido.' });
             }
         }
-        // Auditoría: guardar el usuario que realiza el cambio
         if (req.usuario && req.usuario.id_usuario) {
             datos.actualizado_por = req.usuario.id_usuario;
         }
         const nuevoTitulo = await createTitulo(datos);
         res.status(201).json(nuevoTitulo);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error('Error en crearTitulo:', error);
+        res.status(500).json({ error: error.message });
     }
 };

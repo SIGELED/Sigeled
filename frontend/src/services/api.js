@@ -47,6 +47,12 @@ export const roleService = {
 export const personaService = {
   createPersona:(data) => api.post('/persona', data),
   getPersonaByID:(id_persona) => api.get(`/persona/${id_persona}`),
+  buscadorAvanzadoUsuarios: (search, perfil) => {
+    const params = {};
+    if(search) params.search = search;
+    if(perfil) params.perfil = perfil;
+    return api.get('/persona/buscar', { params });
+  }
 };
 
 export const identificationService = {
