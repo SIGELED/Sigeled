@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import jwt from 'jsonwebtoken'
 
 import express from 'express';
 import cors from 'cors';
@@ -53,15 +54,27 @@ const io = new Server(httpServer, {
   }
 });
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if(!token) return next(new Error('No token'));
+  try {
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    socket.user = payload;
+    next();
+  } catch (error) {
+    next(new Error('Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => {
+  const idSala = socket.user.id_usuario.toString();
+  socket.join(idSala);
   console.log(`[Socket.IO] Cliente conectado: ${socket.id}`);
 
-  socket.on('join_room', (roomName) => {
-    if(roomName) {
-      socket.join(roomName.toString());
-      console.log(`[Socket.IO] Cliente ${socket.id} se unió a la sala: ${roomName}`);
-    }
-  });
+  const roles = Array.isArray(socket.user.roles) ? socket.user.roles.map(r => String(r).toUpperCase()) : [];
+  if (roles.includes('ADMIN') || roles.includes('RRHH')){
+    socket.join('ADMIN_ROOM');
+  }
 
   socket.on('disconnect', () => {
     console.log(`[Socket.IO] Cliente desconectado: ${socket.id}`);

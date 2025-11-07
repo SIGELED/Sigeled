@@ -40,6 +40,9 @@ export const AuthProvider = ({ children }) => {
 
     socket.on('connect', () => console.log('[Socket.IO] Conectado'));
     socket.on('disconnect', () => console.log('[Socket.IO] Desconectado'));
+    socket.on('connect_error', (err) => {
+      console.error('[Socket.IO] connect_error:', err?.message || err);
+    })
     socket.on('nueva_notificacion', onNewNotification);
 
     const loadUser = () => {
@@ -70,42 +73,30 @@ export const AuthProvider = ({ children }) => {
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('connect_error');
       socket.off('nueva_notificacion', onNewNotification);
     };
   }, [logout]);
 
   useEffect(() => {
-    if(user && user.id_usuario) {
-      if(!socket.connected){
-        socket.connect();
-      }
+    if (user?.id_usuario) {
+      socket.auth = { token: localStorage.getItem('token') };
+      if (!socket.connected) socket.connect();
 
-      socket.emit('join_room', user.id_usuario.toString());
-      const isAdmin = (user.roles || []).some(r => {
-        const roleName = (typeof r === 'string' ? r : r?.nombre)?.toUpperCase();
-        return roleName === 'ADMIN' || roleName === 'RRHH';
-      });
-      if(isAdmin){
-        socket.emit('join_room', 'ADMIN_ROOM');
-      }
-
-      const fetchNotificaciones = async () => {
+      (async () => {
         try {
           const { data } = await notificacionService.getMisNotificaciones();
           setNotifications(Array.isArray(data) ? data : []);
         } catch (error) {
-          console.error("Error al carga notificaciones:", error);
-          if(error.response?.status === 401){
-            logout();
-          }
+          console.error("Error al cargar notificaciones:", error);
+          if (error.response?.status === 401) logout();
         }
-      };
-      fetchNotificaciones();
-
-  } else if(!loading) {
-    socket.disconnect();
-  }
-}, [user, loading, logout]);
+      })();
+    } else if (!loading) {
+      if (socket.connected) socket.disconnect();
+      setNotifications([]);
+    }
+  }, [user, loading, logout]);
 
   const login = useCallback(async (userData, token) => {
     localStorage.setItem('token', token);

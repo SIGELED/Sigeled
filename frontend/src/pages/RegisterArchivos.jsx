@@ -21,7 +21,7 @@ export default function RegisterArchivos() {
     
     const refetchDocs = async () => {
         if(!id_persona) return;
-        const { data } = await personaDocService.listarDocumentos({ id_persona });
+        const { data } = await personaDocService.listarDocumentos( id_persona );
         setDocs(Array.isArray(data) ? data : []);
     }
 

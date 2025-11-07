@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useNavigate, Link} from "react-router-dom";
-import { authService, identificationService, legajoService, personaService } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import { authService, identificationService, personaService } from "../services/api";
 import { BiSolidError } from "react-icons/bi";
 import logo from "../assets/svg/logoLetras.svg";
 
 const Register = () => {
+  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [userData, setUserData] = useState({
     email: "",
@@ -40,11 +42,8 @@ const Register = () => {
           const { confirmarPassword, nombre, apellido, fecha_nacimiento, sexo, telefono, dni, cuil, id_persona, ...userRegister } = userData;
           const res = await authService.register(userRegister);
 
-          if(res.data.token){
-            localStorage.setItem("token", res.data.token);
-          }
-
-          setUserData({...userData, id_usuario: res.data.user.id})
+          await login(res.data.user, res.data.token);
+          setUserData(prev => ({ ...prev, id_usuario: res.data.user.id }));
           setStep(2);
         }
 
@@ -60,7 +59,7 @@ const Register = () => {
 
           const res = await personaService.createPersona(personaData);
           const id_persona = res.data.persona.id_persona;
-          setUserData({...userData, id_persona});
+          setUserData(prev => ({ ...prev, id_persona }));
 
           setStep(3);
         }
