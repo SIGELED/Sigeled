@@ -16,7 +16,7 @@ export default function RegisterTitulo({ idPersona, onAddTitulo }) {
         const run = async () => {
         setLoading(true);
         try {
-            const tTipos = await tituloService.getTiposTiulos();
+            const tTipos = await tituloService.getTiposTitulos();
             setTipos(Array.isArray(tTipos.data) ? tTipos.data : []);
         } finally {
             setLoading(false);

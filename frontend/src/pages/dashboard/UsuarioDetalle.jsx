@@ -5,9 +5,9 @@ import PersonaDocumentos from "../../components/PersonaDocumentos";
 import PersonaDomicilios from "../../components/PersonaDomicilios";
 import PersonaTitulos from "../../components/PersonaTitulos";
 import SegmentedTabs from "../../components/SegmentedTabs";
-import { userService, profileService, legajoService } from "../../services/api";
+import { userService, profileService, legajoService, roleService } from "../../services/api";
 import { MdNavigateBefore } from "react-icons/md";
-import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard } from "react-icons/fi";
+import { FiTrash2, FiMail, FiPower, FiLayers, FiHash, FiCalendar, FiCreditCard, FiEdit } from "react-icons/fi";
 import { BsPersonVcard } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
@@ -27,14 +27,8 @@ export default function UsuarioDetalle() {
     const [showNudge, setShowNudge] = useState(false);
     const [openNudge, setOpenNudge] = useState(false);
     const [forzarMismoEstado, setForzarMismoEstado] = useState(false);
-
-    useEffect(() => {
-        setVisitedTabs(new Set([TABS.INFO]));
-        setTab(TABS.INFO);
-        setShowNudge(false);
-        setOpenNudge(false);
-        setForzarMismoEstado(false);
-    }, [id]);
+    const [showRolesModal, setShowRolesModal] = useState(false);
+    const [selectedRoles, setSelectedRoles] = useState([]);
 
     useEffect(() => {
         setVisitedTabs(prev => {
@@ -77,6 +71,23 @@ export default function UsuarioDetalle() {
         staleTime: 0,
     });
 
+    const { data: allRoles = [] } = useQuery({
+        queryKey: ['roles'],
+        queryFn: () => roleService.getRoles().then(r => r.data),
+        staleTime: 1000 * 60 * 10,
+    });
+
+    const { data: userRoles = [] } = useQuery({
+        queryKey: ['roles', 'usuario', usuario?.id_usuario],
+        enabled: !!usuario?.id_usuario,
+        queryFn: () => roleService.getRolesByUser(usuario.id_usuario).then(r => r.data),
+    })
+
+    useEffect(() => {
+        if (showRolesModal && userRoles) {
+            setSelectedRoles(userRoles.map(r => r.id_rol));
+        }
+    }, [showRolesModal, userRoles]);
 
     const [activarAhora, setActivarAhora] = useState(false);
     const isSelf = me?.id_persona === usuario?.id_persona;
@@ -85,7 +96,7 @@ export default function UsuarioDetalle() {
     const sameEstado = estadoSeleccionado === legajoEstado?.estado?.codigo;
     const noChanges = (usuario?.activo || !activarAhora) && sameEstado && !forzarMismoEstado;
 
-    const shouldShowNudge = hasVisitedAll && !isSelf && esAdminRRHH && !isLoadingUsuario;
+    const shouldShowNudge = hasVisitedAll && !isSelf && esAdminRRHH && !isLoadingUsuario && !noChanges;
 
     useEffect(() => {
         if (!shouldShowNudge) { setShowNudge(false); return; }
@@ -179,6 +190,26 @@ export default function UsuarioDetalle() {
         }
     });
 
+    const assignRoleMutation = useMutation({
+        mutationFn: ({ id_usuario, ids, asignado_por }) => 
+            Promise.all(ids.map(id_rol => roleService.assignRoleToUser(id_usuario, id_rol, asignado_por))),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles', 'usuario', usuario.id_usuario] });
+            queryClient.invalidateQueries({ queryKey: ['usuario', id] });
+        },
+        onError: (e) => alert(e?.response?.data?.message || 'No se pudo asignar rol'),
+    })
+
+    const unassignRoleMutation = useMutation({
+        mutationFn: ({ id_usuario, ids }) => 
+            Promise.all(ids.map(id_rol => roleService.unassignRoleFromUser(id_usuario, id_rol))),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles', 'usuario', usuario.id_usuario] });
+            queryClient.invalidateQueries({ queryKey: ['usuario', id] });
+        },
+        onError: (e) => alert(e?.response?.data?.message || 'No se pudo desasignar rol'),
+});
+
     const handleEliminarPerfil = async (id_perfil, nombre) => {
         const ok = confirm(`¿Esta seguro que quiere quitar el perfil "${nombre}" de este usuario?`);
         if (ok) {
@@ -256,6 +287,38 @@ export default function UsuarioDetalle() {
             alert('No se pudieron aplicar los cambios');
         }
     };
+
+    const handleSaveRoles = async () => {
+        if(!usuario) return;
+        const current = new Set((userRoles || []).map(r => r.id_rol));
+        const next = new Set(selectedRoles);
+
+        const toAdd = [...next].filter(idr => !current.has(idr));
+        const toDel = [...current].filter(idr => !next.has(idr));
+
+        try {
+            const ops = [];
+            if(toAdd.length) ops.push(assignRoleMutation.mutateAsync({ id_usuario: usuario.id_usuario, ids: toAdd, asignado_por: me?.id_usuario || me?.id }));
+            if (toDel.length) ops.push(unassignRoleMutation.mutateAsync({ id_usuario: usuario.id_usuario, ids: toDel }));
+            await Promise.all(ops);
+            alert('Roles actualizados');
+            setShowRolesModal(false);
+        } catch (error) {
+            console.error(error);
+            alert('No se pudieron actualizar los roles');
+        }
+    }
+
+    const toggleRoleCheck = (id_rol) => {
+        setSelectedRoles(prev => 
+            prev.includes(id_rol) ? prev.filter(x => x !== id_rol) : [...prev, id_rol]
+        )
+    }
+
+    const handleCloseRoles = () => {
+        setShowRolesModal(false);
+        setSelectedRoles(userRoles?.map(r => r.id_rol) ?? []);
+    }
 
     if (isLoadingUsuario) {
         return <div className="p-6 text-2xl text-white">Cargando información...</div>
@@ -347,6 +410,14 @@ export default function UsuarioDetalle() {
                                 ? usuario.roles.map((r) => r.nombre).join(", ")
                                 : "Sin rol asignado"}
                             </div>
+
+                            <button 
+                                onClick={() => setShowRolesModal(true)}
+                                className="ml-auto p-2 rounded-xl border border-[#19F124] text-[#19F124] hover:bg-[#19F124] hover:text-[#0D1520] cursor-pointer transition"
+                                title="Gestionar roles"
+                            >
+                                <FiEdit  size={24}/>
+                            </button>
                         </div>
                 </section>
                 </section>
@@ -551,7 +622,7 @@ export default function UsuarioDetalle() {
 
                 <div className="flex justify-end gap-3 mt-5">
                 <button
-                    onClick={() => setShowModal(false)}
+                    onClick={handleCloseRoles}
                     className="px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] transition cursor-pointer"
                 >
                     Cancelar
@@ -565,6 +636,58 @@ export default function UsuarioDetalle() {
                 </button>
                 </div>
             </div>
+            </div>
+        )}
+
+        {showRolesModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={() => setShowRolesModal(false)} aria-hidden="true"/>
+                <div role="dialog" aria-modal="true" className="relative z-10 w-[92%] max-w-xl bg-[#101922] rounded-2xl p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-2xl font-semibold text-[#19F124]">
+                            Gestionar roles
+                        </h3>
+                        <button
+                            onClick={() => setShowRolesModal(false)}
+                            className="p-1 rounded-lg hover:bg-[#1A2430] cursor-pointer transition"
+                            aria-label="Cerrar"
+                        >
+                            <IoClose size={24}/>
+                        </button>
+                    </div>
+
+                    <div className="max-h-[50vh] overflow-auto pr-1">
+                        {allRoles.length === 0 && (
+                            <p className="opacity-70">No hay roles disponibles.</p>
+                        )}
+
+                        <ul className="space-y-2">
+                            {allRoles.map((r) => {
+                                const checked = selectedRoles.includes(r.id_rol);
+                                return(
+                                    <li key={r.id_rol} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#1A2430]">
+                                        <input 
+                                            type="checkbox"
+                                            className="w-5 h-5 accent-[#19F124] cursor-pointer" 
+                                            checked={checked}
+                                            onChange={( ) => toggleRoleCheck(r.id_rol)}
+                                        />
+                                        <span className="text-lg">{r.nombre}</span>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-5">
+                            <button onClick={() => setShowRolesModal(false)} className="px-4 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] transition cursor-pointer">
+                                Cancelar
+                            </button>
+                            <button onClick={handleSaveRoles} className="px-4 py-2 rounded-xl font-bold bg-[#19F124] hover:bg-[#2af935] transition text-[#101922] cursor-pointer">
+                                Guardar cambios
+                            </button>
+                    </div>
+                </div>
             </div>
         )}
 

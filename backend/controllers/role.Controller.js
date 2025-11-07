@@ -1,4 +1,4 @@
-import { getRolesByUserId, assignRoleToUser } from '../models/roleModel.js';
+import { getRolesByUserId, assignRoleToUser, unassignRoleFromUser } from '../models/roleModel.js';
 
 // Obtener roles de un usuario
 export const getUserRoles = async (req, res) => {
@@ -23,3 +23,15 @@ export const addRoleToUser = async (req, res) => {
         res.status(500).json({ message: 'Error del servidor' });
     }
 };
+
+export const unassignRole = async(req, res) => {
+    try {
+        const { id_usuario, id_rol } = req.params;
+        const deleted = await unassignRoleFromUser(id_usuario, id_rol);
+        if(!deleted) return res.status(404).json({ message: 'Relación no encontrada' });
+        res.json({ message: 'Rol desasignado', deleted });
+    } catch (error) {
+        console.error('Error al desasignar rol:', error);
+        res.status(500).json({ message: 'Error del servidor', detalle:error.message });
+    }
+}

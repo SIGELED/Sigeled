@@ -41,6 +41,7 @@ export const roleService = {
 
   assignRoleToUser:(id_usuario, id_rol, asignado_por) =>
     api.post(`/roles/usuario/asignar`, {id_usuario, id_rol, asignado_por}),
+  unassignRoleFromUser: (id_usuario, id_rol) => api.delete(`/roles/usuario/${id_usuario}/${id_rol}`),
   getRolesByUser: (userId) => api.get(`/roles/usuario/${userId}`)
 }
 
@@ -120,7 +121,7 @@ export const personaBarrioService = {
 export const tituloService = {
   createTitulo:(data) => api.post(`/titulos/`, data),
   findTituloByPersona:(id_persona) => api.get(`/titulos/persona/${id_persona}`),
-  getTiposTiulos: () => api.get(`/titulos/tipos`),
+  getTiposTitulos: () => api.get(`/titulos/tipos`),
   cambiarEstado: (id_titulo, data) =>
     api.patch(`/titulos/${id_titulo}/estado`, data),
   deleteTitulo:(id_persona, id_titulo) => api.delete(`/titulos/personas/${id_persona}/titulos/${id_titulo}`)

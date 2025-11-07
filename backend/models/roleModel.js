@@ -66,3 +66,11 @@ export const assignRoleToUser = async (id_usuario, id_rol, asignado_por) => {
     );
     return res.rows[0];
 };
+
+export const unassignRoleFromUser = async (id_usuario, id_rol) => {
+    const res = await db.query(
+        'DELETE FROM usuarios_roles WHERE id_usuario = $1 AND id_rol = $2 RETURNING *',
+        [id_usuario, id_rol]
+    );
+    return res.rows[0];
+}

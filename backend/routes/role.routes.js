@@ -8,14 +8,17 @@ import {
     getRolesByUserId, 
     assignRoleToUser
 } from '../models/roleModel.js';
-import { verificarToken, permitirRoles } from '../middleware/authMiddleware.js';
+import { verificarToken, permitirRoles, soloRRHH } from '../middleware/authMiddleware.js';
 import { validarCrearRol, validarActualizarRol } from '../validators/roleValidator.js';
+import { unassignRole } from '../controllers/role.Controller.js';
 
 const roleRouter = express.Router();
 
 // Todas las rutas requieren autenticación y rol de administrador
 roleRouter.use(verificarToken);
 roleRouter.use(permitirRoles('ADMIN'));
+
+roleRouter.delete('/usuario/:id_usuario/:id_rol', unassignRole);
 
 /**
  * @swagger

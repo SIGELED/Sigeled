@@ -69,7 +69,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
 
         const { data: tipos = [] } = useQuery({
             queryKey: ['tiposTitulo'],
-            queryFn: () => tituloService.getTiposTiulos().then(res => res.data),
+            queryFn: () => tituloService.getTiposTitulos().then(res => res.data),
             staleTime: 1000 * 60 * 60, 
         });     
 
