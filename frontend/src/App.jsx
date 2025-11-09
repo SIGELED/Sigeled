@@ -10,6 +10,7 @@ import Inicio from './pages/Inicio';
 import Perfil from './components/Perfil';
 import Revision from './pages/Revision';
 import RegisterArchivos from './pages/RegisterArchivos';
+import OnBoardingRoute from './components/OnBoardingRoute';
 
 const queryClient = new QueryClient({
   defaultOptions:{
@@ -35,8 +36,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-                <Route path="/revision" element={<ProtectedRoute> <Revision /> </ProtectedRoute>}/>
-                <Route path="/registro/archivos" element={<ProtectedRoute><RegisterArchivos /></ProtectedRoute>}/>
+                <Route path="/revision" element={ <Revision /> }/>
+                <Route path="/registro/archivos" element={<OnBoardingRoute><RegisterArchivos /></OnBoardingRoute>}/>
                 
                 <Route element={<DashboardLayout/>}>
                   <Route 

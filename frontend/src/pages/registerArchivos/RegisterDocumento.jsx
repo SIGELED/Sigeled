@@ -1,4 +1,3 @@
-// src/components/Register/RegisterDocumentos.jsx
 import { useEffect, useMemo, useState } from "react";
 import { tipoDocService, archivoService, personaDocService } from "../../services/api";
 import { BiSolidError } from "react-icons/bi";

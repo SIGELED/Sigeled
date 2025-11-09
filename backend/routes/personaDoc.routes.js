@@ -7,6 +7,7 @@ import {
     verificarPersonaDocumento,
     deleteDocumento
 } from '../controllers/personaDoc.Controller.js';
+import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 import { getPersonasDocumentos } from '../models/personaDocModel.js';
 import { soloRRHH } from '../middleware/authMiddleware.js';
@@ -18,12 +19,26 @@ personaDocRouter.get('/tipos-documento', listarTiposDocumento);
 
 personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, verificarPersonaDocumento);
 
-const esPropietarioOPrivilegiado = (req,res,next) => {
+const esPropietarioOPrivilegiado = async (req,res,next) => {
     const idParam = req.params.id_persona || req.query.id_persona;
-    const soyOwner = idParam && String(req.user?.id_persona) === String(idParam);
-    const roles = (req.user?.roles || []).map(r => (typeof r === 'string'? r : r?.codigo || r?.nombre)).map(x => String(x).toUpperCase());
-    if (soyOwner || roles.includes('RRHH') || roles.includes('ADMIN')) return next();
-    return res.status(403).json({ error: 'Acceso denegado' });
+    const roles = (req.user?.roles || [])
+        .map(r => (typeof r === 'string' ? r : r?.codigo || r?.nombre))
+        .map(x => String(x).toUpperCase());
+    if(roles.includes('RRHH') || roles.includes('ADMIN')) return next();
+    if(!idParam) return res.status(400).json({ error: 'id_persona requerido' });
+
+    if (req.user?.id_persona && String(req.user.id_persona) === String(idParam)) return next();
+
+    if(req.user?.id_usuario){
+        try {
+            const row = await getUsuarioIdPorPersonaId(idParam);
+            const esOwner = row?.id_usuario && String(row.id_usuario) === String(req.user.id_usuario);
+            if(esOwner) return next();
+        } catch (error) {
+            console.warn('[EsPropietarioOPrivilegiado] fallback error:', e.message);
+        }
+    }
+    return res.status(403).json({ error: 'Acceso denegado'});
 };
 
 personaDocRouter.get('/', soloRRHH, listarPersonasDocumentos);

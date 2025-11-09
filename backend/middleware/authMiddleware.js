@@ -55,3 +55,9 @@ export const soloRRHH = (req, res, next) => {
 
     return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador' });
 };
+
+export const requireActivo = (req, res, next) => {
+    const activo = !!req.user?.activo;
+    if(activo) return next();
+    return res.status(403).json({ message: 'Cuenta en revisión' });
+}

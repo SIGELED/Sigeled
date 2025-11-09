@@ -9,6 +9,7 @@ export default function Login() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const { login } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -19,11 +20,17 @@ export default function Login() {
     setError("");
     try {
       const { data } = await authService.login(credentials);
-      login(data.user, data.token);
-      navigate("/dashboard");
+      const isActive = data?.user?.activo === true;
+      if(!isActive){
+        logout();
+        return navigate("/revision", { replace: true });
+      }
+      await login(data.user, data.token);
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       if(err.response?.status === 403){
-        navigate("/revision");
+        logout();
+        navigate("/revision", { replace: true });
       }else{
         setError(err.response?.data?.message || "Error al iniciar sesión");
       }

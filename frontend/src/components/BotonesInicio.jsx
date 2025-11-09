@@ -40,7 +40,7 @@ const BotonesInicio = () => {
           </div>
         )}
 
-        {user &&(
+        {user && user.activo !== true &&(
           <div className='flex items-center space-x-4'>
             <span>Bienvenido de vuelta, {user.email}</span>
             <Link to="/dashboard" className='px-4 py-2 transition bg-blue-600 rounded-full font semibold hover:bg-blue-00'>
@@ -48,6 +48,13 @@ const BotonesInicio = () => {
             </Link>
           </div>
         )}
+
+        {user && user.activo !== true && (
+          <div className='flex items-center space-x-4'>
+            <span>Tu cuenta está en revisión</span>
+          </div>
+        )}
+
       </nav>
     </div>
   );

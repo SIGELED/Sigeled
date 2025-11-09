@@ -14,7 +14,10 @@ export const login = async (req, res) => {
         if (!user) {
             return res.status(401).json({ message: 'Usuario no encontrado' });
         }
-        if(!user.activo){
+
+        const activo = (user.activo === true) || (user.activo === 't') || (user.activo === 1) || (user.activo === '1') || (user.activo === 'true');
+
+        if(!activo){
             return res.status(403).json({message:"Tu cuenta esta en revisión. Espera a que sea activada"});
         }
 
@@ -36,7 +39,8 @@ export const login = async (req, res) => {
             id_persona: user.id_persona,
             email: user.email,
             roles: roleNames,
-            perfiles
+            perfiles,
+            activo,
         };
 
         const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '1h' });
@@ -52,7 +56,8 @@ export const login = async (req, res) => {
                 apellido: persona?.apellido || null,
                 roles: roleNames,
                 perfiles,
-                persona: persona || null
+                persona: persona || null,
+                activo,
             }
             });
     } catch (error) {
@@ -73,7 +78,9 @@ export const register = async (req, res) => {
         const newUser = await createUser({ email, password_hash });
 
         try {
-            const adminIds = await getAdminAndRRHHIds();
+            const rawIds = await getAdminAndRRHHIds();
+            const adminIds = [...new Set(rawIds)]
+                .filter(id => String(id) !== String(newUser.id_usuario));
             const mensaje = `Nuevo usuario registrado: ${email}. Requiere activación`;
             const link = `/dashboard/usuarios/${newUser.id_usuario}`;
 
@@ -89,12 +96,23 @@ export const register = async (req, res) => {
             console.error("Error al notificar a admins:", notifError);
         }
 
-        const token = jwt.sign(
-            { id: newUser.id_usuario, email: newUser.email },
-            process.env.JWT_ACCESS_SECRET,
-            { expiresIn: '1h' }
-        );
-        res.status(201).json({ token, user: { id: newUser.id_usuario, email: newUser.email } });
+        const payload = {
+            id: newUser.id_usuario,
+            id_usuario: newUser.id_usuario,
+            email: newUser.email,
+            activo: false,
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, { expiresIn: '1h' });
+        res.status(201).json({
+            token,
+            user: {
+                id: newUser.id_usuario,
+                id_usuario: newUser.id_usuario,
+                email: newUser.email,
+                activo: false,
+            },
+        });
     } catch (error) {
         console.error('Error en el registro:', error);
         res.status(500).json({ message: 'Error del servidor' });

@@ -1,6 +1,7 @@
 // pages/RegisterArchivos.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import RegisterDomicilio from "./registerArchivos/RegisterDomicilio";
 import RegisterDocumento from "./registerArchivos/RegisterDocumento";
 import RegisterTitulo from "./registerArchivos/RegisterTitulo";
@@ -10,6 +11,7 @@ const extractQuery = (s, k) => new URLSearchParams(s).get(k);
 
 export default function RegisterArchivos() {
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const q = useLocation().search;
     const id_persona = extractQuery(q, 'persona');
 
@@ -50,36 +52,36 @@ export default function RegisterArchivos() {
         if (!id_persona) return alert("Falta id_persona");
 
         try {
-        setSaving(true);
+            setSaving(true);
 
-        if (domPayload) {
-            const { id_dom_barrio, barrioNuevo, calle, altura } = domPayload;
-            let barrioId = id_dom_barrio || null;
-            if(!barrioId && barrioNuevo) {
-                const { id_dom_localidad, barrio, manzana, casa, departamento, piso } = barrioNuevo;
-                const { data: barrioCreado } = await domOtrosService.createBarrio(id_dom_localidad, {
-                    barrio, manzana, casa, departamento, piso
-                });
-                barrioId = barrioCreado.id_dom_barrio;
+            if (domPayload) {
+                const { id_dom_barrio, barrioNuevo, calle, altura } = domPayload;
+                let barrioId = id_dom_barrio || null;
+                if(!barrioId && barrioNuevo) {
+                    const { id_dom_localidad, barrio, manzana, casa, departamento, piso } = barrioNuevo;
+                    const { data: barrioCreado } = await domOtrosService.createBarrio(id_dom_localidad, {
+                        barrio, manzana, casa, departamento, piso
+                    });
+                    barrioId = barrioCreado.id_dom_barrio;
+                }
+                if(barrioId) {
+                    await personaBarrioService.assignBarrio(id_persona, barrioId);
+                }
+
+                await domicilioService.createDomicilio(id_persona, { calle, altura, id_dom_barrio: barrioId });
             }
-            if(barrioId) {
-                await personaBarrioService.assignBarrio(id_persona, barrioId);
+
+            for (const t of titulosTmp) {
+                await tituloService.createTitulo({ id_persona, ...t });
             }
 
-            await domicilioService.createDomicilio(id_persona, { calle, altura, id_dom_barrio: barrioId });
-        }
-
-        for (const t of titulosTmp) {
-            await tituloService.createTitulo({ id_persona, ...t });
-        }
-
-        await legajoService.recalcular(id_persona);
-        navigate('/revision');
+            await legajoService.recalcular(id_persona);
+            navigate('/revision', { replace: true });
         } catch (e) {
-        console.error(e);
-        alert(e?.response?.data?.detalle || e?.response?.data?.error || 'No se pudo finalizar el registro');
+            console.error(e);
+            alert(e?.response?.data?.detalle || e?.response?.data?.error || 'No se pudo finalizar el registro');
         } finally {
-        setSaving(false);
+            setSaving(false);
         }
     };
 
