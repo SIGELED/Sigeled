@@ -10,6 +10,9 @@ import {
   crearContratoProfesor,
   getEmpleados
 } from '../models/contratoModel.js';
+import { notifyAdminsRRHH, notifyUser } from '../utils/notify.js';
+import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
+import { getPersonaById } from '../models/personaModel.js';
 
 export async function listarEmpleadosContratos(req, res) {
   try {
@@ -79,6 +82,26 @@ export async function crearContratoHandler(req, res) {
     
     const contrato = await createContrato(data);
     res.status(201).json(contrato);
+    try {
+      const persona = await getPersonaById(contrato.id_persona);
+      const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
+      if (userRow?.id_usuario) {
+        await notifyUser(userRow.id_usuario, {
+          tipo: 'CONTRATO_ASIGNADO',
+          mensaje: `Se te asignó un contrato para ${contrato.materia || 'una materia'} (${contrato.horas_semanales} h/sem)`,
+          link: `/dashboard/contratos/${contrato.id_contrato}`,
+          meta: { id_contrato: contrato.id_contrato, fecha_inicio: contrato.fecha_inicio, fecha_fin: contrato.fecha_fin }
+        });
+      }
+      await notifyAdminsRRHH({
+        tipo: 'CONTRATO_CREADO',
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${contrato.materia || 'materia'})`,
+        link: `/dashboard/contratos/${contrato.id_contrato}`,
+        meta: { id_contrato: contrato.id_contrato, id_persona: contrato.id_persona }
+      });
+    } catch (error) {
+      console.warn('crearContrato notify error:', error.message);
+    }
   } catch (error) {
     console.error('Error en crearContrato:', error);
     res.status(400).json({ 
@@ -105,6 +128,27 @@ export async function eliminarContrato(req, res) {
     }
     
     res.json({ message: 'Contrato eliminado exitosamente', contrato });
+    try {
+      const persona = await getPersonaById(contrato.id_persona);
+      const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
+      if(userRow?.id_usuario){
+        await notifyUser(userRow.id_usuario, {
+          tipo: 'CONTRATO_ELIMINADO',
+          mensaje: `Se eliminó tu contrato (${contrato.materia || 'materia'})`,
+          link: `/dashboard/contratos`,
+          meta: { id_contrato: contrato.id_persona }
+        });
+      }
+
+      await notifyAdminsRRHH({
+        tipo: 'CONTRATO_ELIMINADO',
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato eliminado (${contrato.materia || 'materia'})`,
+        link: `/dashboard/contratos`,
+        meta: { id_contrato: contrato.id_contrato, id_persona: contrato.id_persona }
+      });
+    } catch (error) {
+      console.warn('eliminarContrato notify error:', error.message);
+    }
   } catch (error) {
     console.error('Error en eliminarContrato:', error);
     res.status(400).json({ 
@@ -200,6 +244,26 @@ export async function crearNuevoContratoProfesor(req, res) {
     
     const contrato = await crearContratoProfesor(data);
     res.status(201).json(contrato);
+    try {
+      const persona = await getPersonaById(contrato.id_persona);
+      const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
+      if(userRow?.id_usuario){
+        await notifyUser(userRow.id_usuario, {
+          tipo: 'CONTRATO_ASIGNADO',
+          mensaje: `Se te asignó un contrato para ${contrato.materia || 'una materia'} (${contrato.horas_semanales} h/sem)`,
+          link: `/dashboard/contratos/${contrato.id_contrato}`,
+          meta: { id_contrato: contrato.id_contrato, fecha_inicio: contrato.fecha_inicio, fecha_fin: contrato.fecha_fin }
+        });
+      }
+      await notifyAdminsRRHH({
+        tipo: 'CONTRATO_CREADO',
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${contrato.materia || 'materia'})`,
+        link: `/dashboard/contratos/${contrato.id_contrato}`,
+        meta: { id_contrato: contrato.id_contrato, id_persona: contrato_id_persona }
+      });
+    } catch (error) {
+      console.warn('crearContratoProfesor notify error:', error.message);
+    }
   } catch (error) {
     console.error('Error en crearNuevoContratoProfesor:', error);
     res.status(400).json({ 

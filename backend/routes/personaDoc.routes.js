@@ -5,7 +5,8 @@ import {
     crearPersonaDocumento,
     listarTiposDocumento,
     verificarPersonaDocumento,
-    deleteDocumento
+    deleteDocumento,
+    solicitarEliminacionDocumento
 } from '../controllers/personaDoc.Controller.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
@@ -18,6 +19,8 @@ personaDocRouter.use(verificarToken);
 personaDocRouter.get('/tipos-documento', listarTiposDocumento);
 
 personaDocRouter.patch('/:id_persona_doc/estado', soloRRHH, verificarPersonaDocumento);
+
+personaDocRouter.post('/:id_persona_doc/solicitar_eliminacion', solicitarEliminacionDocumento)
 
 const esPropietarioOPrivilegiado = async (req,res,next) => {
     const idParam = req.params.id_persona || req.query.id_persona;

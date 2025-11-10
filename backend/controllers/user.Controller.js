@@ -3,6 +3,7 @@ import { getAllUsers, getUserById, findUserByEmail, createUser } from '../models
 import { getRolesByUserId } from '../models/roleModel.js';
 import db from '../models/db.js';
 import { getPersonaById } from '../models/personaModel.js';
+import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
@@ -110,10 +111,27 @@ export const toggleUser = async (req, res) => {
             [nuevoEstado, id_usuario]
         );
 
+        const respUser = resultaUpdate.rows[0];
         res.json({
-            message: `Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`,
-            user: resultaUpdate.rows[0]
-        });
+            user: respUser
+        })
+
+        try {
+            await notifyUser(id_usuario, {
+                tipo: nuevoEstado ? 'CUENTA_HABILITADA' : 'CUENTA_DESHABILITADA',
+                mensaje: nuevoEstado ? 'Tu cuenta fue habilitada con éxito' : 'Tu cuenta fue deshabilitada',
+                link: nuevoEstado ? '/login' : null,
+                nivel: nuevoEstado ? 'success' : 'warning',
+            });
+            await notifyAdminsRRHH({
+                tipo: 'USUARIO_TOGGLE',
+                mensaje: `${respUser.email} fue ${nuevoEstado ? 'activado' : 'desactivado'}`,
+                link: `/dashboard/usuarios/${id_usuario}`,
+                meta: { id_usuario, activo: nuevoEstado }
+            })
+        } catch (error) {
+            console.warn('toggleUser notify error:', e.message);
+        }
     } catch (error) {
         console.error('Error al cambiar el estado del usuario:', error);
         res.status(500).json({message:'Error del servidor'});

@@ -8,7 +8,7 @@ import {
     countArchivoReferences
 } from '../models/personaDocModel.js';
 import { io } from '../app.js';
-import { createNotificacion } from '../models/notificacionModel.js';
+import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getEstadoById } from '../models/estadoVerificacionModel.js';
 import { deleteArchivo, getArchivoById } from '../models/archivoModel.js';
@@ -74,21 +74,26 @@ export const verificarPersonaDocumento = async (req, res) => {
 
         try {
             const usuarioDestino = await getUsuarioIdPorPersonaId(actualizado.id_persona);
-            if(usuarioDestino) {
+            if(usuarioDestino){
                 const id_usuario_destino = usuarioDestino.id_usuario;
-                const notif = await createNotificacion({
-                    id_usuario: id_usuario_destino,
+                await notifyUser(id_usuario_destino, {
+                    tipo: 'DOC_ESTADO',
                     mensaje: `Tu documento "${actualizado.tipo_nombre}" ha sido ${actualizado.estado_nombre}`,
                     observacion: observacion || null,
-                    link: '/dashboard/legajo'
+                    link: '/dashboard/legajo',
+                    meta: { id_persona_doc, estado: actualizado.estado_nombre }
                 });
-                io.to(id_usuario_destino.toString()).emit('nueva_notificacion', notif);
             }
-        } catch (notifError) {
-            console.error("Error al notificar al empleado:", notifError);
-        }
 
-        res.json(actualizado);
+            await notifyAdminsRRHH({
+                tipo: 'DOC_VERIFICADO',
+                mensaje: `"${actualizado.tipo_nombre}" de ${actualizado.persona_nombre || actualizado.id_persona} marcado como ${actualizado.estado_nombre}`,
+                link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
+                meta: { id_persona_doc, estado: actualizado.estado_nombre, verificado_por: verificado_por_usuario }
+            });
+        } catch (error) {
+            
+        }
     } catch (error) {
         console.error('Error en verificarPersonaDocumento:', error);
         res.status(500).json({message:'Error al verificar documento', detalle: error.message});
@@ -157,5 +162,33 @@ export const listarTiposDocumento = async(req, res) => {
     } catch (error) {
         console.error('Error en listarTiposDocumento:', error);
         res.status(500).json({message: 'Error al obtener tipos de documento', detalle:error.message});
+    }
+}
+
+export const solicitarEliminacionDocumento = async (req, res) => {
+    try {
+        const { id_persona_doc } = req.params;
+        const doc = await getPersonaDocumentoById(id_persona_doc);
+        if (!doc) return res.status(404).json({ message: 'Documento no encontrado' });
+
+        await notifyAdminsRRHH({
+            tipo: 'DOC_DELETE_SOLICITUD',
+            mensaje: `${doc.persona_nombre || doc.id_persona} solicitó eliminar "${doc.tipo_nombre}"`,
+            link: `/dashboard/legajo?persona=${doc.id_persona}`,
+            meta: { id_persona_doc, motivo: req.body?.motivo || null },
+            nivel: 'warning'
+        });
+
+        await notifyUser(req.user?.id_usuario ?? req.user?.id, {
+            tipo: 'DOC_DELETE_SOLICITUD',
+            mensaje: `Tu solicitud de eliminación de "${doc.tipo_nombre}" fue enviada`,
+            link: '/dashboard/legajo',
+            meta: { id_persona_doc }
+        });
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('solicitarEliminacionDocumento:', error);
+        res.status(500).json({ message: 'Error al solicitar eliminación:', detalle: error.message });
     }
 }

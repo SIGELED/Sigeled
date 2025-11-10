@@ -5,6 +5,7 @@ import { createNotificacion, getAdminAndRRHHIds } from '../models/notificacionMo
 import { findUserByEmail, createUser } from '../models/userModel.js';
 import { getRolesByUserId } from '../models/roleModel.js';
 import { getPerfilesDePersona, getPersonaById } from '../models/personaModel.js';
+import { notifyAdminsRRHH } from '../utils/notify.js';
 
 
 export const login = async (req, res) => {
@@ -78,20 +79,12 @@ export const register = async (req, res) => {
         const newUser = await createUser({ email, password_hash });
 
         try {
-            const rawIds = await getAdminAndRRHHIds();
-            const adminIds = [...new Set(rawIds)]
-                .filter(id => String(id) !== String(newUser.id_usuario));
-            const mensaje = `Nuevo usuario registrado: ${email}. Requiere activación`;
-            const link = `/dashboard/usuarios/${newUser.id_usuario}`;
-
-            for (const adminId of adminIds) {
-                const notif = await createNotificacion({
-                    id_usuario: adminId,
-                    mensaje: mensaje,
-                    link: link
-                });
-                io.to(adminId.toString()).emit('nueva_notificacion', notif);
-            }
+            await notifyAdminsRRHH({
+                tipo: 'USUARIO_REGISTRADO',
+                mensaje: `Nuevo usuario registrado: ${email}. Requiere activación.`,
+                link: `/dashboard/usuarios/${newUser.id_usuario}`,
+                meta: { id_usuario: newUser.id_usuario }
+            })
         } catch (notifError) {
             console.error("Error al notificar a admins:", notifError);
         }

@@ -2,6 +2,8 @@ import { getTitulosByPersona, createTitulo, getTiposTitulo, updateEstadoTitulo, 
 import { getEstadoById, getEstadoByCodigo } from "../models/estadoVerificacionModel.js";
 import { getArchivoById, deleteArchivo } from '../models/archivoModel.js'
 import { countArchivoReferences } from "../models/personaDocModel.js";
+import { notifyUser, notifyAdminsRRHH } from "../utils/notify.js";
+import { getUsuarioIdPorPersonaId } from "../models/userModel.js";
 
 const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
 const isAdminOrRRHH = (req) => {
@@ -93,6 +95,26 @@ export const verificarTitulo = async (req, res) => {
         });
 
         res.json(actualizado);
+
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(actualizado.id_persona);
+            if(usuarioDestino?.id_usuario){
+                await notifyUser(usuarioDestino.id_usuario, {
+                    tipo: 'TITULO_ESTADO',
+                    mensaje: `Tu título "${actualizado.nombre_titulo}" ha sido ${estado.codigo}`,
+                    link: '/dashboard/legajo',
+                    meta: { id_titulo, estado: estado.codigo, observacion: String(observacion || '').trim() || null }
+                });
+            }
+            await notifyAdminsRRHH({
+                tipo: 'TITULO_VERIFICADO',
+                mensaje: `Título "${actualizado.nombre_titulo}" de ${actualizado.persona_nombre || actualizado.id_persona} marcado como ${estado.codigo}`,
+                link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
+                meta: { id_titulo, estado: estado.codigo }
+            });
+        } catch (error) {
+            console.warn('verificarTitulo notify error:', error.message);
+        }
     } catch (error) {
         console.error("Error en verificarTitulo:", error);
         res.status(500).json({ message: "Error al verificar título", detalle: error.message });

@@ -1,5 +1,7 @@
 import { createIdentificacion, updateEstadoIdentificacion, getIdentificacionByPersona } from '../models/personaIdentModel.js';
 import { createArchivo } from '../models/archivoModel.js';
+import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
+import { getPersonaById } from '../models/personaModel.js';
 
 // Subir identificación con archivo comprobatorio
 export const subirIdentificacion = async (req, res) => {
@@ -34,6 +36,26 @@ export const subirIdentificacion = async (req, res) => {
         });
 
         res.status(201).json({ identificacion, archivo });
+        try {
+            const persona = await getPersonaById(id_persona);
+            await notifyAdminsRRHH({
+                tipo: 'DOC_SUBIDO',
+                mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} subió identificación "${file.originalname}"`,
+                link: `/dashboard/legajo?persona=${id_persona}`,
+                meta: { id_archivo: archivo.id_archivo, id_persona }
+            });
+            const uid = req.user?.id_usuario ?? req.user?.id;
+            if(uid) {
+                await notifyUser(uid, {
+                    tipo: 'ARCHIVO_RECIBIDO',
+                    mensaje: `Recibimos tu identificación "${file.originalname}". Está en revisión`,
+                    link: '/dashboard/legajo',
+                    meta: { id_archivo: archivo.id_archivo }
+                });
+            }
+        } catch (error) {
+            console.warn('subirIdentificacion notify error:', error.message);
+        }
     } catch (error) {
         res.status(500).json({ message: 'Error al subir identificación', detalle: error.message });
     }

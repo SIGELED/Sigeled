@@ -46,6 +46,8 @@ const swaggerSpec = swaggerJSDoc(options);
 
 const app = express();
 
+import './utils/contracts-expiration.js'
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {

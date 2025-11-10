@@ -6,6 +6,8 @@ import {
     setPlazoGracia,
     setEstadoLegajo
 } from '../models/legajoModel.js';
+import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
+import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 
 export const asignarEstadoManual = async (req, res) => {
     try {
@@ -15,6 +17,26 @@ export const asignarEstadoManual = async (req, res) => {
         const uid = req.user?.id_usuario ?? req.user?.id ?? null;
         await setEstadoLegajo(id_persona, codigo, uid, 'Asignación manual');
         res.json({ ok:true, codigo })
+        try {
+            const userRow = await getUsuarioIdPorPersonaId(id_persona);
+            if(userRow?.id_usuario){
+                await notifyUser(userRow.id_usuario, {
+                    tipo: 'LEGAJO_ESTADO',
+                    mensaje: codigo === 'COMPLETO' ? '¡Listo! Tu legajo está COMPLETO' : `Tu legajo está ${codigo}`,
+                    link: '/dashboard/legajo',
+                    meta: { estado: codigo },
+                    nivel: codigo === 'COMPLETO' ? 'success' : 'warning'
+                });
+            }
+            await notifyAdminsRRHH({
+                tipo: 'LEGAJO_ESTADO_CAMBIO',
+                mensaje: `${id_persona} || Estado de legajo: ${codigo}`,
+                link: `/dashboard/legajo?persona=${id_persona}`,
+                meta: { id_persona, estado: codigo, actor: uid }
+            })
+        } catch (error) {
+            console.warn('asignarEstadoManual notify error:', error.message);
+        }
     } catch (error) {
         console.error('Error en asignarEstadoManual:', error);
         res.status(500).json({ error: 'No se pudo asignar estado', detalle: error.message });
@@ -40,6 +62,26 @@ export const recalcularEstadoLegajoCtrl = async(req,res) => {
         const uid = req.user?.id_usuario ?? req.user?.id ?? null;
         const codigo = await recalcLegajoSvc(id_persona, uid);
         res.json({estado: codigo});
+        try {
+            const userRow = await getUsuarioIdPorPersonaId(id_persona);
+            if(userRow?.id_usuario){
+                await notifyUser(userRow.id_usuario, {
+                    tipo: 'LEGAJO_ESTADO',
+                    mensaje: codigo === 'COMPLETO' ? '¡Listo! Tu legajo está COMPLETO' : `Tu legajo está ${codigo}`,
+                    link: '/dashboard/legajo',
+                    meta: { estado: codigo },
+                    nivel: codigo === 'COMPLETO' ? 'success' : 'warning'
+                });
+            }
+            await notifyAdminsRRHH({
+                tipo: 'LEGAJO_ESTADO_CAMBIO',
+                mensaje: `${id_persona} || estado de legajo: ${codigo}`,
+                link: `/dashboard/legajo?persona=${id_persona}`,
+                meta: { id_persona, estado: codigo, actor: uid }
+            });
+        } catch (error) {
+            console.warn('recalcularEstado notify error:', error.message);
+        }
     } catch (error) {
         console.error('Error en recalcularEstadoLegajo', error);
         res.status(500).json({error:'Error al recalcular el estado del legajo', detalle: error.message})
@@ -54,6 +96,19 @@ export const asignarPlazoGracia = async (req, res) => {
 
         await setPlazoGracia(id_persona, fecha_limite, motivo || null, req.user.id_usuario);
         res.json({ ok: true });
+        try {
+            const userRow = await getUsuarioIdPorPersonaId(id_persona);
+            if (userRow?.id_usuario){
+                await notifyUser(userRow.id_usuario, {
+                    tipo: 'LEGAJO_PLAZO_GRACIA',
+                    mensaje: `Se asignó un plazo de gracias hasta ${fecha_limite}`,
+                    link: '/dashboard/legajo',
+                    meta: { fecha_limite, motivo: motivo || null }
+                });
+            }
+        } catch (error) {
+            console.warn('asignarPlazoGracia notify error:', error.message);
+        }
     } catch (error) {
         console.error('Error en asignarPlazoGracia', error);
         res.status(500).json({ error: 'Error al asignar plazo de gracia', detalle: error.message});

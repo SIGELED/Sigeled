@@ -7,6 +7,8 @@ import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js
 import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import { ensureProfesorRow, deactivateProfesorIfNoProfile } from '../models/profesorModel.js';
+import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
+import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import db from "../models/db.js"
 import { getEstadosVerificacion } from '../models/estadoVerificacionModel.js';
 import path from 'path';
@@ -71,6 +73,25 @@ export const subirArchivo = async (req, res) => {
         };
 
         const archivoGuardado = await createArchivo(archivoData);
+        try {
+            const persona = await getPersonaById(req.params.id_persona);
+            await notifyAdminsRRHH({
+                tipo: 'DOC_SUBIDO',
+                mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} subió "${nombre_original}"`,
+                link: `/dashboard/legajo?persona=${req.params.id_persona}`,
+                meta: { id_archivo: archivoGuardado.id_archivo, id_persona: req.params.id_persona }
+            });
+
+            await notifyUser(req.user?.id_usuario ?? req.user?.id, {
+                tipo: 'ARCHIVO_RECIBIDO',
+                mensaje: `Recibimos tu archivo "${nombre_original}". Está en revisión.`,
+                link: `/dashboard/legajo`,
+                meta: { id_archivo: archivoGuardado.id_archivo },
+            })
+        } catch (error) {
+            console.warn('subirArchivo notify error:', error.message);
+        }
+
         return res.status(201).json({ mensaje: 'Archivo subido y guardado', archivo: archivoGuardado, id_archivo: archivoGuardado.id_archivo });
     } catch (error) {
         console.error('Error en subirArchivo:', error);
@@ -142,6 +163,27 @@ export const asignarPerfil = async (req, res) => {
         await ensureProfesorRow(id_persona);
         }
         res.status(201).json({ message: 'Perfil asignado correctamente', resultado });
+
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(id_persona);
+            if (usuarioDestino?.id_usuario){
+                await notifyUser(usuarioDestino.id_usuario, {
+                    tipo: 'PERFIL_ASIGNADO',
+                    mensaje: `Se te asignó el perfil ${pf.rows[0]?.nombre || id_perfil}`,
+                    link: '/perfil',
+                    meta: { id_perfil: perfilId, perfil: pf.rows[0]?.nombre }
+                });
+            }
+
+            await notifyAdminsRRHH({
+                tipo: 'PERFIL_CAMBIO',
+                mensaje: `${id_persona}: perfil asignado | ${pf.rows[0]?.nombre || id_perfil}`,
+                link: `/dashboard/usuarios/${usuarioActor}`,
+                meta: { id_persona, id_perfil: perfilId, perfil: pf.rows[0]?.nombre }
+            })
+        } catch (error) {
+            console.warn('asignarPerfil notify error:', error.message);
+        }
     } catch (error) {
         console.error('Error al asignar perfil:', error);
         res.status(500).json({ message: 'Error al asignar perfil', detalle: error.message });
@@ -168,6 +210,27 @@ export const desasignarPerfil = async (req, res) => {
             return res.status(404).json({message: "No hay un perfil vigente para quitar"});
         }
         res.json({message:'Perfil desasignado correctamente', resultado: out});
+
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(id_persona);
+            const pfName = pf.rows[0]?.nombre;
+            if(usuarioDestino?.id_usuario) {
+                await notifyUser(usuarioDestino.id_usuario, {
+                    tipo: 'PERFIL_REMOVIDO',
+                    mensaje: `Se te quitó el perfil ${pfName || id_perfil}`,
+                    link: '/perfil',
+                    meta: { id_perfil: Number(id_perfil), perfil: pfName }
+                });
+            }
+            await notifyAdminsRRHH({
+                tipo: 'PERFIL_CAMBIO',
+                mensaje: `${id_persona}: perfil removido | ${pfName || id_perfil}`,
+                link: `/dashboard/usuarios/${usuarioActor}`,
+                meta: { id_persona, id_perfil: Number(id_perfil), perfil: pfName }
+            });
+        } catch (error) {
+            console.warn('desasignarPerfil notify error:', error.message);
+        }
     } catch (error) {
         console.error('Error en desasignarPerfil:', error);
         res.status(500).json({message:'Error al desasignar perfil', detalle:error.message});
