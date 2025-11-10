@@ -11,7 +11,7 @@ export default function Aside() {
     const location = useLocation();
 
     const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
-        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN'
+        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN' || 'RRHH'
     )
 
     const handleLogout = () =>{
