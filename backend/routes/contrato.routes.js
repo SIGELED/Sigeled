@@ -342,12 +342,10 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
       fileExtension = 'pdf';
     }
 
-    // Set headers for file download
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename=contrato-${id}.${fileExtension}`);
-    res.setHeader('Content-Length', fileContent.length);
+    res.send(fileContent);
 
-    // Send the file
     res.send(fileContent);
 
   } catch (error) {

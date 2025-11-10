@@ -130,7 +130,7 @@ export const toggleUser = async (req, res) => {
                 meta: { id_usuario, activo: nuevoEstado }
             })
         } catch (error) {
-            console.warn('toggleUser notify error:', e.message);
+            console.warn('toggleUser notify error:', error.message);
         }
     } catch (error) {
         console.error('Error al cambiar el estado del usuario:', error);

@@ -79,7 +79,9 @@ export const personaDocService = {
       observacion: observacion ?? null,
     }),
   deleteDoc: (id_persona, id_persona_doc) =>
-    api.delete(`/persona-doc/personas/${id_persona}/documentos/${id_persona_doc}`)
+    api.delete(`/persona-doc/personas/${id_persona}/documentos/${id_persona_doc}`),
+  solicitarEliminacion: (id_persona_doc, body) =>
+    api.post(`/persona-doc/${id_persona_doc}/solicitar_eliminacion`, body),
 };
 
 export const estadoVerificacionService = {
@@ -102,7 +104,9 @@ export const archivoService = {
 export const domicilioService = {
   getDomicilioByPersona: (id_persona) => api.get(`/persona/${id_persona}/domicilio`),
   createDomicilio: (id_persona, data) => api.post(`/persona/${id_persona}/domicilio`, data),
-  deleteDomicilio: (id_persona, id_domicilio) => api.delete(`/persona/personas/${id_persona}/domicilios/${id_domicilio}`)
+  deleteDomicilio: (id_persona, id_domicilio) => api.delete(`/persona/personas/${id_persona}/domicilios/${id_domicilio}`),
+  solicitarEliminacion: (idPersona, id_domicilio, body) =>
+  api.post(`/persona/${idPersona}/domicilios/${id_domicilio}/solicitar_eliminacion`, body),
 }
 
 export const domOtrosService = {
@@ -124,7 +128,8 @@ export const tituloService = {
   getTiposTitulos: () => api.get(`/titulos/tipos`),
   cambiarEstado: (id_titulo, data) =>
     api.patch(`/titulos/${id_titulo}/estado`, data),
-  deleteTitulo:(id_persona, id_titulo) => api.delete(`/titulos/personas/${id_persona}/titulos/${id_titulo}`)
+  deleteTitulo:(id_persona, id_titulo) => api.delete(`/titulos/personas/${id_persona}/titulos/${id_titulo}`),
+  solicitarEliminacion: (id_titulo, body) => api.post(`/titulos/${id_titulo}/solicitar_eliminacion`, body),
 };
 
 export const contratoService = {

@@ -1,11 +1,10 @@
 import db from './db.js';
 
-// Obtener domicilios por persona
-// Consulta con JOIN para obtener datos completos de domicilio
 export const getDomiciliosByPersona = async (id_persona) => {
     const res = await db.query(`
         SELECT 
             pd.*,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             b.id_dom_barrio,
             b.barrio,
             b.manzana AS barrio_manzana,
@@ -19,6 +18,7 @@ export const getDomiciliosByPersona = async (id_persona) => {
             d.id_dom_departamento,
             d.departamento AS departamento_admin
         FROM persona_domicilio pd
+        LEFT JOIN personas p     ON p.id_persona     = pd.id_persona
         LEFT JOIN dom_barrio b ON pd.id_dom_barrio = b.id_dom_barrio
         LEFT JOIN dom_localidad l ON b.id_dom_localidad = l.id_dom_localidad
         LEFT JOIN dom_departamento d ON l.id_dom_departamento = d.id_dom_departamento
@@ -32,10 +32,12 @@ export const getDomiciliosByPersona = async (id_persona) => {
 export const getDomicilioById = async (id_domicilio) => {
     const q = `
         SELECT pd.*,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             b.barrio, b.manzana, b.casa as barrio_casa, b.departamento as barrio_departamento, b.piso as barrio_piso,
             l.localidad, l.codigo_postal,
             dep.departamento as departamento_nombre
         FROM persona_domicilio pd
+        LEFT JOIN personas p ON p.id_persona = pd.id_persona
         LEFT JOIN dom_barrio b ON pd.id_dom_barrio = b.id_dom_barrio
         LEFT JOIN dom_localidad l ON b.id_dom_localidad = l.id_dom_localidad
         LEFT JOIN dom_departamento dep ON l.id_dom_departamento = dep.id_dom_departamento
@@ -46,8 +48,6 @@ export const getDomicilioById = async (id_domicilio) => {
     return r.rows[0] || null;
 };
 
-// Crear domicilio
-// Usar los IDs de las tablas relacionadas
 export const createDomicilio = async ({ id_persona, calle, altura, id_dom_barrio }) => {
     const res = await db.query(
         `INSERT INTO persona_domicilio (id_persona, calle, altura, id_dom_barrio)

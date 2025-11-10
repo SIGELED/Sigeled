@@ -75,44 +75,52 @@ export const verificarTitulo = async (req, res) => {
     try {
         const id_titulo = String(req.params.id_titulo); 
         const { id_estado_verificacion, observacion } = req.body;
+        const obsStr = String(observacion ?? '').trim() || null;
 
         const estado = await resolveEstado(id_estado_verificacion);
         if (!estado) return res.status(400).json({ message: "Estado inválido" });
 
         const code = String(estado.codigo || "").toUpperCase();
-        if ((code === "RECHAZADO" || code === "OBSERVADO") && !String(observacion || "").trim()) {
-        return res.status(400).json({ message: "Debe indicar observación para Rechazado/Observado" });
-        }
+        const notifNivel =
+            code === 'APROBADO' ? 'success' :
+            code === 'RECHAZADO' ? 'error'  :
+            code === 'OBSERVADO' ? 'warning': 'info';
 
         const verificado_por_usuario =
         req.user?.id_usuario ?? req.user?.id ?? req.usuario?.id_usuario ?? req.usuario?.id ?? null;
 
         const actualizado = await updateEstadoTitulo({
-        id_titulo, 
-        id_estado_verificacion: estado.id_estado, 
-        observacion: String(observacion || "").trim() || null,
-        verificado_por_usuario
+            id_titulo,
+            id_estado_verificacion: estado.id_estado,
+            observacion: obsStr,
+            verificado_por_usuario
         });
+
 
         res.json(actualizado);
 
         try {
             const usuarioDestino = await getUsuarioIdPorPersonaId(actualizado.id_persona);
-            if(usuarioDestino?.id_usuario){
+            if (usuarioDestino?.id_usuario) {
                 await notifyUser(usuarioDestino.id_usuario, {
-                    tipo: 'TITULO_ESTADO',
-                    mensaje: `Tu título "${actualizado.nombre_titulo}" ha sido ${estado.codigo}`,
-                    link: '/dashboard/legajo',
-                    meta: { id_titulo, estado: estado.codigo, observacion: String(observacion || '').trim() || null }
+                tipo: 'TITULO_ESTADO',
+                mensaje: `Tu título "${actualizado.nombre_titulo}" ha sido ${estado.codigo}`,
+                link: '/dashboard/legajo',
+                observacion: obsStr,
+                meta: { id_titulo, estado: estado.codigo, observacion: obsStr },
+                nivel: notifNivel
                 });
             }
+
             await notifyAdminsRRHH({
                 tipo: 'TITULO_VERIFICADO',
                 mensaje: `Título "${actualizado.nombre_titulo}" de ${actualizado.persona_nombre || actualizado.id_persona} marcado como ${estado.codigo}`,
                 link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
-                meta: { id_titulo, estado: estado.codigo }
+                observacion: obsStr, 
+                meta: { id_titulo, estado: estado.codigo, observacion: obsStr, actor: verificado_por_usuario },
+                nivel: 'info'
             });
-        } catch (error) {
+            } catch (error) {
             console.warn('verificarTitulo notify error:', error.message);
         }
     } catch (error) {
@@ -143,6 +151,32 @@ export const eliminarTitulo = async (req, res, next) => {
 
         const deleted = await deleteTitulo(id_titulo);
 
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(titulo.id_persona);
+            if (usuarioDestino?.id_usuario) {
+                await notifyUser(usuarioDestino.id_usuario, {
+                tipo: 'TITULO_ELIMINADO',
+                mensaje: `Se eliminó tu título "${titulo.nombre_titulo}"`,
+                link: '/dashboard/legajo',
+                meta: { id_titulo, id_persona: titulo.id_persona },
+                nivel: 'warning'
+                });
+            }
+            await notifyAdminsRRHH({
+                tipo: 'TITULO_ELIMINADO',
+                mensaje: `${titulo.persona_nombre || titulo.id_persona}: título eliminado (${titulo.nombre_titulo})`,
+                link: `/dashboard/legajo?persona=${titulo.id_persona}`,
+                meta: {
+                id_titulo,
+                id_persona: titulo.id_persona,
+                eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
+                },
+                nivel: 'info'
+            });
+        } catch (e) {
+            console.warn('[titulo-delete] notify error:', e.message);
+}
+
         if(archivo?.id_archivo){
             try {
                 const cntDocs = await countArchivoReferences(archivo.id_archivo);
@@ -160,3 +194,34 @@ export const eliminarTitulo = async (req, res, next) => {
         return next(error);
     }
 }
+
+export const solicitarEliminacionTitulo = async (req, res) => {
+    try {
+        const { id_titulo } = req.params;
+        const motivo = req.body?.motivo || null;
+
+        const t = await getTituloById(id_titulo);
+        if (!t) return res.status(404).json({ message: 'Título no encontrado' });
+
+        await notifyAdminsRRHH({
+        tipo: 'TITULO_DELETE_SOLICITUD',
+        mensaje: `${t.persona_nombre || t.id_persona} solicitó eliminar el título "${t.nombre_titulo}"`,
+        link: `/dashboard/legajo?persona=${t.id_persona}`,
+        meta: { id_titulo, id_persona: t.id_persona, motivo },
+        nivel: 'warning'
+        });
+
+        await notifyUser(req.user?.id_usuario ?? req.user?.id, {
+        tipo: 'TITULO_DELETE_SOLICITUD',
+        mensaje: `Tu solicitud de eliminación del título "${t.nombre_titulo}" fue enviada`,
+        link: '/dashboard/legajo',
+        meta: { id_titulo },
+        nivel: 'info'
+        });
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('solicitarEliminacionTitulo:', error);
+        res.status(500).json({ message: 'Error al solicitar eliminación', detalle: error.message });
+    }
+};

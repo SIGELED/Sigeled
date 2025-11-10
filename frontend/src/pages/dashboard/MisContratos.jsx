@@ -47,6 +47,23 @@ const isUpcoming = (c) => {
     return diff > 0 && diff <= 30;
 };
 
+const getMateriaNames = (row) => {
+    let mats = row?.materias;
+
+    if (typeof mats === "string") {
+        try { mats = JSON.parse(mats); } catch { mats = []; }
+    }
+
+    let names = Array.isArray(mats) ? mats.map(m => m?.descripcion_materia).filter(Boolean) : [];
+
+    if (!names.length && row?.descripcion_materia) names = [row.descripcion_materia];
+    if (!names.length && row?.materia?.descripcion_materia) names = [row.materia.descripcion_materia];
+
+    return names;
+};
+
+
+
 const StatCard = ({ icon, label, value }) => (
     <Panel className="flex items-center gap-4 p-4">
         <div className="w-10 h-10 rounded-xl bg-[#101922] flex items-center justify-center text-[#9fb2c1]">
@@ -136,22 +153,26 @@ export default function MisContratos(){
                             </tr>
                         </thead>
                         <tbody>
-                            {contratos.map((r) => (
-                                <tr key={r.id_contrato_profesor} className="border-t border-[#15202b]">
-                                <td className="p-3">{r.id_contrato_profesor}</td>
-                                <td className="p-3">{r.descripcion_materia ?? r.materia?.descripcion_materia}</td>
-                                <td className="p-3">{r.id_periodo}</td>
-                                <td className="p-3">{r.horas_semanales}</td>
-                                <td className="p-3">{fmt(r.fecha_inicio)}</td>
-                                <td className="p-3">{fmt(r.fecha_fin)}</td>
-                                <td className="p-3 text-right">
-                                    <div className="flex justify-end gap-2">
-                                    <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
-                                    <OutlineBtn onClick={() => exportar(r, "word")}>WORD</OutlineBtn>
-                                    </div>
-                                </td>
-                                </tr>
-                            ))}
+                            {contratos.map((r) => {
+                                return(
+                                    <tr key={r.id_contrato_profesor} className="border-t border-[#15202b]">
+                                    <td className="p-3">{r.id_contrato_profesor}</td>
+                                    <td className="p-3 break-words whitespace-normal">
+                                        {(() => { const names = getMateriaNames(r); return names.length ? names.join(", ") : "-"; })()}
+                                    </td>
+                                    <td className="p-3">{r.id_periodo}</td>
+                                    <td className="p-3">{r.horas_semanales}</td>
+                                    <td className="p-3">{fmt(r.fecha_inicio)}</td>
+                                    <td className="p-3">{fmt(r.fecha_fin)}</td>
+                                    <td className="p-3 text-right">
+                                        <div className="flex justify-end gap-2">
+                                        <OutlineBtn onClick={() => exportar(r, "pdf")}>PDF</OutlineBtn>
+                                        <OutlineBtn onClick={() => exportar(r, "word")}>WORD</OutlineBtn>
+                                        </div>
+                                    </td>
+                                    </tr>
+                                )
+                                })}
                         </tbody>
                     </table>
                 ) : (

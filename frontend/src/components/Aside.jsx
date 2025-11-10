@@ -10,9 +10,12 @@ export default function Aside() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const isAdmin = Array.isArray(user?.roles) && user.roles.some(r => 
-        (typeof r === 'string' ? r : r?.nombre)?.toUpperCase() === 'ADMIN' || 'RRHH'
-    )
+    const isAdmin = Array.isArray(user?.roles) && user.roles.some((r) => {
+    const code = String(
+        typeof r === 'string' ? r : (r?.codigo ?? r?.nombre ?? '')
+    ).toUpperCase();
+    return code === 'ADMIN' || code === 'RRHH';
+    });
 
     const handleLogout = () =>{
         logout();

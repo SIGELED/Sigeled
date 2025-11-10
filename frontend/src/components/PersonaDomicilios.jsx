@@ -7,6 +7,7 @@ import {
     domOtrosService,
     personaBarrioService,
 } from "../services/api";
+import RequestDeleteModal from "./SolicitarEliminacionModal";
 
 export default function PersonaDomicilios({
         idPersona,
@@ -37,6 +38,8 @@ export default function PersonaDomicilios({
     const [barrioCasa, setBarrioCasa] = useState("");
     const [barrioDepto, setBarrioDepto] = useState("");
     const [barrioPiso, setBarrioPiso] = useState("");
+
+    const [reqDelDom, setReqDelDom] = useState({ open:false, target:null });
 
     const {
         data: domicilios = [],
@@ -234,6 +237,11 @@ export default function PersonaDomicilios({
             }
         }
 
+        const handleAskDelete = (domi) => {
+            const label = `${domi.calle ?? "—"} ${domi.altura ?? ""}`.trim();
+            setReqDelDom({ open:true, target:{ id: domi.id_domicilio, label } });
+        };
+
     const renderPanel = () => (
         <div className="w-full p-6 max-w-none rounded-2xl bg-[#101922] shadow-xl">
         <div className="flex items-start justify-between mb-4">
@@ -329,25 +337,19 @@ export default function PersonaDomicilios({
                                     <FiTrash2 size={18} />
                                 </button>
                                 ) : (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                    onRequestDelete
-                                        ? onRequestDelete(d)
-                                        : alert("Para eliminar, enviá una solicitud a RRHH.")
-                                    }
-                                    className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
-                                    title="Solicitar eliminación"
-                                >
-                                    Solicitar eliminación
-                                </button>
-                            )}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAskDelete(d)}
+                                        className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
+                                        title="Solicitar eliminación"
+                                    >
+                                        Solicitar eliminación
+                                    </button>
+                                    )}
+                                </div>
+                            </div>                    
                         </div>
-                    </div>
-
-                    
-                    </div>
-                ))}
+                    ))}
                 </div>
             )}
         </div>
@@ -609,24 +611,37 @@ export default function PersonaDomicilios({
         </div>
     );
 
-    if (asModal) {
+    const content = renderPanel();
         return (
-        <div className="fixed inset-0 z-[70]">
-            <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-            onClick={onClose}
-            />
-            <div
-            className="absolute inset-0 flex items-center justify-center p-4"
-            onClick={(e) => e.stopPropagation()}
-            >
-            <div className="w-full max-w-4xl">
-                {renderPanel()}
+        <>
+            {asModal ? (
+            <div className="fixed inset-0 z-[70]">
+                <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+                onClick={onClose}
+                />
+                <div
+                className="absolute inset-0 flex items-center justify-center p-4"
+                onClick={(e) => e.stopPropagation()}
+                >
+                <div className="w-full max-w-4xl">{content}</div>
+                </div>
             </div>
-            </div>
-        </div>
-        );
-    }
+            ) : (
+            content
+            )}
 
-    return renderPanel();
+            <RequestDeleteModal
+            open={reqDelDom.open}
+            onClose={() => setReqDelDom({ open:false, target:null })}
+            kind="domicilio"
+            target={reqDelDom.target}
+            onSubmit={async ({ motivo }) => {
+                if (!reqDelDom.target?.id) return;
+                await domicilioService.solicitarEliminacion(idPersona, reqDelDom.target.id, { motivo });
+                await qc.invalidateQueries({ queryKey: ['domicilios', idPersona] });
+            }}
+            />
+        </>
+        );
 }

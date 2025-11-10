@@ -14,6 +14,16 @@ import { notifyAdminsRRHH, notifyUser } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getPersonaById } from '../models/personaModel.js';
 
+function parseMaterias(body) {
+  const arr = Array.isArray(body.id_materias)
+    ? body.id_materias
+    : (body.id_materia ? [body.id_materia] : []);
+  const isUUID = (s) =>
+    typeof s === 'string' &&
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
+  return arr.filter(isUUID);
+}
+
 export async function listarEmpleadosContratos(req, res) {
   try {
     const { q = '', perfil = 'Profesor', page = 1, limit = 20 } = req.query;
@@ -62,52 +72,46 @@ export async function obtenerContrato(req, res) {
 export async function crearContratoHandler(req, res) {
   try {
     const data = req.body;
-    
     if (!data || typeof data !== 'object') {
-      return res.status(400).json({ 
-        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
-      });
+      return res.status(400).json({ error: 'JSON inválido' });
     }
-    
-  // Validar campos requeridos (fecha_fin es obligatoria según regla)
-  const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio', 'fecha_fin'];
-    const missingFields = requiredFields.filter(field => data[field] === undefined);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Faltan campos requeridos',
-        missingFields
-      });
+
+    const baseRequired = ['id_persona','id_profesor','id_periodo','horas_semanales','monto_hora','fecha_inicio','fecha_fin'];
+    const missing = baseRequired.filter(f => data[f] === undefined);
+    const materias = parseMaterias(data);
+    if (materias.length === 0) missing.push('id_materias (o id_materia)');
+
+    if (missing.length) {
+      return res.status(400).json({ error: 'Faltan campos requeridos', missingFields: missing });
     }
-    
-    const contrato = await createContrato(data);
+
+    const contrato = await createContrato({ ...data, id_materias: materias });
     res.status(201).json(contrato);
+
     try {
       const persona = await getPersonaById(contrato.id_persona);
       const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
+      const etiquetaMaterias = materias.length === 1 ? '1 materia' : `${materias.length} materias`;
+
       if (userRow?.id_usuario) {
         await notifyUser(userRow.id_usuario, {
           tipo: 'CONTRATO_ASIGNADO',
-          mensaje: `Se te asignó un contrato para ${contrato.materia || 'una materia'} (${contrato.horas_semanales} h/sem)`,
-          link: `/dashboard/contratos/${contrato.id_contrato}`,
-          meta: { id_contrato: contrato.id_contrato, fecha_inicio: contrato.fecha_inicio, fecha_fin: contrato.fecha_fin }
+          mensaje: `Se te asignó un contrato para ${etiquetaMaterias} (${contrato.horas_semanales} h/sem)`,
+          link: `/dashboard/contratos/${contrato.id_contrato_profesor}`,
+          meta: { id_contrato: contrato.id_contrato_profesor, fecha_inicio: contrato.fecha_inicio, fecha_fin: contrato.fecha_fin }
         });
       }
       await notifyAdminsRRHH({
         tipo: 'CONTRATO_CREADO',
-        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${contrato.materia || 'materia'})`,
-        link: `/dashboard/contratos/${contrato.id_contrato}`,
-        meta: { id_contrato: contrato.id_contrato, id_persona: contrato.id_persona }
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${etiquetaMaterias})`,
+        link: `/dashboard/contratos/${contrato.id_contrato_profesor}`,
+        meta: { id_contrato: contrato.id_contrato_profesor, id_persona: contrato.id_persona }
       });
-    } catch (error) {
-      console.warn('crearContrato notify error:', error.message);
-    }
+    } catch (e) { console.warn('crearContrato notify error:', e.message); }
+
   } catch (error) {
     console.error('Error en crearContrato:', error);
-    res.status(400).json({ 
-      error: 'Error al crear contrato',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(400).json({ error: 'Error al crear contrato', details: process.env.NODE_ENV==='development' ? error.message : undefined });
   }
 }
 
@@ -131,20 +135,21 @@ export async function eliminarContrato(req, res) {
     try {
       const persona = await getPersonaById(contrato.id_persona);
       const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
-      if(userRow?.id_usuario){
+      const etiqueta = 'contrato';
+      if (userRow?.id_usuario) {
         await notifyUser(userRow.id_usuario, {
           tipo: 'CONTRATO_ELIMINADO',
-          mensaje: `Se eliminó tu contrato (${contrato.materia || 'materia'})`,
+          mensaje: `Se eliminó tu ${etiqueta}`,
           link: `/dashboard/contratos`,
-          meta: { id_contrato: contrato.id_persona }
+          meta: { id_contrato: contrato.id_contrato_profesor }
         });
       }
 
       await notifyAdminsRRHH({
         tipo: 'CONTRATO_ELIMINADO',
-        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato eliminado (${contrato.materia || 'materia'})`,
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - ${etiqueta} eliminado`,
         link: `/dashboard/contratos`,
-        meta: { id_contrato: contrato.id_contrato, id_persona: contrato.id_persona }
+        meta: { id_contrato: contrato.id_contrato_profesor, id_persona: contrato.id_persona }
       });
     } catch (error) {
       console.warn('eliminarContrato notify error:', error.message);
@@ -224,52 +229,57 @@ export async function listarMateriasPorCarreraAnio(req, res) {
 export async function crearNuevoContratoProfesor(req, res) {
   try {
     const data = req.body;
-    
-    if (!data || typeof data !== 'object') {
-      return res.status(400).json({ 
-        error: 'Se esperaba un objeto JSON válido en el cuerpo de la solicitud' 
-      });
-    }
-    
-    // Validar campos requeridos
-    const requiredFields = ['id_persona', 'id_profesor', 'id_materia', 'id_periodo', 'horas_semanales', 'monto_hora', 'fecha_inicio'];
-    const missingFields = requiredFields.filter(field => data[field] === undefined);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        error: 'Faltan campos requeridos',
-        missingFields
-      });
-    }
-    
-    const contrato = await crearContratoProfesor(data);
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'JSON inválido' });
+
+    const baseRequired = ['id_persona','id_profesor','id_periodo','horas_semanales','monto_hora','fecha_inicio'];
+    const missing = baseRequired.filter(f => data[f] === undefined);
+
+    const materias = parseMaterias(data);
+    if (materias.length === 0) missing.push('id_materias (o id_materia)');
+
+    if (missing.length) return res.status(400).json({ error: 'Faltan campos requeridos', missingFields: missing });
+
+    const contrato = await crearContratoProfesor({ ...data, id_materias: materias });
     res.status(201).json(contrato);
+
     try {
       const persona = await getPersonaById(contrato.id_persona);
       const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
+      const etiquetaMaterias = materias.length === 1 ? '1 materia': `${materias.length} materias`;
+
       if(userRow?.id_usuario){
         await notifyUser(userRow.id_usuario, {
           tipo: 'CONTRATO_ASIGNADO',
-          mensaje: `Se te asignó un contrato para ${contrato.materia || 'una materia'} (${contrato.horas_semanales} h/sem)`,
-          link: `/dashboard/contratos/${contrato.id_contrato}`,
-          meta: { id_contrato: contrato.id_contrato, fecha_inicio: contrato.fecha_inicio, fecha_fin: contrato.fecha_fin }
+          mensaje: `Se te asignó un contrato para ${etiquetaMaterias} (${contrato.horas_semanales} h/sem)`,
+          link: `/dashboard/contratos/${contrato.id_contrato_profesor}`,
+          meta: {
+            id_contrato: contrato.id_contrato_profesor,
+            fecha_inicio: contrato.fecha_inicio,
+            fecha_fin: contrato.fecha_fin
+          }
         });
       }
+
       await notifyAdminsRRHH({
         tipo: 'CONTRATO_CREADO',
-        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${contrato.materia || 'materia'})`,
-        link: `/dashboard/contratos/${contrato.id_contrato}`,
-        meta: { id_contrato: contrato.id_contrato, id_persona: contrato_id_persona }
+        mensaje: `${persona?.nombre || ''} ${persona?.apellido || ''} - contrato creado (${etiquetaMaterias})`,
+        link: `/dashboard/contratos/${contrato.id_contrato_profesor}`,
+        meta: { id_contrato: contrato.id_contrato_profesor, id_persona: contrato.id_persona }
       });
     } catch (error) {
-      console.warn('crearContratoProfesor notify error:', error.message);
+      console.warn('crearNuevoContratoProfesor notify error:', error.message);
     }
+
   } catch (error) {
     console.error('Error en crearNuevoContratoProfesor:', error);
-    res.status(400).json({ 
-      error: 'Error al crear contrato de profesor',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    const msg = String(error.message || '');
+    if (msg.includes('Solapamiento')) {
+      return res.status(409).json({ error: msg }); // conflicto de fechas
+    }
+    if (msg.includes('no tiene registro de profesor')) {
+      return res.status(404).json({ error: msg });
+    }
+    return res.status(500).json({ error: 'Error al crear contrato de profesor', details: msg });
   }
 }
 

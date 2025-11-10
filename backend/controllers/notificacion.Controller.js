@@ -39,16 +39,18 @@ export const testPush = async (req, res) => {
 
         const notif = await createNotificacion({
         id_usuario,
+        tipo: 'TEST',
+        nivel: 'info',
         mensaje: '🔔 Notificación de prueba en tiempo real',
         observacion: 'Emitida desde /api/notificaciones/test',
-        link: '/dashboard'
+        link: '/dashboard',
+        meta: { route: '/api/notificaciones/test' }
         });
 
         io.to(id_usuario.toString()).emit('nueva_notificacion', notif);
-
         res.json({ ok: true, notif });
     } catch (e) {
         console.error('testPush error:', e);
         res.status(500).json({ message: 'Fallo testPush', detalle: e.message });
     }
-    };
+};

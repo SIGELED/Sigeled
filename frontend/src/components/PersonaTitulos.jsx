@@ -6,13 +6,14 @@ import {  FiTrash2, FiCalendar, FiEye, FiRefreshCcw, FiCheck, FiX, FiAlertTriang
 import { LuBuilding } from "react-icons/lu";
 import { IoSchoolOutline } from "react-icons/io5";
 import PdfPreviewModal from "./PdfPreviewModal";
+import RequestDeleteModal from "./SolicitarEliminacionModal";
 
 const estadoIconEl = (codigo) => {
     switch (String(codigo).toUpperCase()) {
         case "APROBADO": return <FiCheck size={20} />;
         case "RECHAZADO": return <FiX size={20} />;
         case "OBSERVADO": return <FiAlertTriangle size={20} />;
-        default: return <FiClock size={20} />; // PENDIENTE u otros
+        default: return <FiClock size={20} />; 
     }
 };
 
@@ -25,7 +26,7 @@ const getEstadoClasses = (codigo) => {
         case "OBSERVADO":
         return "bg-gray-500/15 border border-gray-500/40 text-gray-400";
         default:
-        return "bg-yellow-500/15 border border-yellow-500/40 text-yellow-300"; // PENDIENTE
+        return "bg-yellow-500/15 border border-yellow-500/40 text-yellow-300"; 
     }
 };
 
@@ -54,6 +55,8 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
     const [fecha_emision, setFechaEmision] = useState("");
     const [matricula_prof, setMatriculaProf] = useState("");
     const [archivo, setArchivo] = useState(null);
+
+    const [reqDelTit, setReqDelTit] = useState({ open:false, target:null });
 
     const [preview, setPreview] = useState({ open: false, url: "", title: "" });
 
@@ -221,6 +224,11 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
         deleteTituloMutation.mutate(t);
     }
 
+    const handleAskDelete = (t) => {
+        const label = t.nombre_titulo || `Título #${t.id_titulo}`;
+        setReqDelTit({ open:true, target:{ id: t.id_titulo, label }});
+    };
+
     const renderPanel = () => (
         <div className="w-full max-w-none rounded-2xl bg-[#101922] p-6 shadow-xl">
         <div className="flex items-start justify-between mb-4">
@@ -331,18 +339,16 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
                             >
                             <FiTrash2 size={18} />
                             </button>
-                        ) : (
-                            <button
-                            type="button"
-                            onClick={() =>
-                                onRequestDelete ? onRequestDelete(t) : alert("Para eliminar, enviá una solicitud a RRHH.")
-                            }
-                            className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
-                            title="Solicitar eliminación"
-                            >
-                            Solicitar eliminación
-                            </button>
-                        )}
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => handleAskDelete(t)}
+                                    className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
+                                    title="Solicitar eliminación"
+                                >
+                                    Solicitar eliminación
+                                </button>
+                            )}
                         </div>
                     </div>
                     </li>
@@ -550,24 +556,37 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
         </div>
     );
 
-    if (asModal) {
-        return (
-        <div className="fixed inset-0 z-[70]">
-            <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-            onClick={onClose}
-            />
-            <div
-            className="absolute inset-0 flex items-center justify-center p-4"
-            onClick={(e) => e.stopPropagation()}
-            >
-            <div className="w-full max-w-3xl">
-                {renderPanel()}
+    const content = renderPanel();
+    return (
+        <>
+            {asModal ? (
+            <div className="fixed inset-0 z-[70]">
+                <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+                onClick={onClose}
+                />
+                <div
+                className="absolute inset-0 flex items-center justify-center p-4"
+                onClick={(e) => e.stopPropagation()}
+                >
+                <div className="w-full max-w-3xl">{content}</div>
+                </div>
             </div>
-            </div>
-        </div>
-        );
-    }
+            ) : (
+            content
+            )}
 
-    return renderPanel();
+            <RequestDeleteModal
+            open={reqDelTit.open}
+            onClose={() => setReqDelTit({ open:false, target:null })}
+            kind="titulo"
+            target={reqDelTit.target}
+            onSubmit={async ({ motivo }) => {
+                if (!reqDelTit.target?.id) return;
+                await tituloService.solicitarEliminacion(reqDelTit.target.id, { motivo });
+                await queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
+            }}
+            />
+        </>
+    );
 }

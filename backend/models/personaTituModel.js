@@ -20,11 +20,13 @@ export const getTitulosByPersona = async (id_persona) => {
             ev.codigo AS estado_verificacion_codigo,
             pt.verificado_por_usuario,
             pt.verificado_en,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             pt.creado_en
         FROM personas_titulos pt
         LEFT JOIN tipos_titulo tt ON pt.id_tipo_titulo = tt.id_tipo_titulo
         LEFT JOIN archivos a      ON pt.id_archivo = a.id_archivo
         LEFT JOIN estado_verificacion ev ON ev.id_estado = pt.id_estado_verificacion
+        LEFT JOIN personas p       ON p.id_persona = pt.id_persona
         WHERE pt.id_persona = $1
         ORDER BY pt.creado_en DESC;
     `, [id_persona]);
@@ -136,11 +138,13 @@ export const createTitulo = async ({
             ev.codigo AS estado_verificacion_codigo,
             pt.verificado_por_usuario,
             pt.verificado_en,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             pt.creado_en
         FROM personas_titulos pt
         LEFT JOIN tipos_titulo tt ON pt.id_tipo_titulo = tt.id_tipo_titulo
         LEFT JOIN archivos a      ON pt.id_archivo = a.id_archivo
         LEFT JOIN estado_verificacion ev ON ev.id_estado = pt.id_estado_verificacion
+        LEFT JOIN personas p       ON p.id_persona = pt.id_persona
         WHERE pt.id_titulo = $1
         `,
         [id_titulo]
@@ -218,11 +222,13 @@ export const updateEstadoTitulo = async ({
             ev.codigo AS estado_verificacion_codigo,
             pt.verificado_por_usuario,
             pt.verificado_en,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             pt.creado_en
         FROM personas_titulos pt
         LEFT JOIN tipos_titulo tt ON pt.id_tipo_titulo = tt.id_tipo_titulo
         LEFT JOIN archivos a      ON pt.id_archivo = a.id_archivo
         LEFT JOIN estado_verificacion ev ON ev.id_estado = pt.id_estado_verificacion
+        LEFT JOIN personas p       ON p.id_persona = pt.id_persona
         WHERE pt.id_titulo = $1
         `,
         [id_titulo]
@@ -240,7 +246,14 @@ export const updateEstadoTitulo = async ({
 
 export const getTituloById = async (id_titulo) => {
     const { rows } = await db.query(
-        `SELECT * FROM personas_titulos WHERE id_titulo = $1`,
+        `
+        SELECT 
+            pt.*,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre
+        FROM personas_titulos pt
+        LEFT JOIN personas p ON p.id_persona = pt.id_persona
+        WHERE pt.id_titulo = $1
+        `,
         [id_titulo]
     );
     return rows[0] || null;

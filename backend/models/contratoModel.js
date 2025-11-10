@@ -27,37 +27,35 @@ export async function getEmpleados({ q = '', perfil = 'Profesor', limit = 20, of
 }
 
 export async function getAllContratos({ persona } = {}) {
-  try {
-    const params = [];
-    let where = '';
-    if (persona) { params.push(persona); where = 'WHERE cp.id_persona = $1'; }
+  const params = [];
+  let where = '';
+  if (persona) { params.push(persona); where = `WHERE cp.id_persona = $${params.length}`; }
 
-    const query = `
-      SELECT 
-        cp.*, cp.external_id,
-        p.nombre AS persona_nombre,
-        p.apellido AS persona_apellido,
-        m.descripcion_materia,
-        car.carrera_descripcion
-      FROM contrato_profesor cp
-      JOIN personas p ON cp.id_persona = p.id_persona
-      JOIN materia  m ON cp.id_materia = m.id_materia
-      LEFT JOIN LATERAL (
-        SELECT c.carrera_descripcion
-        FROM materia_carrera mc
-        JOIN carrera c ON c.id_carrera = mc.id_carrera
-        WHERE mc.id_materia = m.id_materia
-        LIMIT 1
-      ) car ON TRUE
-      ${where}
-      ORDER BY cp.fecha_inicio DESC
-    `;
-    const { rows } = await db.query(query, params);
-    return rows;
-  } catch (error) {
-    console.error('Error en getAllContratos:', error);
-    throw error;
-  }
+  const query = `
+    SELECT 
+      cp.*, cp.external_id,
+      p.nombre AS persona_nombre,
+      p.apellido AS persona_apellido,
+      COALESCE(mats.materias, '[]') AS materias
+    FROM contrato_profesor cp
+    JOIN personas p ON cp.id_persona = p.id_persona
+    LEFT JOIN LATERAL (
+      SELECT json_agg(
+              json_build_object(
+                'id_materia', m.id_materia,
+                'descripcion_materia', m.descripcion_materia
+              )
+              ORDER BY m.descripcion_materia
+            ) AS materias
+      FROM contrato_profesor_materia cpm
+      JOIN materia m ON m.id_materia = cpm.id_materia
+      WHERE cpm.id_contrato_profesor = cp.id_contrato_profesor
+    ) mats ON TRUE
+    ${where}
+    ORDER BY cp.fecha_inicio DESC
+  `;
+  const { rows } = await db.query(query, params);
+  return rows;
 }
 
 export async function getContratoById(idContrato) {
@@ -66,25 +64,23 @@ export async function getContratoById(idContrato) {
       cp.*, cp.external_id,
       p.nombre AS persona_nombre,
       p.apellido AS persona_apellido,
-      m.descripcion_materia,
-      car.carrera_descripcion,
+      COALESCE(mats.materias, '[]') AS materias,
       CONCAT_WS(' ', p.apellido, p.nombre) AS nombre_profesor,
-      m.descripcion_materia AS nombre_materia,
-      CASE cp.id_periodo
-        WHEN 1 THEN '1º'
-        WHEN 2 THEN '2º'
-        ELSE cp.id_periodo::text
-      END AS nombre_periodo
+      CASE cp.id_periodo WHEN 1 THEN '1º' WHEN 2 THEN '2º' ELSE cp.id_periodo::text END AS nombre_periodo
     FROM contrato_profesor cp
     JOIN personas p ON cp.id_persona = p.id_persona
-    JOIN materia m ON cp.id_materia = m.id_materia
     LEFT JOIN LATERAL (
-      SELECT c.carrera_descripcion
-      FROM materia_carrera mc
-      JOIN carrera c ON c.id_carrera = mc.id_carrera
-      WHERE mc.id_materia = m.id_materia
-      LIMIT 1
-    ) car ON TRUE
+      SELECT json_agg(
+              json_build_object(
+                'id_materia', m.id_materia,
+                'descripcion_materia', m.descripcion_materia
+              )
+              ORDER BY m.descripcion_materia
+            ) AS materias
+      FROM contrato_profesor_materia cpm
+      JOIN materia m ON m.id_materia = cpm.id_materia
+      WHERE cpm.id_contrato_profesor = cp.id_contrato_profesor
+    ) mats ON TRUE
     WHERE cp.id_contrato_profesor = $1
   `;
   const { rows } = await db.query(query, [idContrato]);
@@ -92,33 +88,33 @@ export async function getContratoById(idContrato) {
 }
 
 export async function getContratoByExternalId(externalId) {
-  const query = `
+  const q = `
     SELECT
       cp.*, cp.external_id,
       p.nombre AS persona_nombre,
       p.apellido AS persona_apellido,
-      m.descripcion_materia,
-      car.carrera_descripcion
+      COALESCE(mats.materias, '[]') AS materias
     FROM contrato_profesor cp
     JOIN personas p ON cp.id_persona = p.id_persona
-    JOIN materia m ON cp.id_materia = m.id_materia
     LEFT JOIN LATERAL (
-      SELECT c.carrera_descripcion
-      FROM materia_carrera mc
-      JOIN carrera c ON c.id_carrera = mc.id_carrera
-      WHERE mc.id_materia = m.id_materia
-      LIMIT 1
-    ) car ON TRUE
+      SELECT json_agg(json_build_object('id_materia', m.id_materia, 'descripcion_materia', m.descripcion_materia)
+                ORDER BY m.descripcion_materia) AS materias
+      FROM contrato_profesor_materia cpm
+      JOIN materia m ON m.id_materia = cpm.id_materia
+      WHERE cpm.id_contrato_profesor = cp.id_contrato_profesor
+    ) mats ON TRUE
     WHERE cp.external_id = $1
   `;
-  const { rows } = await db.query(query, [externalId]);
+  const { rows } = await db.query(q, [externalId]);
   return rows[0] || null;
 }
+
 
 export async function createContrato(data) {
   const client = await db.connect();
   try {
     await client.query('BEGIN');
+
     let id_profesor = data.id_profesor;
     if (!id_profesor) {
       const { rows: profRows } = await client.query(
@@ -128,6 +124,12 @@ export async function createContrato(data) {
       if (!profRows.length) throw new Error('La persona no tiene registro de profesor');
       id_profesor = profRows[0].id_profesor;
     }
+
+    let idMaterias = Array.isArray(data.id_materias) ? data.id_materias : [];
+    if (!idMaterias.length && data.id_materia) idMaterias = [data.id_materia];
+    const isUUID = (s) => typeof s === 'string' && /^[0-9a-fA-F-]{36}$/.test(s);
+    idMaterias = idMaterias.filter(isUUID);
+    if (!idMaterias.length) throw new Error('Debe indicar al menos una materia (UUID)');
 
     const overlapQuery = `
       SELECT 1 FROM contrato_profesor
@@ -144,13 +146,12 @@ export async function createContrato(data) {
         id_persona, id_profesor, id_materia, id_periodo, 
         horas_semanales, horas_mensuales, monto_hora, 
         fecha_inicio, fecha_fin, "createdAt","updatedAt"
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())
-      RETURNING *, external_id
+      ) VALUES ($1,$2,NULL,$3,$4,$5,$6,$7,$8,NOW(),NOW())
+      RETURNING * , external_id
     `;
     const values = [
       data.id_persona,
       id_profesor,
-      data.id_materia,
       data.id_periodo,
       data.horas_semanales,
       data.horas_mensuales ?? null,
@@ -158,10 +159,17 @@ export async function createContrato(data) {
       data.fecha_inicio,
       data.fecha_fin || null
     ];
-
     const { rows } = await client.query(insert, values);
+    const contrato = rows[0];
+
+    const inserts = idMaterias.map(id_materia => client.query(
+      'INSERT INTO contrato_profesor_materia (id_contrato_profesor, id_materia) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [contrato.id_contrato_profesor, id_materia]
+    ));
+    await Promise.all(inserts);
+
     await client.query('COMMIT');
-    return rows[0];
+    return contrato;
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error en createContrato:', err);
@@ -170,6 +178,7 @@ export async function createContrato(data) {
     client.release();
   }
 }
+
 export async function deleteContrato(idContrato) {
   const client = await db.connect();
   try {

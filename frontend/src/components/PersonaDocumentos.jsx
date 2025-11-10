@@ -4,6 +4,7 @@ import { FiTrash2, FiUpload, FiFileText, FiEye, FiRefreshCcw, FiCheck, FiX , FiA
 import { personaDocService, estadoVerificacionService, tipoDocService, archivoService } from "../services/api";
 import PdfPreviewModal from "./PdfPreviewModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import RequestDeleteModal from "./SolicitarEliminacionModal";
 
 const FALLBACK_TIPOS = [
     {id_tipo_doc: 1, codigo:"DNI", nombre: "Documento Nacional de Identidad"},
@@ -34,6 +35,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
     const [file, setFile] = useState(null);
     const [archivoSubiendo, setArchivoSubiendo] = useState(false);
     const [archivoInfo, setArchivoInfo] = useState(null);
+    const [reqDelDoc, setReqDelDoc] = useState({ open:false, target:null });
 
     const [preview, setPreview] = useState({open: false, url: '', title: ''});
 
@@ -62,6 +64,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         enabled: canChangeState,
         initialData: FALLBACK_ESTADOS,
     });
+
+    const handleAskDelete = (doc) => {
+        const tipo = tipoById(doc.id_tipo_doc);
+        const label = `${tipo?.nombre || "Documento"}${doc.archivo_nombre ? ` · ${doc.archivo_nombre}` : ""}`;
+        setReqDelDoc({ open:true, target:{ id: doc.id_persona_doc, label } });
+    };
 
     const createDocMutation = useMutation({
         mutationFn: (payload) => personaDocService.createDoc(payload),
@@ -325,10 +333,10 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
                                         >
                                             <FiTrash2 size={16} />
                                         </button>
-                                    ):(
+                                    ) : (
                                         <button
                                             type="button"
-                                            onClick={() => onRequestDelete ? onRequestDelete(d) : alert("Para eliminar, enviá una solicitud a RRHH.")}
+                                            onClick={() => handleAskDelete(d)}
                                             className="flex items-center cursor-pointer justify-center border border-[#19F124]/40 text-[#19F124] rounded-lg px-3 py-1 hover:bg-[#0f302d] transition"
                                             title="Solicitar eliminación"
                                         >
@@ -531,23 +539,39 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         </div>
     );
 
-    if (asModal) {
-        return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-            <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-            onClick={onClose}
-            aria-hidden="true"
-            />
-            <div
-            className="relative z-10 w-[95%] max-w-3xl"
-            onClick={(e) => e.stopPropagation()}
-            >
-            {renderPanel()}
-            </div>
-        </div>
-        );
-    }
+    const content = renderPanel();
 
-    return renderPanel();
+    return (
+        <>
+            {asModal ? (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+                onClick={onClose}
+                aria-hidden="true"
+                />
+                <div
+                className="relative z-10 w-[95%] max-w-3xl"
+                onClick={(e) => e.stopPropagation()}
+                >
+                {content}
+                </div>
+            </div>
+            ) : (
+            content
+            )}
+
+            <RequestDeleteModal
+            open={reqDelDoc.open}
+            onClose={() => setReqDelDoc({ open:false, target:null })}
+            kind="documento"
+            target={reqDelDoc.target}
+            onSubmit={async ({ motivo }) => {
+                if (!reqDelDoc.target?.id) return;
+                await personaDocService.solicitarEliminacion(reqDelDoc.target.id, { motivo });
+                await queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+            }}
+            />
+        </>
+        );
 }

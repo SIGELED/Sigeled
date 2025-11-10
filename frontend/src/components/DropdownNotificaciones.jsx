@@ -2,7 +2,8 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from "@tanstack/react-query";
 import { notificacionService } from "../services/api";
-import { FiInbox } from "react-icons/fi";
+import React from "react";
+import { FiInbox, FiInfo, FiCheck, FiAlertTriangle, FiXCircle } from "react-icons/fi";
 
 function timeAgo(date) {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -19,6 +20,15 @@ function timeAgo(date) {
     return "Recién";
 }
 
+const LEVEL = {
+    info:    { text: "text-blue-400",   bg: "bg-blue-400",   ring: "ring-blue-900/50",  chip: "bg-blue-500/15 border-blue-500/40 text-blue-300",   Icon: FiInfo },
+    success: { text: "text-green-400",  bg: "bg-green-400",  ring: "ring-green-400/30", chip: "bg-green-500/15 border-green-500/40 text-green-300", Icon: FiCheck },
+    warning: { text: "text-yellow-400", bg: "bg-yellow-400", ring: "ring-yellow-400/30",chip: "bg-yellow-500/15 border-yellow-500/40 text-yellow-300",Icon: FiAlertTriangle },
+    error:   { text: "text-red-400",    bg: "bg-red-400",    ring: "ring-red-400/30",   chip: "bg-red-500/15 border-red-500/40 text-red-300",      Icon: FiXCircle },
+};
+
+const levelUi = (lvl) => LEVEL[(lvl || "info").toLowerCase()] ?? LEVEL.info;
+
 export default function DropdownNotificaciones({ onClose }) {
     const { notifications = [], setNotifications } = useAuth();
     const navigate = useNavigate();
@@ -26,7 +36,7 @@ export default function DropdownNotificaciones({ onClose }) {
     const markAsReadMutation = useMutation({
         mutationFn: async (id_notificacion) => {
         const res = await notificacionService.marcarComoLeido(id_notificacion);
-        return res.data; // <- importante: devolvemos el objeto notificación actualizado
+        return res.data;
         },
         onSuccess: (updatedNotif) => {
         setNotifications(prev =>
@@ -59,19 +69,30 @@ export default function DropdownNotificaciones({ onClose }) {
                 <div
                     key={notif.id_notificacion}
                     onClick={() => handleClick(notif)}
-                    className={`p-3 flex items-start gap-3 hover:bg-[#1A2430] cursor-pointer ${notif.leido ? 'opacity-60' : 'font-bold'}`}
-                >
-                    {!notif.leido && (
-                    <div className="w-2 h-2 mt-1.5 bg-[#19F124] rounded-full shrink-0" />
-                    )}
-                    <div className={`flex-1 ${notif.leido ? 'pl-5' : ''}`}>
-                    <p className="text-sm text-white">{notif.mensaje}</p>
-                    {notif.observacion && (
+                    className={`relative p-3 pl-4 flex items-start gap-3 cursor-pointer transition
+                                hover:bg-[#1A2430] ${notif.leido ? 'opacity-70' : 'opacity-100'} 
+                                ring-1 ${levelUi(notif.nivel).ring}`}
+                    >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${levelUi(notif.nivel).bg}`} />
+                    <div className="shrink-0 mt-0.5">
+                        {React.createElement(levelUi(notif.nivel).Icon, { size: 18, className: levelUi(notif.nivel).text })}
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                        <p className={`text-sm ${notif.leido ? 'text-gray-300' : 'text-white font-semibold'}`}>{notif.mensaje}</p>
+                            {!notif.leido && <span className={`ml-2 mt-0.5 w-2 h-2 rounded-full ${levelUi(notif.nivel).bg}`} />}
+                        </div>
+                        {notif.observacion && (
                         <p className="mt-1 text-xs italic text-gray-400">"{notif.observacion}"</p>
-                    )}
-                    <p className="text-xs text-[#19F124] opacity-80 mt-1">
-                        {timeAgo(notif.fecha_creacion)}
-                    </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                        {notif.tipo && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${levelUi(notif.nivel).chip}`}>
+                            {notif.tipo}
+                            </span>
+                        )}
+                        <span className="text-xs text-[#9ccfaa] opacity-80">{timeAgo(notif.fecha_creacion)}</span>
+                        </div>
                     </div>
                 </div>
                 ))}

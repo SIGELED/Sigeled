@@ -72,6 +72,11 @@ export const verificarPersonaDocumento = async (req, res) => {
             verificado_por_usuario
         });
 
+        const notifNivel =
+            codigo === 'APROBADO' ? 'success'
+            : (codigo === 'RECHAZADO' ? 'error'
+            : (codigo === 'OBSERVADO' ? 'warning' : 'info'));
+
         try {
             const usuarioDestino = await getUsuarioIdPorPersonaId(actualizado.id_persona);
             if(usuarioDestino){
@@ -81,7 +86,8 @@ export const verificarPersonaDocumento = async (req, res) => {
                     mensaje: `Tu documento "${actualizado.tipo_nombre}" ha sido ${actualizado.estado_nombre}`,
                     observacion: observacion || null,
                     link: '/dashboard/legajo',
-                    meta: { id_persona_doc, estado: actualizado.estado_nombre }
+                    meta: { id_persona_doc, estado: actualizado.estado_nombre },
+                    nivel: notifNivel,
                 });
             }
 
@@ -91,11 +97,12 @@ export const verificarPersonaDocumento = async (req, res) => {
                 link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
                 meta: { id_persona_doc, estado: actualizado.estado_nombre, verificado_por: verificado_por_usuario }
             });
+            return res.json(actualizado);
         } catch (error) {
-            
+            console.warn('notify error:', error?.message);
         }
     } catch (error) {
-        console.error('Error en verificarPersonaDocumento:', error);
+        console.warn('verificarPersonaDocumento notify error:', error?.message);
         res.status(500).json({message:'Error al verificar documento', detalle: error.message});
     }
 }
@@ -135,6 +142,40 @@ export const deleteDocumento = async (req, res, next) => {
         }
 
         const deletedDoc = await deletePersonaDocumento(id_persona_doc);
+
+        try {
+            const usuarioDestino = await getUsuarioIdPorPersonaId(doc.id_persona);
+            if(usuarioDestino?.id_usuario){
+                await notifyUser(usuarioDestino.id_usuario, {
+                    tipo: 'DOC_ELIMINADO',
+                    mensaje: `Se eliminó tu documento "${doc.tipo_nombre || 'Documento'}"`,
+                    lnik: '/dashboard/legajo',
+                    meta:{
+                        id_persona_doc,
+                        id_persona: doc.id_persona,
+                        id_archivo:doc.id_archivo || null,
+                        tipo: doc.tipo_nombre || doc.id_tipo_doc
+                    },
+                    nivel: 'warning'
+                })
+            }
+
+            await notifyAdminsRRHH({
+                tipo: 'DOC_ELIMINADO',
+                mensaje: `${doc.persona_nombre || doc.id_persona}: documento eliminado (${doc.tipo_nombre || doc.id_tipo_doc})`,
+                link: `/dashboard/legajo?persona=${doc.id_persona}`,
+                meta: {
+                id_persona_doc,
+                id_persona: doc.id_persona,
+                id_archivo: doc.id_archivo || null,
+                tipo: doc.tipo_nombre || doc.id_tipo_doc,
+                eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
+                },
+                nivel: 'info'
+            });
+        } catch (error) {
+            console.warn('[doc-delete] notify error:', error.message);
+        }
 
         if (archivo && archivo.id_archivo) {
         try {

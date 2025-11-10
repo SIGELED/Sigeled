@@ -153,25 +153,53 @@ export const desvincularBarrioPersona = async (req, res) => {
     }
 }
 
-export const borrarDomicilio = async (req, res, next) => {
+export const borrarDomicilio = async (req, res) => {
     try {
-        const { id_persona, id_domicilio } = req.params;
-        if (!id_persona || !id_domicilio) return res.status(400).json({ success:false, message:'id_persona e id_domicilio requeridos' });
+    const { id_persona, id_domicilio } = req.params;
 
-        const dom = await getDomicilioById(id_domicilio);
-        if (!dom) return res.status(404).json({ success:false, message:'Domicilio no encontrado' });
+    const roles = (req.user?.roles || [])
+        .map(r => (typeof r === 'string' ? r : r?.codigo || r?.nombre))
+        .map(x => String(x || '').toUpperCase());
+    const isPriv = roles.includes('ADMIN') || roles.includes('RRHH');
+    const isOwner = req.user?.id_persona && String(req.user.id_persona) === String(id_persona);
+    if (!isPriv && !isOwner) return res.status(403).json({ message: 'Acceso denegado' });
 
-        if (String(dom.id_persona) !== String(id_persona)) return res.status(400).json({ success:false, message:'Domicilio no pertenece a la persona indicada' });
+    const doms = await getDomiciliosByPersona(id_persona);
+    const dom = (doms || []).find(d => String(d.id_domicilio) === String(id_domicilio));
+    if (!dom) return res.status(404).json({ message: 'Domicilio no encontrado' });
 
-        const user = req.user;
-        if (!user) return res.status(401).json({ success:false, message:'Usuario no autenticado' });
+    const deleted = await deleteDomicilio(id_domicilio);
+    if (!deleted) return res.status(404).json({ message: 'No se pudo eliminar (ya no existe)' });
 
-        const userPersonaId = String(user.id_persona || user.id || '');
-        if (!isAdminOrRRHH(req) && userPersonaId !== String(id_persona)) {
-            return res.status(403).json({ success:false, message:'No autorizado para eliminar este domicilio' });
+    try {
+        const u = await getUsuarioIdPorPersonaId(id_persona);
+        if (u?.id_usuario) {
+            await notifyUser(u.id_usuario, {
+            tipo: 'DOMICILIO_ELIMINADO',
+            mensaje: `Se eliminó tu domicilio "${dom.calle ?? '—'} ${dom.altura ?? ''}"`,
+            link: '/dashboard/legajo',
+            meta: { id_domicilio, id_persona },
+            nivel: 'warning'
+            });
         }
+        await notifyAdminsRRHH({
+            tipo: 'DOMICILIO_ELIMINADO',
+            mensaje: `${dom.persona_nombre || id_persona}: domicilio eliminado (${dom.calle ?? '—'} ${dom.altura ?? ''})`,
+            link: `/dashboard/legajo?persona=${id_persona}`,
+            meta: {
+            id_domicilio,
+            id_persona,
+            eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
+            },
+            nivel: 'info'
+        });
+    } catch (e) {
+        console.warn('[domicilio-delete] notify error:', e.message);
+    }
 
-        const deleted = await deleteDomicilio(id_domicilio);
-        return res.status(200).json({ success: true, data: deleted });
-    } catch (err) { next(err); }
+    return res.json({ success: true, data: deleted });
+} catch (error) {
+    console.error('[domicilio-delete] error:', error);
+    return res.status(500).json({ message: 'Error al eliminar domicilio', detalle: error.message });
+}
 };

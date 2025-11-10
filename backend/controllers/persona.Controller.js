@@ -423,3 +423,40 @@ export const crearTitulo = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const solicitarEliminacionDomicilio = async (req, res) => {
+    try {
+        const { id_persona, id_domicilio } = req.params;
+        const motivo = req.body?.motivo || null;
+
+        const roles = (req.user?.roles || []).map(r => (typeof r === 'string' ? r : r?.codigo || r?.nombre)).map(x => String(x).toUpperCase());
+        const isPriv = roles.includes('ADMIN') || roles.includes('RRHH');
+        const isOwner = req.user?.id_persona && String(req.user.id_persona) === String(id_persona);
+        if (!isPriv && !isOwner) return res.status(403).json({ message: 'Acceso denegado' });
+
+        const doms = await getDomiciliosByPersona(id_persona);
+        const dom = (doms || []).find(d => String(d.id_domicilio) === String(id_domicilio));
+        if (!dom) return res.status(404).json({ message: 'Domicilio no encontrado' });
+
+        await notifyAdminsRRHH({
+            tipo: 'DOMI_DELETE_SOLICITUD',
+            mensaje: `${dom.persona_nombre || id_persona} solicitó eliminar el domicilio "${dom.calle ?? ''} ${dom.altura ?? ''}"`,
+            link: `/dashboard/legajo?persona=${id_persona}`,
+            meta: { id_persona, id_domicilio, motivo },
+            nivel: 'warning'
+        });
+
+        await notifyUser(req.user?.id_usuario ?? req.user?.id, {
+            tipo: 'DOMI_DELETE_SOLICITUD',
+            mensaje: `Tu solicitud de eliminación del domicilio "${dom.calle ?? ''} ${dom.altura ?? ''}" fue enviada`,
+            link: '/dashboard/legajo',
+            meta: { id_persona, id_domicilio },
+            nivel: 'info'
+        });
+
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('solicitarEliminacionDomicilio:', error);
+        res.status(500).json({ message: 'Error al solicitar eliminación', detalle: error.message });
+    }
+};

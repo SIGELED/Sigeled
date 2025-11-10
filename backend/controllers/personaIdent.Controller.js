@@ -3,7 +3,6 @@ import { createArchivo } from '../models/archivoModel.js';
 import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
 import { getPersonaById } from '../models/personaModel.js';
 
-// Subir identificación con archivo comprobatorio
 export const subirIdentificacion = async (req, res) => {
     try {
         const { tipo_doc, numero } = req.body;
@@ -20,13 +19,11 @@ export const subirIdentificacion = async (req, res) => {
             content_type: file.mimetype,
             size_bytes: file.size,
             storage_key: file.filename,
-            subido_por: id_persona
+            subido_por_usuario: req.user?.id_usuario ?? req.user?.id ?? null
         });
 
-        // Estado de verificación por defecto: pendiente
-        const id_estado = 1; // Asume que 1 es 'pendiente'
+        const id_estado = 1;
 
-        // Crear la identificación y vincular el archivo
         const identificacion = await createIdentificacion({
             id_persona,
             tipo_doc,

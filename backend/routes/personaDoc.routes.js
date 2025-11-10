@@ -38,7 +38,7 @@ const esPropietarioOPrivilegiado = async (req,res,next) => {
             const esOwner = row?.id_usuario && String(row.id_usuario) === String(req.user.id_usuario);
             if(esOwner) return next();
         } catch (error) {
-            console.warn('[EsPropietarioOPrivilegiado] fallback error:', e.message);
+            console.warn('[EsPropietarioOPrivilegiado] fallback error:', error.message);
         }
     }
     return res.status(403).json({ error: 'Acceso denegado'});

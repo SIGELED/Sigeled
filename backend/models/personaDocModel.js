@@ -2,7 +2,22 @@ import db from './db.js';
 
 // Obtener todos los documentos de personas
 export const getAllPersonasDocumentos = async () => {
-    const res = await db.query('SELECT * FROM personas_documentos');
+    const res = await db.query(`
+        SELECT
+            pd.*,
+            t.codigo AS tipo_codigo,
+            t.nombre AS tipo_nombre,
+            a.nombre_original AS archivo_nombre,
+            ev.codigo AS estado_codigo,
+            ev.nombre AS estado_nombre,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre
+        FROM personas_documentos pd
+        LEFT JOIN personas            p  ON p.id_persona = pd.id_persona
+        LEFT JOIN tipos_documento     t  USING (id_tipo_doc)
+        LEFT JOIN archivos            a  USING (id_archivo)
+        LEFT JOIN estado_verificacion ev ON ev.id_estado = pd.id_estado_verificacion
+        ORDER BY pd.creado_en DESC, pd.id_persona_doc DESC
+    `);
     return res.rows;
 };
 
@@ -26,9 +41,11 @@ export const getPersonasDocumentos = async ({id_persona} = {}) => {
             pd.id_estado_verificacion AS id_estado,
             ev.codigo      AS estado_codigo,
             ev.nombre      AS estado_nombre,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             pd.vigente,
             pd.creado_en
         FROM personas_documentos pd
+        LEFT JOIN personas           p  ON p.id_persona = pd.id_persona
         LEFT JOIN tipos_documento      t  USING (id_tipo_doc)
         LEFT JOIN archivos             a  USING (id_archivo)
         LEFT JOIN estado_verificacion  ev ON ev.id_estado = pd.id_estado_verificacion
@@ -46,8 +63,10 @@ export const getPersonaDocumentoById = async (id_persona_doc) => {
             pd.*,
             t.codigo AS tipo_codigo, t.nombre AS tipo_nombre,
             a.nombre_original AS archivo_nombre,
-            ev.codigo AS estado_codigo, ev.nombre AS estado_nombre
+            ev.codigo AS estado_codigo, ev.nombre AS estado_nombre,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre
         FROM personas_documentos pd
+        LEFT JOIN personas            p  ON p.id_persona = pd.id_persona
         LEFT JOIN tipos_documento     t  USING (id_tipo_doc)
         LEFT JOIN archivos            a  USING (id_archivo)
         LEFT JOIN estado_verificacion ev ON ev.id_estado = pd.id_estado_verificacion
@@ -108,9 +127,11 @@ export const createPersonaDocumento = async ({
             pd.id_estado_verificacion AS id_estado,
             ev.codigo AS estado_codigo,
             ev.nombre AS estado_nombre,
+            concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
             pd.vigente,
             pd.creado_en
         FROM personas_documentos pd
+        LEFT JOIN personas           p  ON p.id_persona = pd.id_persona
         LEFT JOIN tipos_documento      t  USING (id_tipo_doc)
         LEFT JOIN archivos             a  USING (id_archivo)
         LEFT JOIN estado_verificacion  ev ON ev.id_estado = pd.id_estado_verificacion
@@ -185,9 +206,11 @@ export const updateEstadoDocumento = async({
                 pd.id_estado_verificacion AS id_estado,
                 ev.codigo AS estado_codigo,
                 ev.nombre AS estado_nombre,
+                concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
                 pd.vigente,
                 pd.creado_en
             FROM personas_documentos pd
+            LEFT JOIN personas          p  ON p.id_persona = pd.id_persona
             LEFT JOIN tipos_documento   t USING(id_tipo_doc)
             LEFT JOIN archivos          a USING(id_archivo)
             LEFT JOIN estado_verificacion ev ON ev.id_estado = pd.id_estado_verificacion

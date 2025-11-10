@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { archivoValidator } from '../middleware/archivoMiddleware.js';
-import { subirArchivo, listarEstadosVerificacion, desasignarPerfil } from '../controllers/persona.Controller.js';
+import { subirArchivo, listarEstadosVerificacion, desasignarPerfil, solicitarEliminacionDomicilio } from '../controllers/persona.Controller.js';
 import { domicilioValidator } from '../validators/domicilioValidator.js';
 import { tituloValidator } from '../validators/tituloValidator.js';
 import { identificacionValidator } from '../validators/identificacionValidator.js';
@@ -82,6 +82,8 @@ personaRouter.use(verificarToken);
  *         description: Resultados del buscador avanzado
  */
 personaRouter.get('/buscar', soloRRHH, buscadorAvanzado);
+
++ personaRouter.post('/:id_persona/domicilios/:id_domicilio/solicitar_eliminacion', verificarToken, solicitarEliminacionDomicilio);
 
 /**
  * @swagger
