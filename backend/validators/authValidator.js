@@ -1,3 +1,5 @@
+import { body, validationResult } from "express-validator";
+
 export const validarRegistro = (req, res, next) => {
     const { email, password } = req.body;
 
@@ -54,3 +56,23 @@ export const soloRRHH = (req, res, next) => {
     return res.status(403).json({ message: 'Acceso denegado: solo RRHH o Administrador'
     });
 };
+
+export const registerFullValidators = [
+    body('email').isEmail().withMessage('Email inválido'),
+    body('password').isLength({ min:8 }).withMessage('La contraseña debe tener mínimo 8 carácteres'),
+    body('nombre').notEmpty(),
+    body('apellido').notEmpty(),
+    body('fecha_nacimiento').isISO8601().withMessage('Fecha de nacimiento inválida'),
+    body('sexo').isString().notEmpty(),
+    body('telefono').isString().notEmpty(),
+    body('dni').isString().notEmpty(),
+    body('cuil').isString().notEmpty()
+]
+
+export const handleValidation = (req, res, next) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()){
+        return res.status(422).json({ message: 'Validación fallida', errors: errors.array() });
+    }
+    next();
+}

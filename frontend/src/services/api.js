@@ -20,6 +20,7 @@ api.interceptors.request.use(
 export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
+  registerFull: (payload) => api.post('/auth/register-full', payload),
   logout:() =>{
     localStorage.removeItem('token');
     return Promise.resolve();

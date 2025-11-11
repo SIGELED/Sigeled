@@ -33,53 +33,33 @@ const Register = () => {
     setError("");
       
       try {
-        if(step === 1){
-          if(userData.password !== userData.confirmarPassword){
+        if (step < 3) {
+          if(step === 1 && userData.password !== userData.confirmarPassword){
             setError("Las contraseñas no coinciden");
             return;
           }
-
-          const { confirmarPassword, nombre, apellido, fecha_nacimiento, sexo, telefono, dni, cuil, id_persona, ...userRegister } = userData;
-          const res = await authService.register(userRegister);
-
-          await login(res.data.user, res.data.token);
-          setUserData(prev => ({ ...prev, id_usuario: res.data.user.id }));
-          setStep(2);
+          setStep(step + 1);
+          return;
         }
 
-        else if(step === 2) {
-          const personaData = {
-            nombre: userData.nombre,
-            apellido: userData.apellido,
-            fecha_nacimiento: userData.fecha_nacimiento,
-            sexo: userData.sexo,
-            telefono: userData.telefono,
-            id_usuario: userData.id_usuario,
-          };
+        const payload = {
+          email: userData.email,
+          password: userData.password,
+          nombre: userData.nombre,
+          apellido: userData.apellido,
+          fecha_nacimiento: userData.fecha_nacimiento,
+          sexo: userData.sexo,
+          telefono: userData.telefono,
+          dni: userData.dni,
+          cuil: userData.cuil
+        };
 
-          const res = await personaService.createPersona(personaData);
-          const id_persona = res.data.persona.id_persona;
-          setUserData(prev => ({ ...prev, id_persona }));
-
-          setStep(3);
-        }
-
-        else if (step === 3){
-          if(!userData.id_persona){
-            setError("Error interno: falta el ID de la persona");
-            return;
-          }
-          
-          const identificationData = {
-            dni: userData.dni,
-            cuil: userData.cuil
-          };
-
-          await identificationService.createIdentificacion(userData.id_persona, identificationData);
-          navigate(`/registro/archivos?persona=${userData.id_persona}`);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || "Error en el registro");
+        const res = await authService.registerFull(payload);
+        await login(res.data.user, res.data.token);
+        const idp = res?.data?.user?.id_persona;
+        navigate(`/registro/archivos?persona=${idp}`);
+      } catch (error) {
+        setError(error.response?.data?.message || "Error en el registro");
       }
     };
 
