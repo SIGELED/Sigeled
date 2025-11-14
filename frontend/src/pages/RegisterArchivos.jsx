@@ -4,6 +4,7 @@ import StepDocs from "./registerArchivos/StepDocs";
 import RegisterDomicilio from "./registerArchivos/RegisterDomicilio";
 import RegisterTitulo from "./registerArchivos/RegisterTitulo";
 import { personaBarrioService, domicilioService, tituloService, legajoService, personaDocService, domOtrosService } from "../services/api";
+import { useToast } from "../components/ToastProvider";
 
 const extractQuery = (s, k) => new URLSearchParams(s).get(k);
 
@@ -17,13 +18,14 @@ const Stepper = ({ step }) => {
         <div className="flex items-center gap-6">
         {steps.map((s, i) => (
             <div key={s.n} className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold
-                ${step >= s.n ? 'bg-[#19F124] text-[#05200a]' : 'bg-[#13202c] text-white/60'}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center text-2xl justify-center font-black
+                ${step >= s.n ? 'bg-[#19F124] text-[#05200a]' : 'bg-[#13202c] text-white/80'}`}>
                 {s.n}
             </div>
-            <span className={`hidden sm:block ${step >= s.n ? 'text-white' : 'text-white/60'}`}>{s.label}</span>
+            {/* <span className={`hidden sm:block ${step >= s.n ? 'text-white' : 'text-white/60'}`}>{s.label}</span> */}
+            <span className={`hidden sm:block ${step >= s.n ? 'text-white' : 'text-white/60'}`}></span>
             {i < steps.length - 1 && (
-                <div className={`w-20 h-1 rounded ${step > s.n ? 'bg-[#19F124]' : 'bg-white/10'}`} />
+                <div className={`w-30 h-1 rounded transition-all ${step > s.n ? 'bg-[#19F124]' : 'bg-white/10'}`} />
             )}
             </div>
         ))}
@@ -31,14 +33,23 @@ const Stepper = ({ step }) => {
     );
 };
 
+const stepsTitle = { 
+            1: "Subí tus documentos personales",
+            2: "Cargá tu domicilio",
+            3: "Cargá tus títulos",
+        }
+
 export default function RegisterArchivos() {
     const navigate = useNavigate();
     const q = useLocation().search;
     const id_persona = extractQuery(q, "persona");
+    const toast = useToast();
 
     const [step, setStep] = useState(1);
     const [domPayload, setDomPayload] = useState(null);
-    const [titulosTmp, setTitulosTmp] = useState([]);
+
+    const [tituloDraft, setTituloDraft] = useState(null);
+
     const [docs, setDocs] = useState([]);
     const [saving, setSaving] = useState(false);
 
@@ -56,7 +67,7 @@ export default function RegisterArchivos() {
     );
 
     const finalizar = async () => {
-        if (!id_persona) return alert("Falta id_persona");
+        if (!id_persona) return toast.warning("Falta id_persona");
         try {
         setSaving(true);
 
@@ -76,8 +87,8 @@ export default function RegisterArchivos() {
             await domicilioService.createDomicilio(id_persona, { calle, altura, id_dom_barrio: barrioId });
         }
 
-        for (const t of titulosTmp) {
-            await tituloService.createTitulo({ id_persona, ...t });
+        if (tituloDraft && tituloDraft.id_tipo_titulo && tituloDraft.nombre_titulo) {
+            await tituloService.createTitulo({ id_persona, ...tituloDraft });
         }
 
         try { await legajoService.recalcular(id_persona); } catch {}
@@ -86,18 +97,17 @@ export default function RegisterArchivos() {
         navigate("/revision", { replace: true });
         } catch (e) {
         console.error(e);
-        alert(e?.response?.data?.detalle || e?.response?.data?.error || "No se pudo finalizar el registro");
+        toast.error(e?.response?.data?.detalle || e?.response?.data?.error || "No se pudo finalizar el registro");
         } finally {
         setSaving(false);
         }
     };
 
     return (
-        <div className="min-h-screen w-[50%] m-auto bg-[#030C14] text-white p-6 space-y-6">
-        <div className="flex flex-col items-center gap-2 justfy-center">
+        <div className="min-h-screen w-[50%] m-auto text-white p-6 space-y-6 flex flex-col justify-center">
+        <div className="flex flex-col items-center gap-3 align-middle">
             <div>
-            <p className="text-[#19F124] font-semibold text-center tracking-wide uppercase text-sm">Legajo</p>
-            <h1 className="text-4xl font-semibold">Completar registro</h1>
+            <   h1 className="text-[2.5rem] font-semibold text-[#19F124]">{stepsTitle[step] || "Completar registro"}</h1>
             </div>
             <Stepper step={step} />
         </div>
@@ -106,9 +116,9 @@ export default function RegisterArchivos() {
             <StepDocs
             idPersona={id_persona}
             alreadyUploadedCodes={uploadedCodes}
+            uploadedDocs={docs}
             onUploaded={refetchDocs}
             onNext={() => setStep(2)}
-            onBack={() => navigate(-1)}
             />
         )}
 
@@ -123,9 +133,9 @@ export default function RegisterArchivos() {
         {step === 3 && (
             <RegisterTitulo
             idPersona={id_persona}
-            onAddTitulo={(t) => setTitulosTmp(prev => [...prev, t])}
             onBack={() => setStep(2)}
             onFinish={finalizar}
+            onDraftChange={setTituloDraft}  
             saving={saving}
             />
         )}

@@ -118,7 +118,7 @@ export const verificarTitulo = async (req, res) => {
                 link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
                 observacion: obsStr, 
                 meta: { id_titulo, estado: estado.codigo, observacion: obsStr, actor: verificado_por_usuario },
-                nivel: 'info'
+                nivel: notifNivel
             });
             } catch (error) {
             console.warn('verificarTitulo notify error:', error.message);
@@ -171,7 +171,7 @@ export const eliminarTitulo = async (req, res, next) => {
                 id_persona: titulo.id_persona,
                 eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
                 },
-                nivel: 'info'
+                nivel: 'warning'
             });
         } catch (e) {
             console.warn('[titulo-delete] notify error:', e.message);

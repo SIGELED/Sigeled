@@ -95,7 +95,8 @@ export const verificarPersonaDocumento = async (req, res) => {
                 tipo: 'DOC_VERIFICADO',
                 mensaje: `"${actualizado.tipo_nombre}" de ${actualizado.persona_nombre || actualizado.id_persona} marcado como ${actualizado.estado_nombre}`,
                 link: `/dashboard/legajo?persona=${actualizado.id_persona}`,
-                meta: { id_persona_doc, estado: actualizado.estado_nombre, verificado_por: verificado_por_usuario }
+                meta: { id_persona_doc, estado: actualizado.estado_nombre, verificado_por: verificado_por_usuario },
+                nivel: notifNivel,
             });
             return res.json(actualizado);
         } catch (error) {
@@ -149,7 +150,7 @@ export const deleteDocumento = async (req, res, next) => {
                 await notifyUser(usuarioDestino.id_usuario, {
                     tipo: 'DOC_ELIMINADO',
                     mensaje: `Se eliminó tu documento "${doc.tipo_nombre || 'Documento'}"`,
-                    lnik: '/dashboard/legajo',
+                    link: '/dashboard/legajo',
                     meta:{
                         id_persona_doc,
                         id_persona: doc.id_persona,
@@ -165,13 +166,13 @@ export const deleteDocumento = async (req, res, next) => {
                 mensaje: `${doc.persona_nombre || doc.id_persona}: documento eliminado (${doc.tipo_nombre || doc.id_tipo_doc})`,
                 link: `/dashboard/legajo?persona=${doc.id_persona}`,
                 meta: {
-                id_persona_doc,
-                id_persona: doc.id_persona,
-                id_archivo: doc.id_archivo || null,
-                tipo: doc.tipo_nombre || doc.id_tipo_doc,
-                eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
+                    id_persona_doc,
+                    id_persona: doc.id_persona,
+                    id_archivo: doc.id_archivo || null,
+                    tipo: doc.tipo_nombre || doc.id_tipo_doc,
+                    eliminado_por: req.user?.id_usuario ?? req.user?.id ?? null
                 },
-                nivel: 'info'
+                nivel: 'warning'
             });
         } catch (error) {
             console.warn('[doc-delete] notify error:', error.message);

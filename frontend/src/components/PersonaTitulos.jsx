@@ -7,6 +7,8 @@ import { LuBuilding } from "react-icons/lu";
 import { IoSchoolOutline } from "react-icons/io5";
 import PdfPreviewModal from "./PdfPreviewModal";
 import RequestDeleteModal from "./SolicitarEliminacionModal";
+import { useToast } from "./ToastProvider";
+import { useConfirm } from "./ConfirmProvider";
 
 const estadoIconEl = (codigo) => {
     switch (String(codigo).toUpperCase()) {
@@ -39,6 +41,9 @@ const FALLBACK_ESTADOS = [
 ]
 
 export default function PersonaTitulos({ idPersona, onClose, asModal = true, showPersonaId = true, canDelete = true, canChangeState = true, onRequestDelete }) {
+    const toast = useToast();
+    const confirm = useConfirm();
+
     const queryClient = useQueryClient();
 
     const [verificacion, setVerificacion] = useState({ open:false, titulo: null , estado:"", obs:""})
@@ -96,10 +101,11 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
             resetForm();
             setShowNew(false);
+            toast.success("Título creado con éxito")
         },
         onError: (error) => {
             console.error("Error al crear título:", error);
-            alert("No se pudo crear el título");
+            toast.error("No se pudo crear el título");
         },
         onSettled: () => {
             setSaving(false);
@@ -110,11 +116,12 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
         mutationFn: (t) => tituloService.deleteTitulo(idPersona, t.id_titulo),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['titulos', idPersona] });
+            toast.success("Título eliminado con éxito");
         },
         onError: (error) => {
             console.error("No se pudo eliminar el título:", error?.response?.data || error.message);
             const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el título";
-            alert(message);
+            toast.error(message);
         },
         onSettled: () => {
             setDeletingId(null);
@@ -128,10 +135,11 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             queryClient.invalidateQueries({ queryKey: ['adminStats'] });
             queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
             closeCambiarEstado();
+            toast.success("Estado cambiado con éxito");
         },
         onError: (error) => {
             console.error("Error al cambiar estado:", error);
-            alert("No se pudo cambiar el estado");
+            toast.error("No se pudo cambiar el estado");
         }
         });
     
@@ -156,7 +164,8 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             const id_estado_verificacion = Number(verificacion.estado);
 
             if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
-                return alert("Debés indicar una observación para Rechazado/Observado");
+                toast.warning("Debés indicar una observación para Rechazado/Observado");
+                return;
             }
             const payload = { id_estado_verificacion, observacion: verificacion.obs.trim() || null };
             changeStateMutation.mutate({ tituloId: verificacion.titulo.id_titulo, payload });
@@ -176,7 +185,7 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
             "No se pudo abrir el documento:",
             error?.response?.data || error.message
         );
-        alert("No se pudo abrir el documento");
+        toast.error("No se pudo abrir el documento");
         }
     };
 
@@ -202,7 +211,8 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
     const handleCreate = async (e) => {
         e.preventDefault();
         if (!id_tipo_titulo || !nombre_titulo) {
-            return alert("Completá tipo de título y nombre de titulo");
+            toast.warning("Completá tipo de título y nombre de titulo");
+            return;
         }
         setSaving(true);
         const body = {
@@ -218,7 +228,12 @@ export default function PersonaTitulos({ idPersona, onClose, asModal = true, sho
     };
 
     const handleDelete = async (t) => {
-        const ok = confirm(`¿Eliminar el título "${t.nombre_titulo}"? Esta acción no se puede deshacer`);
+        const ok = await confirm({
+            title: "Eliminar título",
+            description: `¿Estas seguro que deseas eliminar "${t.nombre_titulo}"? Esta acción no se puede deshacer.`,
+            confirmText: "Eliminar",
+            tone: "danger"
+        });
         if(!ok) return;
         setDeletingId(t.id_titulo);
         deleteTituloMutation.mutate(t);

@@ -8,6 +8,7 @@ import PersonaDomicilios from "../../components/PersonaDomicilios";
 import PersonaTitulos from "../../components/PersonaTitulos";
 import { personaService, identificationService, profileService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../components/ToastProvider";
 
 const TABS = { INFO: "info", DOCS: "docs", DOM: "dom", TIT: "tit" };
 
@@ -21,6 +22,7 @@ const ROLE_NAME = {
 export default function MiLegajo() {
     const { user: me } = useAuth();
     const [tab, setTab] = useState(TABS.INFO);
+    const toast = useToast();
 
     const myPersonId = useMemo(
         () => me?.id_persona ?? me?.persona?.id_persona ?? null, 
@@ -316,7 +318,7 @@ export default function MiLegajo() {
                 canDelete={isAdminOrRRHH}
                 canChangeState={isAdminOrRRHH}
                 onRequestDelete={async () => {
-                    alert("Solicitud enviada para eliminar el documento. RRHH revisará tu pedido.");
+                    toast.success("Solicitud enviada para eliminar el documento. RRHH revisará tu pedido.");
                 }}
             />
             </div>
@@ -330,7 +332,7 @@ export default function MiLegajo() {
                     showPersonaId={false}
                     canDelete={isAdminOrRRHH}
                     canCreate={true} 
-                    onRequestDelete={(dom) => alert(`Solicitud enviada para eliminar: ${dom.calle} ${dom.altura}`)}
+                    onRequestDelete={(dom) => toast.success(`Solicitud enviada para eliminar: ${dom.calle} ${dom.altura}`)}
                 />
             </div>
         )}
@@ -344,7 +346,7 @@ export default function MiLegajo() {
                 canDelete={isAdminOrRRHH}
                 canChangeState={isAdminOrRRHH}
                 onRequestDelete={async () => {
-                    alert("Solicitud enviada para eliminar el título. RRHH revisará tu pedido.");
+                    toast.success("Solicitud enviada para eliminar el título. RRHH revisará tu pedido.");
                 }}
             />
             </div>

@@ -12,12 +12,17 @@ import { BsPersonVcard } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "../../components/ToastProvider";
+import { useConfirm } from "../../components/ConfirmProvider";
 
 export default function UsuarioDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user:me, updateUserPerfiles } = useAuth();
     const queryClient = useQueryClient();
+
+    const toast = useToast();
+    const confirm = useConfirm();
 
     const [showModal, setShowModal] = useState(false);
     const [selectedProfiles, setSelectedProfiles] = useState([]);
@@ -167,13 +172,13 @@ export default function UsuarioDetalle() {
             ),
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['perfiles', 'asignados', usuario.id_persona] });
-            alert("Perfiles asignados correctamente");
+            toast.success("Perfiles asignados correctamente");
             setShowModal(false);
             setSelectedProfiles([]);
         },
         onError: (error) => {
             console.error("Error al asignar perfiles:", error);
-            alert(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
+            toast.error(error?.response?.data?.detalle || error?.response?.data?.message || "Error al asignar perfiles");
         }
     });
 
@@ -181,12 +186,12 @@ export default function UsuarioDetalle() {
         mutationFn: (id_perfil) => 
             profileService.deleteProfile(usuario.id_persona, id_perfil),
         onSuccess: (data, id_perfil_eliminado) => {
-            alert("Perfil desasignado correctamente");
+            toast.success("Perfil desasignado correctamente");
             queryClient.invalidateQueries({ queryKey: ['perfiles', 'asignados', usuario.id_persona] });
         },
         onError: (error) => {
             console.error("Error al desasignar perfil", error);
-            alert("No se pudo desasignar el perfil");
+            toast.error("No se pudo desasignar el perfil");
         }
     });
 
@@ -196,8 +201,9 @@ export default function UsuarioDetalle() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['roles', 'usuario', usuario.id_usuario] });
             queryClient.invalidateQueries({ queryKey: ['usuario', id] });
+            toast.success("Rol asignado con éxito.");
         },
-        onError: (e) => alert(e?.response?.data?.message || 'No se pudo asignar rol'),
+        onError: (e) => toast.error(e?.response?.data?.message || 'No se pudo asignar rol'),
     })
 
     const unassignRoleMutation = useMutation({
@@ -206,14 +212,25 @@ export default function UsuarioDetalle() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['roles', 'usuario', usuario.id_usuario] });
             queryClient.invalidateQueries({ queryKey: ['usuario', id] });
+            toast.success("Rol desasignado con éxito.");
         },
-        onError: (e) => alert(e?.response?.data?.message || 'No se pudo desasignar rol'),
+        onError: (e) => toast.error(e?.response?.data?.message || 'No se pudo desasignar rol'),
 });
 
     const handleEliminarPerfil = async (id_perfil, nombre) => {
-        const ok = confirm(`¿Esta seguro que quiere quitar el perfil "${nombre}" de este usuario?`);
-        if (ok) {
-            deleteProfileMutation.mutate(id_perfil);
+        try {
+                const ok = await confirm({
+                title: "Desasignar perfil",
+                description: `¿Estás seguro que deseas desasignar el perfil "${nombre}"? Esta acción no se puede deshacer.`,
+                confirmtext: "Desasignar",
+                tone: "danger"
+            });
+            if (ok) {
+                deleteProfileMutation.mutate(id_perfil);
+            }
+        } catch (error) {
+            console.error("Error al eliminar perfil", error);
+            toast.error("Error al eliminar perfil");
         }
     };
 
@@ -279,12 +296,12 @@ export default function UsuarioDetalle() {
             }
             if (ops.length === 0) { setOpenNudge(false); return; }
             await Promise.all(ops);
-            alert('Cambios aplicados correctamente');
+            toast.success('Cambios aplicados correctamente');
             setOpenNudge(false);
             setForzarMismoEstado(false);
         } catch (error) {
             console.error(error);
-            alert('No se pudieron aplicar los cambios');
+            toast.error('No se pudieron aplicar los cambios');
         }
     };
 
@@ -301,11 +318,11 @@ export default function UsuarioDetalle() {
             if(toAdd.length) ops.push(assignRoleMutation.mutateAsync({ id_usuario: usuario.id_usuario, ids: toAdd, asignado_por: me?.id_usuario || me?.id }));
             if (toDel.length) ops.push(unassignRoleMutation.mutateAsync({ id_usuario: usuario.id_usuario, ids: toDel }));
             await Promise.all(ops);
-            alert('Roles actualizados');
+            toast.success('Roles actualizados con éxito');
             setShowRolesModal(false);
         } catch (error) {
             console.error(error);
-            alert('No se pudieron actualizar los roles');
+            toast.error('No se pudieron actualizar los roles');
         }
     }
 
@@ -547,7 +564,7 @@ export default function UsuarioDetalle() {
                     showPersonaId={esAdminRRHH}
                     canCreate={esAdminRRHH}
                     canDelete={esAdminRRHH}
-                    onRequestDelete={(d) => alert(`Solicitud enviada para eliminar domicilio #${d.id_domicilio}`)}
+                    onRequestDelete={(d) => toast.success(`Solicitud enviada para eliminar domicilio #${d.id_domicilio}`)}
                 />
             </div>
         )}

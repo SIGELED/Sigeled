@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { contratoService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { FiFileText, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { useToast } from "../../components/ToastProvider";
 
 const Panel = ({ className = "", ...props }) => (
     <div className={`bg-[#0b1420] border border-[#1b2a37] rounded-2xl ${className}`} {...props} />
@@ -78,6 +79,8 @@ const StatCard = ({ icon, label, value }) => (
 
 
 export default function MisContratos(){
+    const toast = useToast();
+
     const {
         data: contratos = [],
         isLoading,
@@ -112,9 +115,10 @@ export default function MisContratos(){
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
+            toast.success("Contrato exportado con éxito");
         } catch (err) {
             console.error(err);
-            alert("No se pudo exportar el contrato");
+            toast.error("No se pudo exportar el contrato");
         }
     };
 

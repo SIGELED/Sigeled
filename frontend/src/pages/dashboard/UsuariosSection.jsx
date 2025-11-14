@@ -1,7 +1,8 @@
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useState, Suspense, lazy } from "react";
 import { personaService, profileService, roleService, userService } from "../../services/api";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
+import { useToast } from "../../components/ToastProvider";
 
 const UsuariosTable = lazy(() => import('./Usuarios'));
 
@@ -9,6 +10,7 @@ const UsuariosSection = ({user}) =>{
     const queryClient = useQueryClient();
     const [filtros, setFiltros] = useState({ search: '', perfil: '' });
     const [debouncedSearch] = useDebounce(filtros.search, 300);
+    const toast = useToast();
 
     const queryKey = ['usuarios', 'busqueda', debouncedSearch, filtros.perfil];
 
@@ -31,11 +33,11 @@ const UsuariosSection = ({user}) =>{
     const assignRoleMutation = useMutation({
         mutationFn: ({ id_usuario, id_rol }) => roleService.assignRoleToUser(id_usuario, id_rol, user.id),
         onSuccess: () => {
-            alert("Rol asignado correctamente");
             queryClient.invalidateQueries({queryKey: queryKey});
+            toast.success("Rol asignado correctamente");
         },
         onError: (err) => {
-            alert(err.response?.data?.message || 'Error al asignar rol');
+            toast.error(err.response?.data?.message || 'Error al asignar rol');
         }
     })
 

@@ -8,6 +8,8 @@ import {
     personaBarrioService,
 } from "../services/api";
 import RequestDeleteModal from "./SolicitarEliminacionModal";
+import { useToast } from "./ToastProvider";
+import { useConfirm } from "./ConfirmProvider";
 
 export default function PersonaDomicilios({
         idPersona,
@@ -19,6 +21,9 @@ export default function PersonaDomicilios({
         onRequestDelete,
     }) {
     const qc = useQueryClient();
+
+    const toast = useToast();
+    const confirm = useConfirm();
 
     const [showWizard, setShowWizard] = useState(false);
     const [step, setStep] = useState(1);
@@ -116,22 +121,26 @@ export default function PersonaDomicilios({
         domicilioService
             .createDomicilio(idPersona, payload)
             .then((r) => r.data),
-        onSuccess: () =>
-            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] }),
-        onError: () => alert("No se pudo crear el domicilio"),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] });
+            toast.success("Domicilio creado con éxito");
+        },
+        onError: () => toast.error("No se pudo crear el domicilio"),
     });
 
     const deleteDomicilioMutation = useMutation({
         mutationFn: ({ idPersona, id_domicilio }) =>
             domicilioService.deleteDomicilio(idPersona, id_domicilio),
-        onSuccess: () =>
-            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["domicilios", idPersona] });
+            toast.success("Domicilio eliminado con éxito");
+        },
         onError: (error) => {
             const message =
                 error?.response?.data?.message ||
                 error?.response?.data?.detalle ||
                 "No se pudo eliminar el domicilio";
-            alert(message);
+            toast.error(message);
         },
     });
 
@@ -165,10 +174,11 @@ export default function PersonaDomicilios({
         setSelectedBarrioId("");
         await refetchPersonaBarrios();
     };
+    
     const handleCrearBarrio = async (e) => {
         e.preventDefault();
-        if (!id_localidad) return alert("Seleccioná una localidad primero");
-        if (!barrioNombre.trim()) return alert("Ingresá el nombre del barrio");
+        if (!id_localidad) return toast.warning("Seleccioná una localidad primero");
+        if (!barrioNombre.trim()) return toast.warning("Ingresá el nombre del barrio");
 
         try {
             const nuevo = await createBarrioMutation.mutateAsync({
@@ -196,17 +206,19 @@ export default function PersonaDomicilios({
             setShowCrearBarrio(false);
             setIdDepto("");
             setIdLocalidad("");
+            toast.success("Barrio creado con éxito");
         } catch (error) {
             console.error("Error al crear/vincular barrio:", error);
-            alert("No se pudo crear el barrio");
+            toast.error("No se pudo crear el barrio");
         }
     };
 
     const handleCreateDomicilio = async (e) => {
         e.preventDefault();
-        if (!selectedBarrioId) return alert("Primero seleccioná/creá un barrio");
-        if (!calle || !altura) return alert("Completá calle y altura");
+        if (!selectedBarrioId) return toast.warning("Primero seleccioná/creá un barrio");
+        if (!calle || !altura) return toast.warning("Completá calle y altura");
 
+        try {
         await createDomicilioMutation.mutateAsync({
             idPersona,
             payload: {
@@ -215,16 +227,22 @@ export default function PersonaDomicilios({
                 id_dom_barrio: Number(selectedBarrioId),
             },
         });
-
         resetWizard();
         setShowWizard(false);
+        } catch (error) {
+            console.error("Error al crear domicilio:", error);
+            toast.error("No se pudo crear el domicilio");
+        }
     };
 
     const handleDelete = async (domi) => {
-            const ok = confirm(
-                `¿Eliminar "${domi.calle} ${domi.altura}"? Esta acción no se puede deshacer`
-            );
-            if (!ok) return;
+            const ok = await confirm({
+                title: "Eliminar domicilio",
+                description: `¿Estas seguro que deseas eliminar "${domi.calle ?? "-"} ${domi.altura ?? ""}"? Esta acción no se puede deshacer.`,
+                confirmText: "Eliminar",
+                tone: "danger"
+            });
+            if(!ok) return;
 
             try {
                 setDeletingId(domi.id_domicilio);
@@ -232,7 +250,11 @@ export default function PersonaDomicilios({
                     idPersona,
                     id_domicilio: domi.id_domicilio,
                 });
-            } finally {
+            } catch(error) {
+                console.error("Error al eliminar el domicilio:", error);
+                toast.error("Error al eliminar el domicilio");
+            }
+            finally {
                 setDeletingId(null);
             }
         }

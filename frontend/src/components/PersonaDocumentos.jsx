@@ -5,6 +5,8 @@ import { personaDocService, estadoVerificacionService, tipoDocService, archivoSe
 import PdfPreviewModal from "./PdfPreviewModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import RequestDeleteModal from "./SolicitarEliminacionModal";
+import { useToast } from "./ToastProvider";
+import { useConfirm } from "./ConfirmProvider";
 
 const FALLBACK_TIPOS = [
     {id_tipo_doc: 1, codigo:"DNI", nombre: "Documento Nacional de Identidad"},
@@ -36,6 +38,9 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
     const [archivoSubiendo, setArchivoSubiendo] = useState(false);
     const [archivoInfo, setArchivoInfo] = useState(null);
     const [reqDelDoc, setReqDelDoc] = useState({ open:false, target:null });
+
+    const toast = useToast();
+    const confirm = useConfirm();
 
     const [preview, setPreview] = useState({open: false, url: '', title: ''});
 
@@ -79,10 +84,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
             queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
             resetForm();
             setShowNew(false);
+            toast.success("Documento creado correctamente");
         },
         onError: (err) => {
             console.error("Error al crear documento:", err);
-            alert("No se pudo crear el documento");
+            const msg = err?.response?.data?.message || err?.response?.data?.detalle || "No se pudo crear el documento";
+            toast.error(msg);
         },
         onSettled: () => {
             setSaving(false);
@@ -94,11 +101,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         mutationFn: (doc) => personaDocService.deleteDoc(idPersona, doc.id_persona_doc),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+            toast.success("Documento eliminado");
         },
         onError: (error) => {
             console.error("No se pudo eliminar el documento:", error?.response?.data || error.message);
             const message = error?.response?.data?.message || error?.response?.data?.detalle || "No se pudo eliminar el documento";
-            alert(message);
+            toast.error(message);
         },
         onSettled: () => {
             setDeletingId(null);
@@ -111,11 +119,12 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
             queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
             queryClient.invalidateQueries({ queryKey: ['adminStats'] });
             queryClient.invalidateQueries({ queryKey: ['documentosPendientes'] });
+            toast.success("Estado actualizado");
             closeCambiarEstado();
         },
         onError: (error) => {
             console.error("Error al cambiar estado:", error);
-            alert("No se pudo cambiar el estado");
+            toast.error("No se pudo cambiar el estado");
         }
     });
 
@@ -139,7 +148,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
             });
         } catch (error) {
             console.error('No se pudo abrir el documento:', error);
-            alert('No se pudo abrir el documento');
+            toast.error('No se pudo abrir el documento');
         }
     }
 
@@ -159,7 +168,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
             return data.archivo?.id_archivo ?? null;
         } catch (e) {
             console.error("Error subiendo archivo:", e);
-            alert("No se pudo subir el archivo");
+            toast.error("No se pudo subir el archivo");
             setArchivoSubiendo(false); 
             return null;
         }
@@ -167,7 +176,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
 
     const handleCreate = async (e) => {
         e.preventDefault();
-        if (!id_tipo_doc || !id_estado) return alert("Elegí tipo y estado");
+        if (!id_tipo_doc || !id_estado) { toast.warning("Elegí tipo y estado"); return; }
         
         setSaving(true);
         let id_archivo = null;
@@ -185,7 +194,13 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
 
     const handleDelete = async (doc) => {
         const tipo = tipoById(doc.id_tipo_doc);
-        if (!confirm(`¿Eliminar "${tipo?.nombre || "Documento"}"? Esta acción no se puede deshacer`)) return;
+        const ok = await confirm({
+            title: "Eliminar documento",
+            description: `¿Estas seguro que deseas eliminar "${tipo?.nombre || "Documento"}"? Esta acción no se puede deshacer`,
+            confirmtext: "Eliminar",
+            tone: "danger"
+        });
+        if(!ok) return;
         setDeletingId(doc.id_persona_doc);
         deleteDocMutation.mutate(doc);
     }
@@ -208,7 +223,8 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
         if(!verificacion.doc) return;
         const id_estado_verificacion = Number(verificacion.estado);
         if(requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
-            return alert("Debés indicar una observación para Rechazado/Observado");
+            toast.warning("Debés indicar una observación para Rechazado/Observado");
+            return;
         }
         const payload = { id_estado_verificacion, observacion: verificacion.obs.trim() || null };
         changeStateMutation.mutate({ docId: verificacion.doc.id_persona_doc, payload });
@@ -570,6 +586,7 @@ export default function PersonaDocumentos({idPersona, onClose, asModal = true, s
                 if (!reqDelDoc.target?.id) return;
                 await personaDocService.solicitarEliminacion(reqDelDoc.target.id, { motivo });
                 await queryClient.invalidateQueries({ queryKey: ['documentos', idPersona] });
+                toast.success("Solicitud de eliminación de documento enviada con éxito");
             }}
             />
         </>

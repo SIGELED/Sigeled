@@ -4,6 +4,8 @@ import { contratoService } from '../../services/api';
 import { useAuth } from "../../context/AuthContext";
 import { IoClose } from "react-icons/io5";
 import { FiPlus, FiSearch, FiFileText, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2 } from "react-icons/fi";
+import { useToast } from "../../components/ToastProvider";
+import { useConfirm } from "../../components/ConfirmProvider";
 
 const Panel = ({ className = "", ...props }) => (
     <div className={`bg-[#0b1420] border border-[#1b2a37] rounded-2xl ${className}`} {...props} />
@@ -72,6 +74,8 @@ const StatCard = ({ icon, label, value }) => (
 
 export default function Contratos() {
     const qc = useQueryClient();
+    const toast = useToast();
+    const confirm = useConfirm();
     const { user } = useAuth();
     const isAdmin = !!user?.roles?.includes("ADMIN");
 
@@ -171,18 +175,18 @@ export default function Contratos() {
             qc.invalidateQueries({ queryKey: ["contratos", "byPersona", selectedId] });
         }
         qc.invalidateQueries({ queryKey: ["empleados", q] });
-        alert("Contrato creado");
+        toast.success("Contrato creado con éxito");
         },
         onError: (error) => {
         console.error(error);
         const data = error?.response?.data;
         if (Array.isArray(data?.missingFields)) {
-            alert('Faltan campos requeridos:\n- ' + data.missingFields.join('\n- '));
+            toast.warning('Faltan campos requeridos:\n- ' + data.missingFields.join('\n- '));
         } else if (Array.isArray(data?.details)) {
             const lines = data.details.map(e => `${e.param || e.path || 'campo'}: ${e.msg || e.message || 'inválido'}`);
-            alert('Validación fallida:\n- ' + lines.join('\n- '));
+            toast.warning('Validación fallida:\n- ' + lines.join('\n- '));
         } else {
-            alert(data?.error || data?.details || 'Error al crear contrato');
+            toast.error(data?.error || data?.details || 'Error al crear contrato');
         }
         },
     });
@@ -196,32 +200,33 @@ export default function Contratos() {
             (prev || []).filter((x) => x.id_contrato_profesor !== id)
             );
         }
+        toast.success("Contrato eliminado con éxito");
         },
         onError: (error) => {
-        console.error(error);
-        alert(error?.response?.data?.error || "No se pudo eliminar");
+            console.error(error);
+            toast.error(error?.response?.data?.error || "No se pudo eliminar");
         },
     });
 
     const crearContrato = async (e) => {
         e.preventDefault();
-        if (!isAdmin) return alert("Sólo un administrador puede crear contratos");
+        if (!isAdmin) return toast.warning("Sólo un administrador puede crear contratos");
 
         const required = ["id_persona", "id_profesor", "id_periodo", "horas_semanales", "monto_hora", "fecha_inicio", "fecha_fin"];
         const missing = required.filter((k) => !form[k]);
         if (!form.id_materias || form.id_materias.length === 0) missing.push("id_materias");
-        if (missing.length) return alert("Faltan campos requeridos: " + missing.join(", "));
+        if (missing.length) return toast.warning("Faltan campos requeridos: " + missing.join(", "));
 
         const payload = {
-        id_persona: form.id_persona,
-        id_profesor: form.id_profesor,
-        id_materias: form.id_materias,
-        id_periodo: Number(form.id_periodo),
-        horas_semanales: Number(form.horas_semanales),
-        horas_mensuales: form.horas_mensuales ? Number(form.horas_mensuales) : null,
-        monto_hora: Number(form.monto_hora),
-        fecha_inicio: form.fecha_inicio,
-        fecha_fin: form.fecha_fin,
+            id_persona: form.id_persona,
+            id_profesor: form.id_profesor,
+            id_materias: form.id_materias,
+            id_periodo: Number(form.id_periodo),
+            horas_semanales: Number(form.horas_semanales),
+            horas_mensuales: form.horas_mensuales ? Number(form.horas_mensuales) : null,
+            monto_hora: Number(form.monto_hora),
+            fecha_inicio: form.fecha_inicio,
+            fecha_fin: form.fecha_fin,
         };
 
         await createContratoMutation.mutateAsync(payload);
@@ -251,29 +256,39 @@ export default function Contratos() {
 
     const eliminar = async (row) => {
         if (!isAdmin) return;
-        const ok = confirm(`¿Eliminar el contrato #${row.id_contrato_profesor}?`);
+        const ok = await confirm({
+            title: "Eliminar contrato",
+            description: `¿Estás seguro que deseas eliminar el contrato #${row.id_contrato_profesor}? Esta acción no se puede deshacer.`,
+            confirmtext: "Eliminar",
+            tone: "danger"
+        });
         if (!ok) return;
         try {
-        setBusyId(row.id_contrato_profesor);
-        await deleteContratoMutation.mutateAsync(row.id_contrato_profesor);
+            setBusyId(row.id_contrato_profesor);
+            await deleteContratoMutation.mutateAsync(row.id_contrato_profesor);
+            toast.success("Titulo eliminado con éxito");
+        } catch (error) {
+            console.error("Error al eliminar el título", error);
+            toast.error("Error al eliminar el título");
         } finally {
-        setBusyId(null);
+            setBusyId(null);
         }
     };
 
     const exportar = async (row, format = 'pdf') => {
         try {
-        const { url, filename } = await contratoService.exportarContrato(row.id_contrato_profesor, format);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+            const { url, filename } = await contratoService.exportarContrato(row.id_contrato_profesor, format);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            toast.success("Contrato exportado con éxito");
         } catch (error) {
-        console.error(error);
-        alert("No se pudo exportar el contrato");
+            console.error(error);
+            toast.error("No se pudo exportar el contrato");
         }
     };
 
@@ -367,7 +382,7 @@ export default function Contratos() {
                             setBusyId(true);
                             const { data: profDetalles } = await contratoService.getProfesorDetalles(selected.id_persona);
                             if (!profDetalles?.id_profesor) {
-                            alert("Error: Esta persona no tiene un registro de 'profesor' asociado. No se puede crear contrato.");
+                            toast.error("Error: Esta persona no tiene un registro de 'profesor' asociado. No se puede crear contrato.");
                             setBusyId(null);
                             return;
                             }
@@ -389,7 +404,7 @@ export default function Contratos() {
                             setShowCreate(true);
                         } catch (err) {
                             console.error("Error al obtener detalles del profesor", err);
-                            alert("No se pudo obtener el ID de profesor para esta persona.");
+                            toast.error("No se pudo obtener el ID de profesor para esta persona.");
                         } finally {
                             setBusyId(null);
                         }
