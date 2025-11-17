@@ -11,7 +11,7 @@ export default function Nav() {
     const unreadCount = notifications.filter(n => !n.leido).length;
 
     return(
-        <div className='absolute z-50 flex mt-5 space-x-4 transform right-7'>
+        <div className='absolute z-50 flex space-x-4 transform mt-7 right-7'>
             <div className="relative">
                 <button onClick={() => setShowDropdown(prev => !prev)} className='bg-[#101922] p-3 flex items-center rounded-[1.1rem] font-bold hover:bg-[#1a2735] hover:cursor-pointer transition'>
                     <MdOutlineNotifications className="w-7 h-7 text-[#19F124]"/>

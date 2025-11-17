@@ -6,7 +6,7 @@ import SegmentedTabs from "../../components/SegmentedTabs";
 import PersonaDocumentos from "../../components/PersonaDocumentos";
 import PersonaDomicilios from "../../components/PersonaDomicilios";
 import PersonaTitulos from "../../components/PersonaTitulos";
-import { personaService, identificationService, profileService } from "../../services/api";
+import { personaService, identificationService, profileService, legajoService } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/ToastProvider";
 
@@ -18,6 +18,20 @@ const ROLE_NAME = {
     "ADMTVO": "Administrativo",
     "EMP": "Empleado"
 }
+
+const legajoBadgeClass = (codigo) => {
+    const c = String(codigo || "").toUpperCase();
+    if (c === "VALIDADO")
+        return "px-4 py-0.5 rounded-2xl bg-[#173519] text-[#19F124]";
+    if (c === "REVISION")
+        return "px-4 py-0.5 rounded-2xl bg-[#302c10] text-[#FFD54F]";
+    if (c === "PENDIENTE")
+        return "px-4 py-0.5 rounded-2xl bg-[#2f2620] text-[#FFB74D]";
+    if (c === "INCOMPLETO")
+        return "px-4 py-0.5 rounded-2xl bg-[#351717] text-[#FF5252]";
+    return "px-4 py-0.5 rounded-2xl bg-[#1c2732] text-white";
+};
+
 
 export default function MiLegajo() {
     const { user: me } = useAuth();
@@ -102,6 +116,34 @@ export default function MiLegajo() {
         staleTime: 5 * 60 * 1000,
     });
 
+    const {
+        data: legajoInfo,
+        isLoading: loadingLegajo,
+    } = useQuery({
+        queryKey: ["legajo", "estado", myPersonId],
+        enabled: !!myPersonId,
+        queryFn: async () => {
+            const { data } = await legajoService.getEstado(myPersonId);
+            const codigo = data?.estado?.codigo || "SIN_ESTADO";
+            const nombre = data?.estado?.nombre || codigo;
+
+            const checklist = data?.checklist || {};
+            const flags = [
+            checklist.okPersona,
+            checklist.okIdent,
+            checklist.okDocs,
+            checklist.okDomicilio,
+            checklist.okTitulos,
+            ].filter((v) => typeof v === "boolean");
+            const total = flags.length;
+            const cumplidos = flags.filter(Boolean).length;
+            const porcentaje = total ? Math.round((cumplidos / total) * 100) : 0;
+
+            return { codigo, nombre, checklist, porcentaje };
+        },
+        staleTime: 5 * 60 * 1000,
+        });
+
     const identificaciones = useMemo(() => {
         if (!Array.isArray(identData)) return [];
         const byTipo = {};
@@ -173,46 +215,62 @@ export default function MiLegajo() {
             <div className="grid grid-cols-1 gap-6 px-10 mt-5 lg:grid-cols-2">
             <div className="space-y-5">
                 <section className="bg-[#101922] rounded-2xl p-5 mb-5 text-2xl">
-                <h2 className="pb-2 pl-2 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
-                    Datos de usuario
-                </h2>
-                <section className="grid grid-cols-2 pl-2 gap-y-5 gap-x-25">
-                    <div className="flex items-center gap-3">
-                    <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                        <FiMail className="text-[#4FC3F7]" size={30} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm opacity-70">Email</span>
-                        <span className="text-bg">{usuario.email ?? me?.email}</span>
-                    </div>
-                    </div>
+                    <h2 className="pb-2 pl-2 mb-4 text-3xl font-semibold border-b-2 border-[#19f12477] text-[#19F124]">
+                        Datos de usuario
+                    </h2>
+                    <section className="grid grid-cols-2 pl-2 gap-y-5 gap-x-25">
+                        <div className="flex items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiMail className="text-[#4FC3F7]" size={30} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm opacity-70">Email</span>
+                            <span className="text-bg">{usuario.email ?? me?.email}</span>
+                        </div>
+                        </div>
 
-                    <div className="flex items-center gap-3">
-                    <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                        <FiPower size={30} className={isActive ? "text-[#19F124]" : "text-[#FF5252]"} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm opacity-70">Estado</span>
-                        <span className={ isActive ? "text-[#19F124] bg-[#173519] rounded-2xl px-4" : "text-[#FF5252]" }>
+                        <div className="flex items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiPower size={30} className={isActive ? "text-[#19F124]" : "text-[#FF5252]"} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm opacity-70">Estado</span>
+                            <span className={isActive ? "text-[#19F124] bg-[#173519] rounded-2xl px-4" : "text-[#FF5252]"}>
                             {isActive ? "Activo" : "Inactivo"}
-                        </span>
-                    </div>
-                    </div>
+                            </span>
+                        </div>
+                        </div>
 
-                    <div className="flex items-center gap-3">
-                    <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
-                        <FiLayers className="text-[#FFD54F]" size={30} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm opacity-70">Rol/es</span>
-                        <span>
+                        <div className="flex items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiLayers className="text-[#FFD54F]" size={30} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm opacity-70">Rol/es</span>
+                            <span>
                             {usuario.roles?.length
                                 ? usuario.roles.map(displayRoleName).join(", ")
-                            : "—"}
+                                : "—"}
                             </span>
-                    </div>
-                    </div>
-                </section>
+                        </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                        <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
+                            <FiLayers className="text-[#81C784]" size={30} />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm opacity-70">Estado del legajo</span>
+                            {loadingLegajo ? (
+                            <span>Calculando...</span>
+                            ) : (
+                            <span className={legajoBadgeClass(legajoInfo?.codigo)}>
+                                {legajoInfo?.nombre || "Sin estado"}
+                            </span>
+                            )}
+                        </div>
+                        </div>
+                    </section>
                 </section>
 
                 <section className="bg-[#101922] rounded-2xl p-5 text-2xl">

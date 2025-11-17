@@ -66,7 +66,7 @@ export function ToastProvider({ children }) {
                             </div>
                             <button
                                 onClick={() => remove(t.id)}
-                                className="p-1 transition rounded-lg hover:bg-white/10"
+                                className="p-1 transition rounded-lg cursor-pointer hover:bg-white/10"
                                 aria-label = "Cerrar"
                             >
                                 <FiX />

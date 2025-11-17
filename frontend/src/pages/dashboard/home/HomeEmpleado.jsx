@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { contratoService, legajoService, personaDocService } from "../../../services/api";
 import { KpiCard, BentoPanel, QuickLinkButton } from "../../../components/HomeComponents";
 import { FiArchive, FiFileText, FiCheckCircle, FiAlertCircle, FiClock, FiList } from 'react-icons/fi';
+import DonutChart from "../../../components/DonutChart";
 
 const fmt = (s) => {
     if (!s) return "-";
@@ -33,10 +33,49 @@ const getStatusIcon = (id_estado) => {
     }
 };
 
+
 export default function HomeEmpleado() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const idPersona = user?.id_persona ?? null;
+
+    const idPersona =
+        user?.id_persona ??
+        user?.persona?.id_persona ??
+        user?.persona_id ??
+        null;
+
+    const {
+        data: legajoInfo = { estadoDesc: "No definido", porcentaje: 0 },
+        isLoading: loadingLegajo,
+        } = useQuery({
+            queryKey: ["legajo", "estado", idPersona],
+            enabled: !!idPersona,
+            queryFn: async () => {
+                const { data } = await legajoService.getEstado(idPersona);
+                const estadoDesc = data?.estado?.descripcion || "No definido";
+                const checklist = Array.isArray(data?.checklist) ? data.checklist : [];
+
+                const total = checklist.length;
+                const cumplidos = checklist.filter((item) => {
+                    if (typeof item.cumplido !== "undefined") return !!item.cumplido;
+                    if (typeof item.completado !== "undefined") return !!item.completado;
+                    if (typeof item.ok !== "undefined") return !!item.ok;
+                    if (typeof item.cumple !== "undefined") return !!item.cumple;
+                    return !!item.done;
+                }).length;
+
+                const porcentaje = total ? Math.round((cumplidos / total) * 100) : 0;
+
+                return {
+                    estadoDesc,
+                    porcentaje,
+                    total,
+                    cumplidos,
+                };
+            },
+            staleTime: 5 * 60 * 1000,
+        });
+
 
     const {
         data: contratosInfo = { list: [], activos: 0, proximoVenc: "-" },
@@ -59,20 +98,7 @@ export default function HomeEmpleado() {
         staleTime: 5 * 60 * 1000,
         keepPreviousData: true,
     });
-
-    const {
-        data: legajoEstado = "No definido",
-        isLoading: loadingLegajo,
-    } = useQuery({
-        queryKey: ["legajo", "estado", idPersona],
-        enabled: !!idPersona,
-        queryFn: async () => {
-            const { data } = await legajoService.getEstado(idPersona);
-            return data?.estado?.descripcion || "No definido";
-        },
-        staleTime: 5 * 60 * 1000,
-    });
-
+    
     const {
         data: documentos = [],
         isLoading: loadingDocs,
@@ -94,7 +120,10 @@ export default function HomeEmpleado() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <KpiCard label="Contratos activos" value={loading ? "..." : contratosInfo.activos} />
         <KpiCard label="Próximo vencimiento" value={loading ? "..." : contratosInfo.proximoVenc} />
-        <KpiCard label="Estado del Legajo" value={loading ? "..." : legajoEstado} />
+        <KpiCard
+            label="Estado del Legajo"
+            value={loading ? "..." : legajoInfo.estadoDesc}
+        />
 
         <BentoPanel className="p-4 space-y-3 lg:col-span-2">
             <h2 className="text-lg font-semibold text-white">Estado de Documentos</h2>
@@ -121,6 +150,29 @@ export default function HomeEmpleado() {
                 icon={<FiFileText />}
                 onClick={() => navigate("/dashboard/mis-contratos")}
             />
+        </BentoPanel>
+
+        <BentoPanel className="p-4 space-y-3 lg:col-span-1">
+            <h2 className="text-lg font-semibold text-white">Progreso de mi Legajo</h2>
+            {loadingLegajo ? (
+                <p className="text-sm text-gray-400">Cargando datos...</p>
+            ) : (
+                <DonutChart
+                items={[
+                    { label: "Completado", value: legajoInfo.cumplidos || 0 },
+                    {
+                    label: "Pendiente",
+                    value:
+                        (legajoInfo.total || 0) - (legajoInfo.cumplidos || 0),
+                    },
+                ]}
+                />
+            )}
+            {!loadingLegajo && (
+                <p className="text-xs text-center text-gray-400">
+                {legajoInfo.porcentaje || 0}% completo
+                </p>
+            )}
         </BentoPanel>
         </div>
     );

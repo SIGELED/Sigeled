@@ -91,8 +91,9 @@ export default function RegisterArchivos() {
             await tituloService.createTitulo({ id_persona, ...tituloDraft });
         }
 
-        try { await legajoService.recalcular(id_persona); } catch {}
-        try { await legajoService.setEstado(id_persona, "REVISION"); } catch {}
+        try {
+            await legajoService.recalcular(id_persona);
+        } catch {}
 
         navigate("/revision", { replace: true });
         } catch (e) {
@@ -107,7 +108,7 @@ export default function RegisterArchivos() {
         <div className="min-h-screen w-[50%] m-auto text-white p-6 space-y-6 flex flex-col justify-center">
         <div className="flex flex-col items-center gap-3 align-middle">
             <div>
-            <   h1 className="text-[2.5rem] font-semibold text-[#19F124]">{stepsTitle[step] || "Completar registro"}</h1>
+                <h1 className="text-[2.5rem] font-semibold text-[#19F124]">{stepsTitle[step] || "Completar registro"}</h1>
             </div>
             <Stepper step={step} />
         </div>

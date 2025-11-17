@@ -25,11 +25,11 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
         columnHelper.accessor("email", { header: "Email" }),
         columnHelper.accessor("perfilesasignados", {
             header: "Categoría",
-            cell: ({ getValue }) => (getValue() || []).map(p => p.nombre).join(', ') || 'N/A'
+            cell: ({ getValue }) => (getValue() || []).map(p => p.nombre).join(', ') || 'Sin asignar',
         }),
         columnHelper.accessor("rolesasignados", {
             header:"Rol (Sistema)",
-            cell:({ getValue }) => (getValue() || []).map(r => r.nombre).join(', ') || 'N/A',
+            cell:({ getValue }) => (getValue() || []).map(r => r.nombre).join(', ') || 'Sin asignar',
         }),
 
         columnHelper.display({
@@ -84,9 +84,9 @@ export default function Usuarios({ users = [], onEdit, onToggle, roles = [], pro
 
 return (
     <main className='mt-7'>
-    <h1 className='text-4xl font-medium ml-20'>Gestión de Usuarios</h1>
+    <h1 className='ml-20 text-4xl font-medium'>Gestión de Usuarios</h1>
 
-    <div className='mt-5 px-10 flex gap-4'>
+    <div className='flex gap-4 px-10 mt-5'>
         <div className='flex-1'>
             <label htmlFor="search" className='sr-only'>Buscar usuario</label>
             <div className='relative'>
@@ -99,7 +99,7 @@ return (
                     placeholder='Buscar por nombre, apellido, DNI o email...'
                     className="w-full h-12 px-5 pl-12 rounded-xl bg-[#101922] text-white placeholder-white/50 text-lg leading-none outline-none focus:ring-2 focus:ring-[#19F124]/60"
                 />
-                <FiSearch className="absolute text-white/50 left-4 top-1/2 -translate-y-1/2" size={20} />
+                <FiSearch className="absolute -translate-y-1/2 text-white/50 left-4 top-1/2" size={20} />
             </div>
         </div>
 
@@ -119,7 +119,7 @@ return (
             </select>
         </div>
         </div>
-        <div className='mt-5 pl-10 pr-10'>
+        <div className='pl-10 pr-10 mt-5'>
         <div className="flex flex-col justify-between h-[75vh] bg-[#101922] rounded-3xl overflow-hidden">
             <div className="flex-grow overflow-y-auto">
                 <table className="min-w-full">

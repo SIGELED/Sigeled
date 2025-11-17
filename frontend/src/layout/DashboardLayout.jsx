@@ -3,7 +3,7 @@ import Aside from "../components/Aside";
 
 export default function DashboardLayout() {
     return (
-        <div className="flex h-[100dvh] overflow-hidden bg-[#0f1d29]">
+        <div className="flex h-[100dvh] overflow-hidden">
         <Aside />
 
         <main className="flex-1 overflow-y-auto">

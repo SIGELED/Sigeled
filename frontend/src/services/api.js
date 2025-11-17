@@ -172,12 +172,23 @@ export const legajoService = {
 
 export const dashboardService = {
   getAdminStats: () => api.get('/dashboard/admin-stats'),
-  getDocumentosPendientes: (limit = 5) => api.get('/dashboard/documentos-pendientes', {params: {limit}})
+  getDocumentosPendientes: (limit = 5) => api.get('/dashboard/documentos-pendientes', {params: {limit}}),
+  getLegajoEstados: () => api.get('/dashboard/legajos-estados'),
+  getDocumentosEstados: () => api.get('/dashboard/documentos-estados'),
 }
 
 export const notificacionService = {
   getMisNotificaciones: () => api.get('/notificaciones/mis-notificaciones'),
   marcarComoLeido:async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+}
+
+export const aiChatService = {
+  listSessions: () => api.get("/ai-chat/sessions"),
+  createSession: (titulo) => api.post("/ai-chat/sessions", { titulo }),
+  renameSession: (id_chat, titulo) => api.put(`/ai-chat/sessions/${id_chat}`, { titulo }),
+  deleteSession: (id_chat) => api.delete(`/ai-chat/sessions/${id_chat}`),
+  sendMessage: ({ id_chat, message }) => api.post("/ai-chat/message", { id_chat, message }),
+  getMessages: (id_chat) => api.get(`/ai-chat/sessions/${id_chat}/messages`),
 }
 
 export default api;

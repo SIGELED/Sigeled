@@ -101,7 +101,13 @@ export default function UsuarioDetalle() {
     const sameEstado = estadoSeleccionado === legajoEstado?.estado?.codigo;
     const noChanges = (usuario?.activo || !activarAhora) && sameEstado && !forzarMismoEstado;
 
-    const shouldShowNudge = hasVisitedAll && !isSelf && esAdminRRHH && !isLoadingUsuario && !noChanges;
+    const legajoCodigoActual = String(legajoEstado?.estado?.codigo || '').toUpperCase();
+
+    const shouldShowNudge = 
+        esAdminRRHH && 
+        !isSelf && 
+        hasVisitedAll && 
+        ['INCOMPLETO', 'PENDIENTE', 'REVISION'].includes(legajoCodigoActual);
 
     useEffect(() => {
         if (!shouldShowNudge) { setShowNudge(false); return; }
@@ -421,7 +427,7 @@ export default function UsuarioDetalle() {
                             <div className="bg-[#212e3a] border border-[#283746] p-2 rounded-xl">
                                 <FiLayers className="text-[#FFD54F]" size={30} />
                             </div>
-                            <div className="flex flex-col">
+                            <div className="flex flex-col text-lg">
                                 <span className="text-sm opacity-70">Rol/es:</span>
                                 {usuario.roles?.length > 0
                                 ? usuario.roles.map((r) => r.nombre).join(", ")
@@ -713,7 +719,7 @@ export default function UsuarioDetalle() {
                 type="button"
                 aria-label="Activar cuenta y definir estado del legajo"
                 onClick={() => setOpenNudge(true)}
-                className="fixed bottom-6 right-6 z-[9999] px-4 py-3 rounded-2xl font-semibold shadow-lg bg-[#19F124] text-[#0D1520] hover:bg-[#2af935] transition"
+                className="fixed bottom-6 right-6 text-xl z-[9999] px-4 py-3 rounded-full font-black hover:bg-[#19F124] text-[#19F124] border-3 bg-[#030C14] transition cursor-pointer hover:text-[#030C14]"
                 title="Activar cuenta y definir estado del legajo"
             >
                 ¿Listo para activar y validar?
@@ -725,13 +731,6 @@ export default function UsuarioDetalle() {
             <div className="fixed bottom-6 right-6 z-[9999] w-[22rem] max-w-[92vw] rounded-2xl shadow-2xl bg-[#101922] border border-[#1b2a37] p-4">
                 <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg font-semibold text-white">Activación y estado de legajo</h3>
-                <button
-                    onClick={() => setOpenNudge(false)}
-                    className="p-1 rounded-lg hover:bg-[#1A2430] text-white/70"
-                    aria-label="Cerrar"
-                >
-                    <IoClose size={18} />
-                </button>
                 </div>
 
                 <div className="space-y-3">
@@ -769,7 +768,7 @@ export default function UsuarioDetalle() {
                     <button
                         type="button"
                         onClick={() => setOpenNudge(false)}
-                        className="px-3 py-2 rounded-xl border-2 border-[#2B3642] hover:bg-[#1A2430] text-white/90"
+                        className="cursor-pointer rounded-xl border hover:bg-[#162a3e] px-6 py-1 transition-all font-black bg-[#0E1F30] text-white border-white/10"
                     >
                         Luego
                     </button>
@@ -778,7 +777,7 @@ export default function UsuarioDetalle() {
                         onClick={handleConfirm}
                         disabled = {saving || noChanges}
                         aria-busy = {saving ? "true" : "false"}
-                        className="px-3 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] hover:bg-[#2af935]"
+                        className="px-3 py-2 rounded-full font-bold bhover:bg-[#19F124] text-[#19F124] border-3 bg-[#101922] transition cursor-pointer hover:text-[#101922] hover:bg-[#19F124] hover:border-[#19F124]"
                     >
                         { saving ? 'Guardando...' : 'Guardar' }
                     </button>
