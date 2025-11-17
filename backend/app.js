@@ -21,6 +21,7 @@ import personaTituRouter from './routes/personaTitu.routes.js';
 import legajoRouter from './routes/legajo.routes.js';
 import dashboardRouter from './routes/dashboard.routes.js';
 import notificacionRouter from './routes/notificacion.routes.js';
+import aiChatRouter from './routes/aiChat.routes.js';
 
 const swaggerDefinition = {
   openapi: '3.0.0',
@@ -102,6 +103,7 @@ app.use('/api/titulos', personaTituRouter);
 app.use('/api/legajo', legajoRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/notificaciones', notificacionRouter);
+app.use('/api/ai-chat', aiChatRouter);
 
 const PORT = process.env.PORT || 4000;
 

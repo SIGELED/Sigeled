@@ -70,7 +70,6 @@ export async function setEstadoLegajo(id_persona, codigo, id_usuario, motivo = n
     try {
         await client.query('BEGIN');
 
-        // 1) Buscar id_estado en estados_legajo
         const { rows } = await client.query(
         `SELECT id_estado FROM estados_legajo WHERE codigo = $1 LIMIT 1`,
         [codigo]
@@ -78,7 +77,6 @@ export async function setEstadoLegajo(id_persona, codigo, id_usuario, motivo = n
         if (!rows.length) throw new Error(`estados_legajo inexistente: ${codigo}`);
         const id_estado = rows[0].id_estado;
 
-        // 2) UPSERT en personas_legajo_estado (único por id_persona)
         await client.query(`
         INSERT INTO personas_legajo_estado (id_persona, id_estado_legajo, actualizado_en, actualizado_por_usuario)
         VALUES ($1, $2, NOW(), $3)
@@ -88,7 +86,6 @@ export async function setEstadoLegajo(id_persona, codigo, id_usuario, motivo = n
                 actualizado_por_usuario = EXCLUDED.actualizado_por_usuario
         `, [id_persona, id_estado, id_usuario]);
 
-        // 3) Insertar en historial con el mismo id_estado (columna se llama id_estado_legajo)
         await client.query(`
         INSERT INTO personas_legajo_historial (id_persona, id_estado_legajo, motivo, cambiado_por_usuario, cambiado_en)
         VALUES ($1, $2, $3, $4, NOW())
@@ -177,10 +174,17 @@ export async function getLegajoChecklist(id_persona){
 
 export async function recalcularEstadoLegajo(id_persona, id_usuario) {
     const { okPersona, okIdent, okDocs, okDomicilio, okTitulos } = await getLegajoChecklist(id_persona);
+
     let codigo = 'INCOMPLETO';
-    if (okPersona && okIdent && okDocs && okDomicilio && okTitulos) {
+
+    if(okPersona && okIdent) {
         codigo = 'PENDIENTE';
     }
+
+    if (okPersona && okIdent && okDocs && okDomicilio && okTitulos){
+        codigo = 'REVISION';
+    }
+
     await setEstadoLegajo(id_persona, codigo, id_usuario, 'Recalculo automático');
     return codigo;
 }
@@ -277,9 +281,15 @@ export async function setEstadoLegajoTx(client, id_persona, codigo, id_usuario, 
 export async function recalcularEstadoLegajoTx(client, id_persona, id_usuario) {
     const { okPersona, okIdent, okDocs, okDomicilio, okTitulos } = await getLegajoChecklistTx(client, id_persona);
     let codigo = 'INCOMPLETO';
-    if (okPersona && okIdent && okDocs && okDomicilio && okTitulos) {
+
+    if(okPersona && okIdent) {
         codigo = 'PENDIENTE';
     }
-    await setEstadoLegajoTx(client, id_persona, codigo, id_usuario, 'Recalculo automático (TX)');
+
+    if(okPersona && okIdent && okDocs && okDomicilio && okTitulos){
+        codigo = 'REVISION';
+    }
+
+    await setEstadoLegajoTx(client, id_persona, codigo, id_usuario, 'Recalculo automático');
     return codigo;
 }

@@ -1,4 +1,4 @@
-import { getAdminStats, getDocumentosPendientes } from "../models/dashboardModel.js";
+import { getAdminStats, getDocumentosPendientes, getLegajoEstadosResumen, getDocumentosEstadosResumen } from "../models/dashboardModel.js";
 
 export const getStatsController = async (req, res) => {
     try {
@@ -26,3 +26,31 @@ export const getPendientesController = async (req, res) => {
         });
     }
 }
+
+export const getLegajoEstadosController = async (req, res) => {
+    try {
+        const rows = await getLegajoEstadosResumen();
+        res.json(rows);
+    } catch (error) {
+        console.error("Error en getLegajoEstadosController:", error);
+        res.status(500).json({
+            error: "Error al obtener estados de legajo",
+            details:
+            process.env.NODE_ENV === "development" ? error.message : undefined,
+        });
+    }
+};
+
+export const getDocumentosEstadosController = async (req, res) => {
+    try {
+        const rows = await getDocumentosEstadosResumen();
+        res.json(rows);
+    } catch (error) {
+        console.error("Error en getDocumentosEstadosController:", error);
+        res.status(500).json({
+        error: "Error al obtener estados de documentos",
+        details:
+            process.env.NODE_ENV === "development" ? error.message : undefined,
+        });
+    }
+};
