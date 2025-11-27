@@ -3,7 +3,6 @@ import {
   listarContratos,
   obtenerContrato,
   obtenerContratoPorExternalId,
-  crearContratoHandler,
   eliminarContrato,
   buscarPersonaPorDni,
   obtenerDetallesProfesor,
@@ -11,18 +10,26 @@ import {
   crearNuevoContratoProfesor,
   listarEmpleadosContratos,
   listarMisContratos,
+  listarPeriodos,
+  listarTarifasPorPersona,
+  crearContratoGeneralHandler
 } from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoModel.js';
 import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
-import { createContratoValidators, handleValidation } from '../validators/contratoValidator.js';
+import { createContratoValidators, createContratoGeneralValidators, handleValidation } from '../validators/contratoValidator.js';
 import { getCarreras } from '../models/carreraModel.js';
 import { getAnios } from '../models/contratoModel.js';
 
 const contratoRouter = express.Router();
 
-// Aplicar middleware de autenticación a todas las rutas
 contratoRouter.use(verificarToken);
+
+contratoRouter.get('/tarifas/:idPersona', soloAdministrador, listarTarifasPorPersona);
+
+contratoRouter.post('/general/crear', verificarToken, soloAdministrador, createContratoGeneralValidators, handleValidation, crearContratoGeneralHandler);
+
+contratoRouter.get('/periodos', verificarToken, soloAdministrador, listarPeriodos);
 
 contratoRouter.get('/carreras', async (req, res) => {
   try {
@@ -313,7 +320,8 @@ export default contratoRouter;
  *       500:
  *         description: Error al generar el documento
  */
-contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
+
+contratoRouter.get('/:id/export', verificarToken, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { format } = req.query;
@@ -322,7 +330,6 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
       return res.status(400).json({ error: 'Formato no válido. Use "word" o "pdf".' });
     }
 
-    // Get the contract data
     const contrato = await getContratoById(id);
     if (!contrato) {
       return res.status(404).json({ error: 'Contrato no encontrado' });
@@ -343,19 +350,28 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
     }
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename=contrato-${id}.${fileExtension}`);
-    res.send(fileContent);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=contrato-${id}.${fileExtension}`
+    );
 
-    res.send(fileContent);
+    return res.send(fileContent);
 
   } catch (error) {
     console.error('Error al exportar contrato:', error);
-    res.status(500).json({ 
+
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    return res.status(500).json({
       error: 'Error al generar el documento',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
+
 
 /**
  * @swagger

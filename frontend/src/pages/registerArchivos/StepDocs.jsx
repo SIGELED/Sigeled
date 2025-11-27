@@ -12,6 +12,7 @@ import {
     FiAward,
     FiClipboard
 } from "react-icons/fi";
+import { motion, AnimatePresence } from "motion/react";
 import { tipoDocService, archivoService, personaDocService } from "../../services/api";
 
 const FALLBACK_TIPOS = [
@@ -33,31 +34,39 @@ const ICONS = {
 };
 const IconFor = (code) => ICONS[code] ?? FiFileText;
 
-function DocCard({ title, fileName, href, wide = false }) {
+// 🔧 DocCard sin ancho fijo, siempre ocupa el 100% de su columna
+function DocCard({ title, fileName, href }) {
     return (
-        <div className={`${wide ? "w-full" : "w-full sm:w-[420px]"} flex justify-center items-center align-middle m-auto rounded-2xl bg-[#0E1F30] border border-white/10 p-4`}>
-        <div className="flex items-start gap-3">
-            <div className="flex flex-col">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#101922] border border-white/10">
-                <FiFileText className="w-5 h-5 opacity-90" />
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+            className="w-full flex justify-center items-center align-middle rounded-2xl bg-[#0E1F30] border border-white/10 p-4"
+        >
+            <div className="flex items-start w-full gap-3">
+                <div className="flex flex-col">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#101922] border border-white/10">
+                        <FiFileText className="w-5 h-5 opacity-90" />
+                    </div>
+                </div>
+                <div className="min-w-0">
+                    <p className="text-sm text-[#19F124] font-semibold">{title}</p>
+                    <p className="truncate">{fileName || "Archivo subido"}</p>
+                    {href ? (
+                        <a
+                            className="inline-flex items-center gap-1 mt-1 text-sm underline opacity-80 hover:opacity-100 underline-offset-4"
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            Ver archivo <FiExternalLink />
+                        </a>
+                    ) : null}
+                </div>
             </div>
-            </div>
-            <div className="min-w-0">
-            <p className="text-sm text-[#19F124] font-semibold">{title}</p>
-            <p className="truncate">{fileName || "Archivo subido"}</p>
-            {href ? (
-                <a
-                className="inline-flex items-center gap-1 mt-1 text-sm underline opacity-80 hover:opacity-100 underline-offset-4"
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                >
-                Ver archivo <FiExternalLink />
-                </a>
-            ) : null}
-            </div>
-        </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -81,31 +90,39 @@ function DropBox({ label, disabled, onDrop, state, wide = false }) {
         : isDragActive ? "border-[#19F124]"
         : "border-[#2d3b48]";
 
+    const hoverAnim = disabled ? {} : { scale: 1.02 };
+    const tapAnim = disabled ? {} : { scale: 0.98 };
+
     return (
         <div className="flex flex-col w-full space-y-2">
-        <p className="text-lg font-black text-center opacity-90">{label}</p>
-        <div
-            {...getRootProps()}
-            className={`rounded-2xl hover:bg-[#19F124] m-auto ${wide ? "w-full" : "w-40"} h-30 hover:text-[#030C14] hover:border-[#19F124] border-2 border-dashed p-6 bg-[#0E1F30] text-white transition-all ${border}
+            <p className="text-lg font-black text-center opacity-90">{label}</p>
+            <motion.div
+                {...getRootProps()}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={hoverAnim}
+                whileTap={tapAnim}
+                transition={{ duration: 0.15 }}
+                className={`rounded-2xl hover:bg-[#19F124] m-auto ${wide ? "w-full" : "w-40"} h-30 hover:text-[#030C14] hover:border-[#19F124] border-2 border-dashed p-6 bg-[#0E1F30] text-white transition-all ${border}
                             ${disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-        >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl">
-                {state === "done" ? <FiCheck className="w-10 h-10" /> : <FiUploadCloud className="w-10 h-10" />}
-            </div>
-            <div>
-                <p className="text-sm text-center">
-                {state === "uploading" ? "Subiendo…" : state === "done" ? "¡Subido!" : "Arrastrá o hacé click para subir"}
-                </p>
-            </div>
-            </div>
-        </div>
-        {state === "error" && (
-            <div className="flex items-center gap-2 text-sm text-red-300">
-            <FiAlertCircle /> Error al subir
-            </div>
-        )}
+            >
+                <input {...getInputProps()} />
+                <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl">
+                        {state === "done" ? <FiCheck className="w-10 h-10" /> : <FiUploadCloud className="w-10 h-10" />}
+                    </div>
+                    <div>
+                        <p className="text-sm text-center">
+                            {state === "uploading" ? "Subiendo…" : state === "done" ? "¡Subido!" : "Arrastrá o hacé click para subir"}
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+            {state === "error" && (
+                <div className="flex items-center gap-2 text-sm text-red-300">
+                    <FiAlertCircle /> Error al subir
+                </div>
+            )}
         </div>
     );
 }
@@ -116,7 +133,7 @@ export default function StepDocs({
     uploadedDocs = [],
     onUploaded,
     onNext
-    }) {
+}) {
     const [tipos, setTipos] = useState(FALLBACK_TIPOS);
     const [subStep, setSubStep] = useState(1);
     const [selectedCodes, setSelectedCodes] = useState(new Set());
@@ -128,30 +145,30 @@ export default function StepDocs({
 
     useEffect(() => {
         (async () => {
-        try {
-            const t = await tipoDocService.getAllDocTypes().catch(() => null);
-            if (Array.isArray(t?.data) && t.data.length) setTipos(t.data);
-        } catch { }
+            try {
+                const t = await tipoDocService.getAllDocTypes().catch(() => null);
+                if (Array.isArray(t?.data) && t.data.length) setTipos(t.data);
+            } catch { }
         })();
     }, []);
 
     const uploadedByCode = useMemo(() => {
         const map = {};
         (uploadedDocs || []).forEach(d => {
-        const code = d?.tipo_codigo || d?.codigo || d?.tipo?.codigo;
-        if (!code) return;
-        const name =
-            d?.archivo_nombre ||
-            d?.archivo?.nombre ||
-            d?.archivo?.nombre_original ||
-            d?.nombre_archivo ||
-            "Archivo";
-        const url = d?.archivo_url || d?.archivo?.url || d?.url || null;
-        (map[code] = map[code] || []).push({
-            id_archivo: d?.id_archivo || d?.archivo?.id_archivo || null,
-            name,
-            url
-        });
+            const code = d?.tipo_codigo || d?.codigo || d?.tipo?.codigo;
+            if (!code) return;
+            const name =
+                d?.archivo_nombre ||
+                d?.archivo?.nombre ||
+                d?.archivo?.nombre_original ||
+                d?.nombre_archivo ||
+                "Archivo";
+            const url = d?.archivo_url || d?.archivo?.url || d?.url || null;
+            (map[code] = map[code] || []).push({
+                id_archivo: d?.id_archivo || d?.archivo?.id_archivo || null,
+                name,
+                url
+            });
         });
         return map;
     }, [uploadedDocs]);
@@ -181,29 +198,30 @@ export default function StepDocs({
         if (!idPersona) return;
         setUploadMeta(s => ({ ...s, [code]: { ...(s[code] || {}), state: "uploading", name: file?.name } }));
         try {
-        const up = await archivoService.uploadForPersona(idPersona, file);
-        const id_archivo = up?.data?.id_archivo ?? up?.data?.archivo?.id_archivo;
-        if (!id_archivo) throw new Error("No se obtuvo id_archivo");
+            const up = await archivoService.uploadForPersona(idPersona, file);
+            const id_archivo = up?.data?.id_archivo ?? up?.data?.archivo?.id_archivo;
+            if (!id_archivo) throw new Error("No se obtuvo id_archivo");
 
-        const tipo = tipos.find(t => t.codigo === code);
-        if (!tipo) throw new Error("Tipo de documento inválido");
+            const tipo = tipos.find(t => t.codigo === code);
+            if (!tipo) throw new Error("Tipo de documento inválido");
 
-        await personaDocService.createDoc({
-            id_persona: idPersona,
-            id_tipo_doc: Number(tipo.id_tipo_doc),
-            id_archivo,
-            id_estado_verificacion: 1,
-            vigente: true,
-        });
+            await personaDocService.createDoc({
+                id_persona: idPersona,
+                id_tipo_doc: Number(tipo.id_tipo_doc),
+                id_archivo,
+                id_estado_verificacion: 1,
+                vigente: true,
+            });
 
-        setUploadMeta(s => ({ ...s, [code]: { ...(s[code] || {}), state: "done", id_archivo } }));
-        onUploaded?.();
+            setUploadMeta(s => ({ ...s, [code]: { ...(s[code] || {}), state: "done", id_archivo } }));
+            onUploaded?.();
         } catch (e) {
-        console.error("[upload]", e);
-        setUploadMeta(s => ({ ...s, [code]: { ...(s[code] || {}), state: "error" } }));
+            console.error("[upload]", e);
+            setUploadMeta(s => ({ ...s, [code]: { ...(s[code] || {}), state: "error" } }));
         }
     };
 
+    // Para las dropzones sigue siendo útil hasta 3 columnas
     const colsForCount = (n) => {
         if (n <= 1) return "grid-cols-1";
         if (n === 2) return "grid-cols-1 sm:grid-cols-2";
@@ -217,132 +235,183 @@ export default function StepDocs({
     const uploadedCards = useMemo(() => {
         const arr = [];
         [...selectedCodes].filter(code => alreadyUploadedCodes.includes(code)).forEach(code => {
-        const t = tipos.find(x => x.codigo === code);
-        const list = uploadedByCode[code] || [];
-        if (list.length) {
-            list.forEach((itm, idx) => {
-            arr.push({
-                key: `${code}-${idx}`,
-                title: nombreDe(code, t?.nombre),
-                name: itm.name,
-                url: itm.url || undefined
-            });
-            });
-        } else {
-            arr.push({
-            key: `${code}-generic`,
-            title: nombreDe(code, t?.nombre),
-            name: "Archivo ya subido",
-            url: undefined
-            });
-        }
+            const t = tipos.find(x => x.codigo === code);
+            const list = uploadedByCode[code] || [];
+            if (list.length) {
+                list.forEach((itm, idx) => {
+                    arr.push({
+                        key: `${code}-${idx}`,
+                        title: nombreDe(code, t?.nombre),
+                        name: itm.name,
+                        url: itm.url || undefined
+                    });
+                });
+            } else {
+                arr.push({
+                    key: `${code}-generic`,
+                    title: nombreDe(code, t?.nombre),
+                    name: "Archivo ya subido",
+                    url: undefined
+                });
+            }
         });
         return arr;
     }, [selectedCodes, alreadyUploadedCodes, tipos, uploadedByCode]);
 
-    const uploadedCols = colsForCount(uploadedCards.length);
-    const docWide = uploadedCards.length <= 2;
+    // 🔧 Máx 2 columnas para las tarjetas ya subidas (evita solapamiento)
+    const uploadedCols =
+        uploadedCards.length <= 1
+            ? "grid-cols-1"
+            : "grid-cols-1 md:grid-cols-2";
 
     return (
-        <div className="w-full bg-[#101922] rounded-2xl p-6 text-white">
-        <h3 className="pt-3 pl-5 pr-5 mb-1 text-3xl font-semibold text-white">
-            {subStep === 1 ? "Seleccioná los tipos de documentos que vas a subir" : "Subí los archivos seleccionados"}
-        </h3>
-        <p className="pl-8 text-lg opacity-50">
-            {subStep === 1 ? "Puede ser más de uno." : "Solamente PDF"}
-        </p>
-
-        {subStep === 1 ? (
-            <div className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-2">
-            {opciones.map(t => {
-                const disabled = t.ya;
-                const active = selectedCodes.has(t.codigo);
-                const Icon = IconFor(t.codigo);
-                return (
-                <button
-                    key={t.codigo}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => toggle(t.codigo)}
-                    className={`w-full h-auto text-left px-4 py-3 rounded-xl border cursor-pointer
-                                    ${disabled ? "opacity-50 cursor-not-allowed border-white/10 bg-[#0e1f30]" :
-                        active ? "border-[#19F124] bg-[#0f2a1a] transition-all" :
-                        "border-white/10 bg-[#0e1f30] hover:border-white/20 transition-all"}`}
-                >
-                    <div className="flex items-center align-middle justify-between text-[1.5rem]">
-                    <div className="flex items-center">
-                        <Icon className="w-8 h-8 opacity-90" />
-                        <span className="w-[0.2rem] mx-3 rounded-full h-15 bg-white/20" />
-                        <span>{nombreDe(t.codigo, t.nombre)}</span>
-                    </div>
-                    {disabled && <span className="text-xs text-white/60">• ya subido</span>}
-                    </div>
-                </button>
-                );
-            })}
-            </div>
-        ) : (
-            <div className="flex flex-col pl-2 pr-2">
-            <div className={`grid gap-6 p-2 ${uploadedCols}`}>
-                {uploadedCards.map((c) => (
-                <DocCard key={c.key} title={c.title} fileName={c.name} href={c.url} wide={docWide} />
-                ))}
-            </div>
-
-            <div className={`grid gap-5 ${toUploadCols}`}>
-                {toUpload.map(code => {
-                const t = tipos.find(x => x.codigo === code);
-                const state = uploadMeta[code]?.state || "idle";
-                const name = uploadMeta[code]?.name;
-                return (
-                    <div key={code} className="flex flex-col items-center gap-5">
-                    <DropBox
-                        label={nombreDe(code, t?.nombre)}
-                        state={state}
-                        onDrop={(file) => doUpload(code, file)}
-                        wide={dropIsWide}
-                    />
-                    {state === "done" && name ? (
-                        <DocCard title={nombreDe(code, t?.nombre)} fileName={name} wide={dropIsWide} />
-                    ) : null}
-                    </div>
-                );
-                })}
-            </div>
-            </div>
-        )}
-
-        {subStep === 1 ? (
-            <div className="flex justify-end mt-2">
-            <button
-                type="button"
-                onClick={() => setSubStep(2)}
-                disabled={selectedCodes.size === 0}
-                className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
+        <motion.div
+            className="w-full bg-[#101922] rounded-2xl p-6 text-white"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+        >
+            <motion.h3
+                className="pt-3 pl-5 pr-5 mb-1 text-3xl font-semibold text-white"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18 }}
             >
-                Siguiente
-            </button>
-            </div>
-        ) : (
-            <div className="flex justify-between mt-5">
-            <button
-                type="button"
-                onClick={() => setSubStep(1)}
-                className="cursor-pointer text-xl rounded-full border hover:bg-[#162a3e] px-6 py-1 transition-all font-black bg-[#0E1F30] text-white border-white/10"
+                {subStep === 1 ? "Seleccioná los tipos de documentos que vas a subir" : "Subí los archivos seleccionados"}
+            </motion.h3>
+            <motion.p
+                className="pl-8 text-lg opacity-50"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, delay: 0.05 }}
             >
-                Atrás
-            </button>
-            <button
-                type="button"
-                onClick={() => onNext?.()}
-                disabled={!canProceedSub2}
-                className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
-                title={!canProceedSub2 ? "Esperá a que terminen las subidas" : undefined}
-            >
-                Siguiente
-            </button>
-            </div>
-        )}
-        </div>
+                {subStep === 1 ? "Puede ser más de uno." : "Solamente PDF"}
+            </motion.p>
+
+            <AnimatePresence mode="wait">
+                {subStep === 1 ? (
+                    <motion.div
+                        key="step-select"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2 }}
+                        className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-2"
+                    >
+                        {opciones.map((t, idx) => {
+                            const disabled = t.ya;
+                            const active = selectedCodes.has(t.codigo);
+                            const Icon = IconFor(t.codigo);
+                            return (
+                                <motion.button
+                                    key={t.codigo}
+                                    type="button"
+                                    disabled={disabled}
+                                    onClick={() => toggle(t.codigo)}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.18, delay: idx * 0.03 }}
+                                    whileHover={
+                                        disabled
+                                            ? {}
+                                            : { scale: 1.01, translateY: -1 }
+                                    }
+                                    className={`w-full h-auto text-left px-4 py-3 rounded-xl border cursor-pointer
+                                        ${disabled ? "opacity-50 cursor-not-allowed border-white/10 bg-[#0e1f30]" :
+                                        active ? "border-[#19F124] bg-[#0f2a1a] transition-all" :
+                                        "border-white/10 bg-[#0e1f30] hover:border-white/20 transition-all"}`}
+                                >
+                                    <div className="flex items-center align-middle justify-between text-[1.5rem]">
+                                        <div className="flex items-center">
+                                            <Icon className="w-8 h-8 opacity-90" />
+                                            <span className="w-[0.2rem] mx-3 rounded-full h-15 bg-white/20" />
+                                            <span>{nombreDe(t.codigo, t.nombre)}</span>
+                                        </div>
+                                        {disabled && <span className="text-xs text-white/60">• ya subido</span>}
+                                    </div>
+                                </motion.button>
+                            );
+                        })}
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="step-upload"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex flex-col pl-2 pr-2"
+                    >
+                        {/* 🔧 grid de tarjetas ya subidas, sin superposición */}
+                        <div className={`grid gap-4 p-2 ${uploadedCols}`}>
+                            {uploadedCards.map((c) => (
+                                <DocCard
+                                    key={c.key}
+                                    title={c.title}
+                                    fileName={c.name}
+                                    href={c.url}
+                                />
+                            ))}
+                        </div>
+
+                        <div className={`grid gap-5 ${toUploadCols}`}>
+                            {toUpload.map((code) => {
+                                const t = tipos.find(x => x.codigo === code);
+                                const state = uploadMeta[code]?.state || "idle";
+                                const name = uploadMeta[code]?.name;
+                                return (
+                                    <div key={code} className="flex flex-col items-center gap-5">
+                                        <DropBox
+                                            label={nombreDe(code, t?.nombre)}
+                                            state={state}
+                                            onDrop={(file) => doUpload(code, file)}
+                                            wide={dropIsWide}
+                                        />
+                                        {state === "done" && name ? (
+                                            <DocCard
+                                                title={nombreDe(code, t?.nombre)}
+                                                fileName={name}
+                                            />
+                                        ) : null}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {subStep === 1 ? (
+                <div className="flex justify-end mt-2">
+                    <button
+                        type="button"
+                        onClick={() => setSubStep(2)}
+                        disabled={selectedCodes.size === 0}
+                        className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            ) : (
+                <div className="flex justify-between mt-5">
+                    <button
+                        type="button"
+                        onClick={() => setSubStep(1)}
+                        className="cursor-pointer text-xl rounded-full border hover:bg-[#162a3e] px-6 py-1 transition-all font-black bg-[#0E1F30] text-white border-white/10"
+                    >
+                        Atrás
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onNext?.()}
+                        disabled={!canProceedSub2}
+                        className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
+                        title={!canProceedSub2 ? "Esperá a que terminen las subidas" : undefined}
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
+        </motion.div>
     );
 }

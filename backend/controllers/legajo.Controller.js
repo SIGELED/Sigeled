@@ -8,6 +8,7 @@ import {
 } from '../models/legajoModel.js';
 import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
+import { getPersonaById } from '../models/personaModel.js';
 
 export const asignarEstadoManual = async (req, res) => {
     try {
@@ -28,9 +29,15 @@ export const asignarEstadoManual = async (req, res) => {
                     nivel: codigo === 'COMPLETO' ? 'success' : 'warning'
                 });
             }
+
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'LEGAJO_ESTADO_CAMBIO',
-                mensaje: `${id_persona} || Estado de legajo: ${codigo}`,
+                mensaje: `${etiquetaPersona} || Estado de legajo: ${codigo}`,
                 link: `/dashboard/legajo?persona=${id_persona}`,
                 meta: { id_persona, estado: codigo, actor: uid }
             })
@@ -73,9 +80,15 @@ export const recalcularEstadoLegajoCtrl = async(req,res) => {
                     nivel: codigo === 'COMPLETO' ? 'success' : 'warning'
                 });
             }
+
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona 
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'LEGAJO_ESTADO_CAMBIO',
-                mensaje: `${id_persona} || estado de legajo: ${codigo}`,
+                mensaje: `${etiquetaPersona} || estado de legajo: ${codigo}`,
                 link: `/dashboard/legajo?persona=${id_persona}`,
                 meta: { id_persona, estado: codigo, actor: uid }
             });

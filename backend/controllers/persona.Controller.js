@@ -175,12 +175,17 @@ export const asignarPerfil = async (req, res) => {
                 });
             }
 
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'PERFIL_CAMBIO',
-                mensaje: `${id_persona}: perfil asignado | ${pf.rows[0]?.nombre || id_perfil}`,
+                mensaje: `${etiquetaPersona}: perfil asignado | ${pf.rows[0]?.nombre || id_perfil}`,
                 link: `/dashboard/usuarios/${usuarioActor}`,
                 meta: { id_persona, id_perfil: perfilId, perfil: pf.rows[0]?.nombre }
-            })
+            });
         } catch (error) {
             console.warn('asignarPerfil notify error:', error.message);
         }
@@ -222,9 +227,15 @@ export const desasignarPerfil = async (req, res) => {
                     meta: { id_perfil: Number(id_perfil), perfil: pfName }
                 });
             }
+
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'PERFIL_CAMBIO',
-                mensaje: `${id_persona}: perfil removido | ${pfName || id_perfil}`,
+                mensaje: `${etiquetaPersona}: perfil removido | ${pfName || id_perfil}`,
                 link: `/dashboard/usuarios/${usuarioActor}`,
                 meta: { id_persona, id_perfil: Number(id_perfil), perfil: pfName }
             });

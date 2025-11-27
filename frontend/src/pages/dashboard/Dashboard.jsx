@@ -8,7 +8,10 @@ import UsuarioDetalle from './UsuarioDetalle';
 import MiLegajo from './MiLegajo';
 import DashboardHome from './home/DashboardHome';
 import MisContratos from './MisContratos';
+import Notificaciones from './Notificaciones';
+import ContratoNuevo from './ContratoNuevo';
 import AiChat from './AiChat';
+import MiPerfil from './MiPerfil';
 import { Routes, Route } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -24,11 +27,14 @@ const Dashboard = () => {
               <Route path = "/" element={<DashboardHome />}/>
               <Route path = "legajo" element={<MiLegajo />}/>
               <Route path = "mis-contratos" element={<MisContratos />}/>
+              <Route path="notificaciones" element={<Notificaciones />}/>
+              <Route path="mi-perfil" element={<MiPerfil />}/>
 
               <Route element={<RequireRoles anyOf={["ADMIN", "RRHH", "RECURSOS HUMANOS", "ADMINISTRADOR"]}/>}>
                 <Route path = "usuarios" element={<UsuariosSection user={user} />}/>
                 <Route path = "usuarios/:id" element={<UsuarioDetalle />}/>
                 <Route path = "contratos" element={<Contratos />}/>
+                <Route path = "contratos/nuevo/:idPersona" element={<ContratoNuevo />}/>
                 <Route path="clampy" element={<AiChat/>}/>
               </Route>
             </Routes>

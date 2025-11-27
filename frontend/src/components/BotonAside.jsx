@@ -36,10 +36,10 @@ export default function BotonAside({
         `;
 
         if (activo) {
-        className += " text-[#19F124] font-black bg-[#21303f]";
+        className += "text-[#19F124] font-black bg-[#21303f]";
         } else {
         className +=
-            " text-white font-medium hover:bg-[#13293c] hover:text-[#19F124] hover:cursor-pointer";
+            "text-white font-medium hover:bg-[#13293c] hover:text-[#19F124] hover:cursor-pointer";
         }
     }
 

@@ -75,7 +75,7 @@ export default function RequestDeleteModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[120]">
+        <div className="fixed inset-0 z-120">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={submitting ? undefined : onClose} />
         <div className="absolute inset-0 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
             <div className="w-[92%] max-w-lg bg-[#101922] rounded-2xl shadow-xl border border-[#1b2a37]">
@@ -139,7 +139,6 @@ export default function RequestDeleteModal({
                 </div>
                 )}
             </div>
-
             {/* Footer */}
             <div className="px-5 py-4 border-t border-[#1b2a37] flex items-center justify-end gap-2">
                 <button
@@ -148,7 +147,7 @@ export default function RequestDeleteModal({
                 disabled={submitting || busy}
                 className="px-4 py-2 rounded-xl border-2 border-[#2B3642] text-white hover:bg-[#1A2430] disabled:opacity-50"
                 >
-                Cancelar
+                    Cancelar
                 </button>
                 <button
                 type="button"
@@ -156,7 +155,7 @@ export default function RequestDeleteModal({
                 disabled={submitting || busy}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold bg-[#19F124] text-[#101922] disabled:opacity-60"
                 >
-                <FiSend size={16} />
+                    <FiSend size={16} />
                 {submitting || busy ? "Enviando…" : "Enviar solicitud"}
                 <span className="text-xs opacity-70">(Ctrl/⌘+Enter)</span>
                 </button>

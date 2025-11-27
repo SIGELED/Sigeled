@@ -108,7 +108,6 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
 
     try {
-      // Solo pedir notificaciones si está activo y tenemos id_usuario
       if (userData?.activo === true && userData?.id_usuario) {
         const { data } = await notificacionService.getMisNotificaciones();
         setNotifications(Array.isArray(data) ? data : []);

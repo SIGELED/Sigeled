@@ -22,6 +22,7 @@ import legajoRouter from './routes/legajo.routes.js';
 import dashboardRouter from './routes/dashboard.routes.js';
 import notificacionRouter from './routes/notificacion.routes.js';
 import aiChatRouter from './routes/aiChat.routes.js';
+import './utils/contracts-expiration.js';
 
 const swaggerDefinition = {
   openapi: '3.0.0',

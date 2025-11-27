@@ -145,6 +145,9 @@ export const contratoService = {
   getProfesorDetalles: (idPersona) => api.get(`/contratos/profesor/${idPersona}/detalles`),
   getMateriasByCarreraAnio: (idCarrera, idAnio) => api.get(`/contratos/materias`, {params: { idCarrera, idAnio }}),
   getAnios: () => api.get('/contratos/anios'),
+  getTarifasByPersona(idPersona) {
+    return api.get(`/contratos/tarifas/${idPersona}`)
+  },
 
   exportarContrato : async (id, format = 'pdf') => {
     const res = await api.get(`/contratos/${id}/export`, {
@@ -160,7 +163,9 @@ export const contratoService = {
     return { url, filename: `contrato-${id}.${format === 'word' ? 'docx' : 'pdf'}` };
   },
 
-  getCarreras:() => api.get('/contratos/carreras')
+  getCarreras:() => api.get('/contratos/carreras'),
+  getPeriodos: () => api.get('/contratos/periodos'),
+  createGeneral: (payload) => api.post("/contratos/general/crear", payload),
 };
 
 export const legajoService = {
@@ -179,7 +184,11 @@ export const dashboardService = {
 
 export const notificacionService = {
   getMisNotificaciones: () => api.get('/notificaciones/mis-notificaciones'),
-  marcarComoLeido:async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  listar: async () => (await api.get('/notificaciones/mis-notificaciones')).data,
+  marcarLeida: async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  marcarComoLeido: async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  marcarTodasLeidas: async() => (await api.post('/notificaciones/marcar-todas-leidas')).data,
+  eliminar: async (id_notificacion) => (await api.delete(`/notificaciones/${id_notificacion}`)).data,
 }
 
 export const aiChatService = {
