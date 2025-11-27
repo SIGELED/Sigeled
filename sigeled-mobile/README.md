@@ -1,3 +1,95 @@
+# SIGELED - Mobile (Expo)
+
+Este directorio contiene la app móvil creada con Expo. Aquí tienes pasos claros para que otro desarrollador ponga en marcha la parte mobile en su máquina.
+
+Requisitos previos
+- Node.js (>=16/18 recomendado)
+- npm o yarn
+- Expo CLI (opcional): `npm install -g expo-cli` (no es obligatorio si usas `npx expo`)
+- Android Studio (AVD) o un dispositivo físico / iOS simulator si trabajas en macOS
+- Backend corriendo localmente (ver nota abajo)
+
+Resumen rápido
+- Branch: `feat/mobile-expo` (la rama con los cambios del mobile)
+
+1) Obtener la rama y dependencias
+
+```bash
+# desde la raíz del repo
+git fetch origin
+git checkout feat/mobile-expo
+
+# instalar dependencias del mobile
+cd sigeled-mobile
+npm install
+```
+
+2) Dependencias nativas que recomienda instalar (Expo instala muchas automáticamente):
+
+```bash
+npx expo install expo-secure-store expo-document-picker react-native-gesture-handler react-native-reanimated react-native-screens react-native-safe-area-context @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs axios
+```
+
+3) Variables de entorno / `baseURL`
+- La app detecta automáticamente la URL del backend según la plataforma:
+	- Web: `http://localhost:4000/api`
+	- Android emulator (AVD): `http://10.0.2.2:4000/api`
+	- iOS simulator: `http://localhost:4000/api`
+
+Si usas un dispositivo físico debes definir la variable `REACT_NATIVE_API_URL` apuntando a la IP de tu PC. Ejemplo (bash):
+
+```bash
+REACT_NATIVE_API_URL='http://192.168.x.x:4000/api' npx expo start -c
+```
+
+En PowerShell (Windows):
+
+```powershell
+$env:REACT_NATIVE_API_URL = 'http://192.168.x.x:4000/api'
+npx expo start -c
+```
+
+4) Ejecutar el backend (en otra terminal)
+- Desde `e:/Proyectos/Sigeled/backend` (asegurate de tener el `.env` con las credenciales locales):
+
+```bash
+cd ../backend
+npm install
+npm run dev
+# Verifica: curl http://localhost:4000/ping
+```
+
+5) Arrancar la app (Expo)
+
+```bash
+# en sigeled-mobile
+npx expo start -c
+# Luego abre en el emulador Android, en un dispositivo físico o en web (u)
+```
+
+6) Probar login
+- Usa el login en la app con credenciales de un usuario existente (por ejemplo el admin que ya probaste).
+- En la pantalla de Login hay un botón `Debug: mostrar auth almacenado` que muestra si el token/user se guardaron correctamente.
+
+7) Notas importantes
+- No subas archivos sensibles (.env) al repo. El `.gitignore` de la raíz ya excluye `.env` y `node_modules`.
+- En Android emulator usa `10.0.2.2` para apuntar al localhost del host.
+- Si no ves logs en web, abre la consola del navegador (F12 → Console). En iOS/Android abre la consola de Metro o usa `adb logcat`.
+- Para limpiar cachés: `npx expo start -c` o borra `node_modules` y `package-lock.json` y vuelve a `npm install`.
+- En Windows verás warnings LF→CRLF; no impiden funcionamiento. Para normalizar podemos añadir `.gitattributes` más adelante.
+
+8) Subida de archivos / endpoints
+- El flujo de subida (signed URLs / Supabase) está parcialmente implementado; revisar `src/screens/SubirDocumento` y `src/services/api.js`. Si el backend está en otro host, setear `REACT_NATIVE_API_URL` como indicado.
+
+9) Contribuir / flujo de trabajo
+- Crea una rama `feat/mobile-<descripción>` a partir de `feat/mobile-expo` para tus cambios.
+- Abre PR contra `feat/mobile-expo` o `main` según coordinación del equipo.
+
+Si necesitás, genero un `README.md` en la raíz con pasos para levantar backend + mobile juntos.
+
+Contacto rápido
+- Si algo falla pega aquí la salida de `npx expo start -c` y del backend (`npm run dev`) y yo te ayudo a depurarlo.
+
 # Sigeled Mobile
 
 ## Descripción
