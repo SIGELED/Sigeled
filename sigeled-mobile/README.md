@@ -90,6 +90,38 @@ Si necesitás, genero un `README.md` en la raíz con pasos para levantar backend
 Contacto rápido
 - Si algo falla pega aquí la salida de `npx expo start -c` y del backend (`npm run dev`) y yo te ayudo a depurarlo.
 
+## Implementado (qué ya está en esta rama)
+
+Esta lista describe lo ya desarrollado en `feat/mobile-expo` para que el siguiente desarrollador sepa por dónde continuar:
+
+- Proyecto Expo inicializado en `sigeled-mobile`.
+- Configuración de navegación con `@react-navigation` (stack + bottom-tabs).
+- Cliente HTTP con `axios` en `src/services/api.js` y helper `setAuthToken`.
+- Manejo de `baseURL` adaptativo por plataforma (web / android emulator / iOS) y soporte de `REACT_NATIVE_API_URL`.
+- `AuthContext` en `src/context/AuthContext.jsx` con `login` y `logout`.
+- Persistencia segura de token y user: `expo-secure-store` en nativo y `localStorage` en web (wrapper en `src/utils/storage.js`).
+- Pantalla de `Login` (`src/screens/Auth/LoginScreen.jsx`) que usa `/api/auth/login`, muestra estado y debug para SecureStore.
+- Pantallas básicas: `Mi Legajo`, `Mis Envíos` y `Subir Documento` (esqueleto) actualizadas para usar los helpers de `api` y `user.id_persona`.
+- Helpers específicos: `getLegajoByPersona`, `getMisEnviosByPersona`, y `uploadDocument` (placeholder) en `src/services/api.js`.
+- Wrapper de almacenamiento `src/utils/storage.js` para unificar `SecureStore` y `localStorage`.
+- Pequeñas mejoras de UX/debug: mensajes visibles en login, botón debug para inspeccionar storage, y guardado/restore del estado auth.
+- `.gitignore` agregado en la raíz para excluir `node_modules`, `.env` y artefactos de Expo.
+- `sigeled-mobile/README.md` (este archivo) con instrucciones de arranque y notas de desarrollo.
+
+Partes pendientes / recomendadas para el siguiente desarrollador:
+
+- Completar flujo de subida de archivos (signed URLs con Supabase o upload multipart al backend) y mostrar progreso/errores.
+- Implementar apertura/visualización de documentos en móvil (Linking / WebView / descarga temporal).
+- Mejorar protección de rutas y flujo post-login (`navigation.reset()` o control más robusto de rutas protegidas).
+- Añadir cache del último legajo en `storage` para experiencia offline mínima.
+- Añadir refresh token o manejo de expiración del JWT si es necesario.
+- Escribir README de la raíz con pasos integrados para backend + mobile (opcional, puedo hacerlo).
+
+---
+
+Si querés que genere tickets o tareas concretas para cualquiera de los pendientes, puedo desglosarlas y empezar por la prioridad que elijas.
+
+
 # Sigeled Mobile
 
 ## Descripción
