@@ -59,12 +59,15 @@ const DocumentList = ({ documents }) => {
 
     return (
         <View style={styles.listContainer}>
-            {documents.map((item) => {
+            {documents.map((item, index) => {
                 const isLoading = loadingDoc === (item.id_titulo || item.id_archivo);
                 const hasFile = !!item.id_archivo;
+                
+                // Generar una key única
+                const uniqueKey = item.id_titulo || item.id_persona_doc || item.id_archivo || `doc-${index}`;
 
                 return (
-                    <View key={item.id_titulo || item.id} style={styles.itemContainer}>
+                    <View key={uniqueKey} style={styles.itemContainer}>
                         <View style={styles.itemHeader}>
                             <Ionicons 
                                 name={getDocumentIcon(item)} 

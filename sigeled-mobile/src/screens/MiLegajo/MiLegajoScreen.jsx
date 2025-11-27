@@ -115,7 +115,7 @@ const MiLegajoScreen = () => {
                     <View style={styles.domicilioContainer}>
                         <Text style={styles.label}>Domicilio:</Text>
                         {domiciliosData.map((dom, idx) => (
-                            <View key={idx} style={styles.domicilioItem}>
+                            <View key={dom.id_domicilio || `domicilio-${idx}`} style={styles.domicilioItem}>
                                 <Text style={styles.value}>
                                     {[dom.calle, dom.numero, dom.barrio, dom.localidad, dom.departamento_admin]
                                         .filter(Boolean)
