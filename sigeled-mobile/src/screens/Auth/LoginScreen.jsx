@@ -17,11 +17,17 @@ const LoginScreen = ({ navigation }) => {
             const resp = await login({ email, password });
             console.log('[LoginScreen] login response:', resp);
             
-            // Navigate to the main app stack
+            // Resetear el stack de navegación para prevenir volver atrás
             if (navigation.getParent && navigation.getParent()) {
-                navigation.getParent().navigate('Main');
+                navigation.getParent().reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                });
             } else {
-                navigation.navigate('Main');
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                });
             }
         } catch (error) {
             console.error('[LoginScreen] login error', error);

@@ -2,13 +2,16 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import colors from '../../theme/colors';
-import { getLegajoByPersona, getPersonaById, getTitulosByPersona } from '../../services/api';
+import { getLegajoByPersona, getPersonaById, getTitulosByPersona, getDocumentosByPersona, getIdentificacionByPersona, getDomiciliosByPersona } from '../../services/api';
 import DocumentList from '../../components/DocumentList';
 
 const MiLegajoScreen = () => {
     const { user } = useContext(AuthContext);
     const [personaData, setPersonaData] = useState(null);
+    const [identificacionData, setIdentificacionData] = useState(null);
+    const [domiciliosData, setDomiciliosData] = useState([]);
     const [titulosData, setTitulosData] = useState([]);
+    const [documentosData, setDocumentosData] = useState([]);
     const [legajoEstado, setLegajoEstado] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -22,15 +25,26 @@ const MiLegajoScreen = () => {
             }
             try {
                 // Obtener datos en paralelo
-                const [persona, titulos, estado] = await Promise.all([
+                const [persona, identificacion, domicilios, titulos, documentos, estado] = await Promise.all([
                     getPersonaById(user.id_persona),
+                    getIdentificacionByPersona(user.id_persona).catch(() => null),
+                    getDomiciliosByPersona(user.id_persona).catch(() => []),
                     getTitulosByPersona(user.id_persona),
+                    getDocumentosByPersona(user.id_persona),
                     getLegajoByPersona(user.id_persona)
                 ]);
                 
                 setPersonaData(persona);
+                setIdentificacionData(identificacion?.[0] || null);
+                setDomiciliosData(domicilios || []);
                 setTitulosData(titulos || []);
+                setDocumentosData(documentos || []);
                 setLegajoEstado(estado);
+                
+                console.log('[MiLegajo] Identificación:', identificacion);
+                console.log('[MiLegajo] Domicilios:', domicilios?.length || 0);
+                console.log('[MiLegajo] Títulos:', titulos?.length || 0);
+                console.log('[MiLegajo] Documentos:', documentos?.length || 0);
             } catch (err) {
                 console.error('Error al cargar datos:', err);
                 setError(err.message || 'Error al obtener legajo');
@@ -80,7 +94,41 @@ const MiLegajoScreen = () => {
                         {personaData?.telefono || 'No registrado'}
                     </Text>
                 </Text>
+
+                {identificacionData && (
+                    <>
+                        <Text style={styles.label}>DNI: 
+                            <Text style={styles.value}>
+                                {identificacionData.dni || 'No registrado'}
+                            </Text>
+                        </Text>
+                        
+                        <Text style={styles.label}>CUIL: 
+                            <Text style={styles.value}>
+                                {identificacionData.cuil || 'No registrado'}
+                            </Text>
+                        </Text>
+                    </>
+                )}
+
+                {domiciliosData && domiciliosData.length > 0 && (
+                    <View style={styles.domicilioContainer}>
+                        <Text style={styles.label}>Domicilio:</Text>
+                        {domiciliosData.map((dom, idx) => (
+                            <View key={idx} style={styles.domicilioItem}>
+                                <Text style={styles.value}>
+                                    {[dom.calle, dom.numero, dom.barrio, dom.localidad, dom.departamento_admin]
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
             </View>
+
+            <Text style={styles.sectionTitle}>Documentos</Text>
+            <DocumentList documents={documentosData} />
 
             <Text style={styles.sectionTitle}>Títulos</Text>
             <DocumentList documents={titulosData} />
@@ -142,6 +190,13 @@ const styles = StyleSheet.create({
     value: {
         fontWeight: '400',
         color: colors.text.secondary,
+    },
+    domicilioContainer: {
+        marginTop: 8,
+    },
+    domicilioItem: {
+        marginLeft: 16,
+        marginTop: 4,
     },
     sectionTitle: {
         fontSize: 22,

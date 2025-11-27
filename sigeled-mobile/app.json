@@ -28,11 +28,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-      "extra": {
+    "extra": {
       "apiUrl": "http://192.168.1.2:4000/api"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ]
   }
 }

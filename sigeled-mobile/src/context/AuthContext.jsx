@@ -7,23 +7,32 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
         const restore = async () => {
             try {
                 const token = await storage.getItem('userToken');
                 const storedUser = await storage.getItem('user');
-                console.log('[AuthContext] restore token:', token);
-                console.log('[AuthContext] restore user raw:', storedUser);
-                if (token) {
+                console.log('[AuthContext] restore token:', token ? 'presente' : 'null');
+                console.log('[AuthContext] restore user:', storedUser ? 'presente' : 'null');
+                
+                if (token && storedUser) {
                     setAuthToken(token);
-                }
-                if (storedUser) {
                     try {
                         setUser(JSON.parse(storedUser));
                     } catch (e) {
                         console.warn('[AuthContext] storedUser JSON parse error', e);
+                        // Si hay error parseando, limpiar todo
+                        await storage.deleteItem('userToken');
+                        await storage.deleteItem('user');
+                        setAuthToken(null);
                     }
+                } else {
+                    // Si falta alguno, limpiar ambos
+                    await storage.deleteItem('userToken');
+                    await storage.deleteItem('user');
+                    setAuthToken(null);
                 }
             } catch (err) {
                 console.error('Error restoring auth', err);
@@ -80,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, notifications }}>
             {children}
         </AuthContext.Provider>
     );

@@ -33,11 +33,61 @@ const api = axios.create({
   },
 });
 
+// Interceptor para agregar el token a todas las peticiones
+api.interceptors.request.use(
+  (config) => {
+    // Si ya hay un token en headers.common, asegurarse que se incluya
+    const token = api.defaults.headers.common['Authorization'];
+    if (token && !config.headers['Authorization']) {
+      config.headers['Authorization'] = token;
+    }
+    console.log('[API Request]', config.method?.toUpperCase(), config.url, {
+      hasAuth: !!config.headers['Authorization'],
+      contentType: config.headers['Content-Type']
+    });
+    return config;
+  },
+  (error) => {
+    console.error('[API Request Error]', error);
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para manejar respuestas y errores
+api.interceptors.response.use(
+  (response) => {
+    console.log('[API Response]', response.config.method?.toUpperCase(), response.config.url, response.status);
+    return response;
+  },
+  async (error) => {
+    console.error('[API Error]', error.config?.method?.toUpperCase(), error.config?.url, error.response?.status, error.response?.data);
+    
+    // Si recibimos 401 (no autorizado), el token es inválido o expiró
+    if (error.response?.status === 401) {
+      console.warn('[API] Token inválido o expirado, limpiando sesión...');
+      // Importar storage dinámicamente para evitar dependencias circulares
+      const storage = (await import('../utils/storage')).default;
+      
+      // Limpiar token y usuario almacenados
+      await storage.deleteItem('userToken');
+      await storage.deleteItem('user');
+      delete api.defaults.headers.common['Authorization'];
+      
+      // Nota: El AuthContext debería detectar esto y redirigir al login
+      console.warn('[API] Sesión limpiada. El usuario necesita volver a iniciar sesión.');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export const setAuthToken = (token) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('[API] Token configurado');
   } else {
     delete api.defaults.headers.common['Authorization'];
+    console.log('[API] Token eliminado');
   }
 };
 
@@ -52,6 +102,7 @@ export const register = async (userData) => {
   return response.data;
 };
 
+
 // Funciones para manejar documentos
 export const getLegajo = async () => {
   // espera id_persona
@@ -60,6 +111,40 @@ export const getLegajo = async () => {
 
 export const uploadDocument = async (formData) => {
   const response = await api.post('/archivos/upload', formData);
+  return response.data;
+};
+
+// Nueva función para subir archivos con progreso
+export const uploadFile = async (file, id_persona, onProgress) => {
+  const formData = new FormData();
+  
+  // En React Native, FormData necesita el archivo en un formato específico
+  formData.append('archivo', {
+    uri: file.uri,
+    type: file.mimeType || 'application/octet-stream',
+    name: file.name,
+  });
+
+  console.log('[uploadFile] Subiendo archivo:', file.name, 'para persona:', id_persona);
+  console.log('[uploadFile] Headers actuales:', api.defaults.headers.common);
+
+  const response = await api.post(`/persona/${id_persona}/archivo`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      // Asegurar que el token se incluya explícitamente
+      ...(api.defaults.headers.common['Authorization'] && {
+        'Authorization': api.defaults.headers.common['Authorization']
+      })
+    },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const progress = progressEvent.loaded / progressEvent.total;
+        onProgress(progress);
+      }
+    },
+  });
+
+  console.log('[uploadFile] Respuesta exitosa:', response.data);
   return response.data;
 };
 
@@ -83,8 +168,39 @@ export const getTitulosByPersona = async (id_persona) => {
   return response.data;
 };
 
-export const getMisEnviosByPersona = async (id_persona) => {
+export const getDocumentosByPersona = async (id_persona) => {
   const response = await api.get(`/persona-doc/personas/${id_persona}/documentos`);
+  return response.data;
+};
+
+export const getTiposDocumento = async () => {
+  const response = await api.get('/persona-doc/tipos-documento');
+  return response.data;
+};
+
+export const vincularDocumento = async (id_persona, id_tipo_doc, id_archivo) => {
+  const response = await api.post('/persona-doc', {
+    id_persona,
+    id_tipo_doc,
+    id_archivo
+  });
+  return response.data;
+};
+
+export const getSignedUrl = async (id_archivo) => {
+  const response = await api.get(`/archivos/${id_archivo}/signed-url`);
+  return response.data;
+};
+
+// Obtener identificación (DNI, CUIL)
+export const getIdentificacionByPersona = async (id_persona) => {
+  const response = await api.get(`/persona/${id_persona}/identificacion`);
+  return response.data;
+};
+
+// Obtener domicilios
+export const getDomiciliosByPersona = async (id_persona) => {
+  const response = await api.get(`/persona/${id_persona}/domicilio`);
   return response.data;
 };
 
