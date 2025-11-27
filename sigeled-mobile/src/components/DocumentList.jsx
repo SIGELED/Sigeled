@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import colors from '../theme/colors';
 
 const DocumentList = ({ documents }) => {
     if (!documents || documents.length === 0) {
@@ -24,37 +25,46 @@ const DocumentList = ({ documents }) => {
 
 const styles = StyleSheet.create({
     listContainer: {
-        padding: 16,
+        padding: 4,
     },
     emptyContainer: {
-        padding: 20,
+        padding: 32,
         alignItems: 'center',
+        backgroundColor: colors.background.secondary,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border.secondary,
     },
     emptyText: {
-        fontSize: 14,
-        color: '#999',
+        fontSize: 16,
+        color: colors.text.tertiary,
+        fontStyle: 'italic',
     },
     itemContainer: {
-        padding: 12,
+        padding: 16,
         marginVertical: 8,
-        borderRadius: 8,
-        backgroundColor: '#f9f9f9',
-        shadowColor: '#000',
+        borderRadius: 16,
+        backgroundColor: colors.background.secondary,
+        borderWidth: 1,
+        borderColor: colors.border.secondary,
+        shadowColor: colors.primary.main,
         shadowOffset: {
             width: 0,
-            height: 1,
+            height: 2,
         },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-        elevation: 2,
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
     },
     itemTitle: {
         fontSize: 16,
         fontWeight: 'bold',
+        color: colors.text.primary,
+        marginBottom: 4,
     },
     itemStatus: {
         fontSize: 14,
-        color: '#666',
+        color: colors.text.secondary,
     },
 });
 

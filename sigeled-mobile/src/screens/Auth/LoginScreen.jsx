@@ -1,124 +1,175 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
-import storage from '../../utils/storage';
+import colors from '../../theme/colors';
 
 const LoginScreen = ({ navigation }) => {
     const { login } = useContext(AuthContext);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [status, setStatus] = useState('');
+    const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const [savedToken, setSavedToken] = useState(null);
-    const [savedUser, setSavedUser] = useState(null);
     const handleLogin = async () => {
         setSubmitting(true);
-        setStatus('Iniciando sesión...');
+        setError('');
         try {
-            // AuthContext.login expects an object with credentials
             const resp = await login({ email, password });
             console.log('[LoginScreen] login response:', resp);
-            setStatus('Login correcto');
-            setStatus('Login correcto');
-            Alert.alert('Login correcto', 'Has iniciado sesión correctamente');
-            // refresh saved auth to show token/user on screen
-            await refreshStoredAuth();
-            // Navigate to the main app stack (named 'Main' in AppNavigator)
-            // use parent navigator as fallback when nested
+            
+            // Navigate to the main app stack
             if (navigation.getParent && navigation.getParent()) {
                 navigation.getParent().navigate('Main');
             } else {
                 navigation.navigate('Main');
             }
-            navigation.navigate('Main');
         } catch (error) {
             console.error('[LoginScreen] login error', error);
-            setStatus('Error de login');
-            Alert.alert('Error', 'Credenciales incorrectas. Inténtalo de nuevo.');
+            setError('Credenciales incorrectas. Inténtalo de nuevo.');
         } finally {
             setSubmitting(false);
         }
     };
 
-    const showStoredAuth = async () => {
-        try {
-            const token = await storage.getItem('userToken');
-            const userRaw = await storage.getItem('user');
-            console.log('[LoginScreen] storage userToken:', token);
-            console.log('[LoginScreen] storage userRaw:', userRaw);
-            Alert.alert('Stored auth', `token: ${!!token}\nuser: ${userRaw ? 'present' : 'null'}`);
-        } catch (e) {
-            console.error('Error reading storage', e);
-            Alert.alert('Error', 'No se pudo leer storage');
-        }
-    };
-    const refreshStoredAuth = async () => {
-        try {
-            const token = await SecureStore.getItemAsync('userToken');
-            const userRaw = await SecureStore.getItemAsync('user');
-            setSavedToken(token);
-            if (userRaw) {
-                try { setSavedUser(JSON.parse(userRaw)); } catch(e) { setSavedUser(userRaw); }
-            } else setSavedUser(null);
-        } catch (e) {
-            console.error('Error reading SecureStore', e);
-        }
-    };
-
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Iniciar Sesión</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Correo electrónico"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Contraseña"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-            <Button title="Iniciar Sesión" onPress={handleLogin} disabled={submitting} />
-            <View style={{height:8}} />
-            <Button title="Debug: mostrar auth almacenado" onPress={showStoredAuth} color="#888" disabled={submitting} />
-            <View style={{height:12}} />
-            <Text style={{textAlign:'center', color:'#333'}}>{status}</Text>
-            <View style={{height:12}} />
-            <Text style={{fontWeight:'600'}}>SecureStore</Text>
-            <Text>token: {savedToken ? 'present' : 'null'}</Text>
-            <Text>user: {savedUser ? JSON.stringify(savedUser) : 'null'}</Text>
-            <Button
-                title="¿No tienes una cuenta? Regístrate"
-                onPress={() => navigation.navigate('Register')}
-                color="#6c757d"
-            />
-        </View>
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <View style={styles.content}>
+                <Text style={styles.title}>Iniciar Sesión</Text>
+                <Text style={styles.subtitle}>SIGELED</Text>
+                
+                <View style={styles.formContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        placeholderTextColor={colors.text.placeholder}
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                    />
+                    
+                    <TextInput
+                        style={styles.input}
+                        placeholder="••••••••"
+                        placeholderTextColor={colors.text.placeholder}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        autoComplete="password"
+                    />
+
+                    {error ? (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{error}</Text>
+                        </View>
+                    ) : null}
+
+                    <TouchableOpacity 
+                        style={[styles.button, submitting && styles.buttonDisabled]}
+                        onPress={handleLogin}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.buttonText}>
+                            {submitting ? 'Ingresando...' : 'Ingresar'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.registerContainer}>
+                        <Text style={styles.registerText}>¿No tienes una cuenta? </Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                            <Text style={styles.registerLink}>Registrarse</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.background.primary,
+    },
+    content: {
+        flex: 1,
         justifyContent: 'center',
-        padding: 16,
+        padding: 32,
     },
     title: {
+        fontSize: 48,
+        fontWeight: 'bold',
+        color: colors.primary.main,
+        marginBottom: 8,
+        textAlign: 'left',
+    },
+    subtitle: {
         fontSize: 24,
-        marginBottom: 24,
-        textAlign: 'center',
+        color: colors.text.secondary,
+        marginBottom: 48,
+        textAlign: 'left',
+    },
+    formContainer: {
+        width: '100%',
     },
     input: {
-        height: 40,
-        borderColor: '#ccc',
+        height: 56,
+        backgroundColor: colors.background.input,
+        borderRadius: 12,
+        paddingHorizontal: 20,
+        fontSize: 18,
+        color: colors.text.primary,
+        marginBottom: 20,
         borderWidth: 1,
-        marginBottom: 12,
-        paddingHorizontal: 8,
+        borderColor: 'transparent',
+    },
+    button: {
+        height: 64,
+        backgroundColor: 'transparent',
+        borderRadius: 32,
+        borderWidth: 3,
+        borderColor: colors.primary.main,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    buttonText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.primary.main,
+    },
+    registerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 24,
+    },
+    registerText: {
+        fontSize: 16,
+        color: colors.text.secondary,
+    },
+    registerLink: {
+        fontSize: 16,
+        color: colors.primary.main,
+        fontWeight: '600',
+    },
+    errorContainer: {
+        backgroundColor: colors.status.error,
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    errorText: {
+        color: colors.status.errorText,
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 });
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
+import colors from '../../theme/colors';
 import { getLegajoByPersona, getPersonaById, getTitulosByPersona } from '../../services/api';
 import DocumentList from '../../components/DocumentList';
 
@@ -44,7 +45,7 @@ const MiLegajoScreen = () => {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0000ff" />
+                <ActivityIndicator size="large" color={colors.primary.main} />
             </View>
         );
     }
@@ -100,65 +101,75 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
+        backgroundColor: colors.background.primary,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: colors.background.primary,
     },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: colors.background.primary,
     },
     errorText: {
-        color: 'red',
+        color: colors.status.error,
+        fontSize: 16,
     },
     title: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: 16,
+        marginBottom: 20,
+        color: colors.primary.main,
     },
     dataSection: {
         marginBottom: 24,
-        backgroundColor: '#f5f5f5',
-        padding: 16,
-        borderRadius: 8,
+        backgroundColor: colors.background.secondary,
+        padding: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border.secondary,
     },
     label: {
         fontSize: 16,
         marginVertical: 8,
         fontWeight: '600',
-        color: '#333',
+        color: colors.text.primary,
     },
     value: {
         fontWeight: '400',
-        color: '#666',
+        color: colors.text.secondary,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
         marginTop: 16,
         marginBottom: 12,
-        color: '#333',
+        color: colors.text.primary,
     },
     estadoSection: {
         marginTop: 24,
-        padding: 16,
-        backgroundColor: '#e3f2fd',
-        borderRadius: 8,
-        borderLeftWidth: 4,
-        borderLeftColor: '#2196f3',
+        marginBottom: 20,
+        padding: 20,
+        backgroundColor: colors.background.secondary,
+        borderRadius: 16,
+        borderLeftWidth: 5,
+        borderLeftColor: colors.primary.main,
     },
     estadoLabel: {
         fontSize: 14,
-        color: '#666',
-        marginBottom: 4,
+        color: colors.text.secondary,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     estadoValue: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: '#1976d2',
+        color: colors.primary.main,
     },
 });
 
