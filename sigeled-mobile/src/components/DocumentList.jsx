@@ -1,27 +1,38 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 const DocumentList = ({ documents }) => {
-    const renderItem = ({ item }) => (
-        <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemStatus}>{item.status}</Text>
-        </View>
-    );
+    if (!documents || documents.length === 0) {
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No hay documentos</Text>
+            </View>
+        );
+    }
 
     return (
-        <FlatList
-            data={documents}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContainer}
-        />
+        <View style={styles.listContainer}>
+            {documents.map((item) => (
+                <View key={item.id.toString()} style={styles.itemContainer}>
+                    <Text style={styles.itemTitle}>{item.title}</Text>
+                    <Text style={styles.itemStatus}>{item.status}</Text>
+                </View>
+            ))}
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     listContainer: {
         padding: 16,
+    },
+    emptyContainer: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#999',
     },
     itemContainer: {
         padding: 12,

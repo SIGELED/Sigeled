@@ -1,28 +1,30 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Elige baseURL según la plataforma/runtime:
-// - Web: usa localhost (por ejemplo cuando ejecutas `expo start --web`)
-// - Android emulator (AVD): 10.0.2.2
-// - iOS simulator: localhost
-// - Dispositivo físico: definir REACT_NATIVE_API_URL en entorno o usar la IP de tu máquina
+// Si está definido en app.json (extra.apiUrl), úsalo
+// Sino, usa valores por defecto según plataforma
 const DEFAULT_PORT = 4000;
 let API_URL = '';
 
-if (Platform.OS === 'web') {
-  API_URL = `http://localhost:${DEFAULT_PORT}/api`;
-} else if (Platform.OS === 'android') {
-  // Emulador Android estándar (AVD) usa 10.0.2.2 para mapear a localhost del host
-  API_URL = `http://10.0.2.2:${DEFAULT_PORT}/api`;
+// Prioridad 1: Variable de entorno desde app.json
+if (Constants.expoConfig?.extra?.apiUrl) {
+  API_URL = Constants.expoConfig.extra.apiUrl;
 } else {
-  // iOS simulator y otros casos usan localhost; para dispositivo físico, setea env var
-  API_URL = `http://localhost:${DEFAULT_PORT}/api`;
+  // Prioridad 2: Valores por defecto según plataforma
+  if (Platform.OS === 'web') {
+    API_URL = `http://localhost:${DEFAULT_PORT}/api`;
+  } else if (Platform.OS === 'android') {
+    // Emulador Android usa 10.0.2.2
+    API_URL = `http://10.0.2.2:${DEFAULT_PORT}/api`;
+  } else {
+    // iOS simulator usa localhost
+    API_URL = `http://localhost:${DEFAULT_PORT}/api`;
+  }
 }
 
-// Si el desarrollador definió una variable de entorno `REACT_NATIVE_API_URL`, respetarla
-if (typeof process !== 'undefined' && process.env && process.env.REACT_NATIVE_API_URL) {
-  API_URL = process.env.REACT_NATIVE_API_URL;
-}
+console.log('[API] Using baseURL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -68,6 +70,16 @@ export const getMisEnvios = async () => {
 
 export const getLegajoByPersona = async (id_persona) => {
   const response = await api.get(`/legajo/${id_persona}/estado`);
+  return response.data;
+};
+
+export const getPersonaById = async (id_persona) => {
+  const response = await api.get(`/persona/${id_persona}`);
+  return response.data;
+};
+
+export const getTitulosByPersona = async (id_persona) => {
+  const response = await api.get(`/persona/${id_persona}/titulos`);
   return response.data;
 };
 
