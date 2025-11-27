@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { isTokenExpired, isTokenExpiringSoon, getTimeUntilExpiry } from '../utils/jwtHelper';
 
 // Elige baseURL según la plataforma/runtime:
 // Si está definido en app.json (extra.apiUrl), úsalo
@@ -35,12 +36,40 @@ const api = axios.create({
 
 // Interceptor para agregar el token a todas las peticiones
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // Si ya hay un token en headers.common, asegurarse que se incluya
     const token = api.defaults.headers.common['Authorization'];
-    if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = token;
+    
+    if (token) {
+      // Extraer el token sin el prefijo 'Bearer '
+      const cleanToken = token.replace('Bearer ', '');
+      
+      // Verificar si el token ha expirado
+      if (isTokenExpired(cleanToken)) {
+        console.error('[API] Token expirado antes de hacer request');
+        
+        // Limpiar token
+        const storage = (await import('../utils/storage')).default;
+        await storage.deleteItem('userToken');
+        await storage.deleteItem('user');
+        delete api.defaults.headers.common['Authorization'];
+        
+        // Rechazar la petición
+        return Promise.reject(new Error('Token expirado'));
+      }
+      
+      // Advertir si el token expirará pronto
+      if (isTokenExpiringSoon(cleanToken)) {
+        const timeRemaining = getTimeUntilExpiry(cleanToken);
+        console.warn(`[API] Token expirará en ${Math.floor(timeRemaining / 60)} minutos`);
+      }
+      
+      // Agregar token al header
+      if (!config.headers['Authorization']) {
+        config.headers['Authorization'] = token;
+      }
     }
+    
     console.log('[API Request]', config.method?.toUpperCase(), config.url, {
       hasAuth: !!config.headers['Authorization'],
       contentType: config.headers['Content-Type']

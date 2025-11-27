@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import colors from '../../theme/colors';
 import { getLegajoByPersona, getPersonaById, getTitulosByPersona, getDocumentosByPersona, getIdentificacionByPersona, getDomiciliosByPersona } from '../../services/api';
 import DocumentList from '../../components/DocumentList';
+import { useLegajoCache } from '../../hooks/useLegajoCache';
+import { Ionicons } from '@expo/vector-icons';
 
 const MiLegajoScreen = () => {
     const { user } = useContext(AuthContext);
@@ -14,47 +16,99 @@ const MiLegajoScreen = () => {
     const [documentosData, setDocumentosData] = useState([]);
     const [legajoEstado, setLegajoEstado] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    const [isOffline, setIsOffline] = useState(false);
+    
+    const { loadFromCache, saveToCache, isFromCache } = useLegajoCache(user?.id_persona);
 
-    useEffect(() => {
-        const fetchLegajoData = async () => {
-            if (!user?.id_persona) {
-                setError('No se encontró información de persona');
+    const fetchLegajoData = async (forceRefresh = false) => {
+        if (!user?.id_persona) {
+            setError('No se encontró información de persona');
+            setLoading(false);
+            return;
+        }
+
+        // Si no es refresh forzado, intentar cargar del cache primero
+        if (!forceRefresh) {
+            const cached = await loadFromCache();
+            if (cached) {
+                setPersonaData(cached.persona);
+                setIdentificacionData(cached.identificacion);
+                setDomiciliosData(cached.domicilios);
+                setTitulosData(cached.titulos);
+                setDocumentosData(cached.documentos);
+                setLegajoEstado(cached.estado);
                 setLoading(false);
+                setIsOffline(false);
                 return;
             }
-            try {
-                // Obtener datos en paralelo
-                const [persona, identificacion, domicilios, titulos, documentos, estado] = await Promise.all([
-                    getPersonaById(user.id_persona),
-                    getIdentificacionByPersona(user.id_persona).catch(() => null),
-                    getDomiciliosByPersona(user.id_persona).catch(() => []),
-                    getTitulosByPersona(user.id_persona),
-                    getDocumentosByPersona(user.id_persona),
-                    getLegajoByPersona(user.id_persona)
-                ]);
-                
-                setPersonaData(persona);
-                setIdentificacionData(identificacion?.[0] || null);
-                setDomiciliosData(domicilios || []);
-                setTitulosData(titulos || []);
-                setDocumentosData(documentos || []);
-                setLegajoEstado(estado);
-                
-                console.log('[MiLegajo] Identificación:', identificacion);
-                console.log('[MiLegajo] Domicilios:', domicilios?.length || 0);
-                console.log('[MiLegajo] Títulos:', titulos?.length || 0);
-                console.log('[MiLegajo] Documentos:', documentos?.length || 0);
-            } catch (err) {
-                console.error('Error al cargar datos:', err);
-                setError(err.message || 'Error al obtener legajo');
-            } finally {
-                setLoading(false);
-            }
-        };
+        }
 
+        try {
+            // Obtener datos en paralelo desde el servidor
+            const [persona, identificacion, domicilios, titulos, documentos, estado] = await Promise.all([
+                getPersonaById(user.id_persona),
+                getIdentificacionByPersona(user.id_persona).catch(() => null),
+                getDomiciliosByPersona(user.id_persona).catch(() => []),
+                getTitulosByPersona(user.id_persona),
+                getDocumentosByPersona(user.id_persona),
+                getLegajoByPersona(user.id_persona)
+            ]);
+            
+            const legajoData = {
+                persona,
+                identificacion: identificacion?.[0] || null,
+                domicilios: domicilios || [],
+                titulos: titulos || [],
+                documentos: documentos || [],
+                estado
+            };
+
+            setPersonaData(persona);
+            setIdentificacionData(identificacion?.[0] || null);
+            setDomiciliosData(domicilios || []);
+            setTitulosData(titulos || []);
+            setDocumentosData(documentos || []);
+            setLegajoEstado(estado);
+            setIsOffline(false);
+            setError(null);
+            
+            // Guardar en cache
+            await saveToCache(legajoData);
+            
+            console.log('[MiLegajo] Datos actualizados desde servidor');
+        } catch (err) {
+            console.error('[MiLegajo] Error al cargar datos:', err);
+            
+            // Si falla, intentar cargar del cache
+            const cached = await loadFromCache();
+            if (cached) {
+                setPersonaData(cached.persona);
+                setIdentificacionData(cached.identificacion);
+                setDomiciliosData(cached.domicilios);
+                setTitulosData(cached.titulos);
+                setDocumentosData(cached.documentos);
+                setLegajoEstado(cached.estado);
+                setIsOffline(true);
+                setError('Sin conexión - Mostrando datos guardados');
+            } else {
+                setError(err.message || 'Error al obtener legajo');
+            }
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
         fetchLegajoData();
     }, [user]);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchLegajoData(true);
+    };
 
     if (loading) {
         return (
@@ -73,7 +127,26 @@ const MiLegajoScreen = () => {
     }
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView 
+            style={styles.container}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[colors.primary.main]}
+                    tintColor={colors.primary.main}
+                />
+            }
+        >
+            {(isOffline || isFromCache) && (
+                <View style={styles.offlineBanner}>
+                    <Ionicons name="cloud-offline" size={20} color={colors.text.primary} />
+                    <Text style={styles.offlineText}>
+                        {isOffline ? 'Sin conexión - Datos guardados' : 'Datos del cache'}
+                    </Text>
+                </View>
+            )}
+            
             <Text style={styles.title}>Mis Datos</Text>
             
             <View style={styles.dataSection}>
@@ -150,6 +223,23 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         backgroundColor: colors.background.primary,
+    },
+    offlineBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.background.secondary,
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: colors.primary.main,
+        gap: 8,
+    },
+    offlineText: {
+        color: colors.text.primary,
+        fontSize: 14,
+        fontWeight: '500',
     },
     loadingContainer: {
         flex: 1,

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api, { setAuthToken } from '../services/api';
 import storage from '../utils/storage';
+import { isTokenExpired } from '../utils/jwtHelper';
 
 export const AuthContext = createContext();
 
@@ -18,15 +19,23 @@ export const AuthProvider = ({ children }) => {
                 console.log('[AuthContext] restore user:', storedUser ? 'presente' : 'null');
                 
                 if (token && storedUser) {
-                    setAuthToken(token);
-                    try {
-                        setUser(JSON.parse(storedUser));
-                    } catch (e) {
-                        console.warn('[AuthContext] storedUser JSON parse error', e);
-                        // Si hay error parseando, limpiar todo
+                    // Verificar si el token ha expirado
+                    if (isTokenExpired(token)) {
+                        console.warn('[AuthContext] Token expirado al restaurar, limpiando sesión');
                         await storage.deleteItem('userToken');
                         await storage.deleteItem('user');
                         setAuthToken(null);
+                    } else {
+                        setAuthToken(token);
+                        try {
+                            setUser(JSON.parse(storedUser));
+                        } catch (e) {
+                            console.warn('[AuthContext] storedUser JSON parse error', e);
+                            // Si hay error parseando, limpiar todo
+                            await storage.deleteItem('userToken');
+                            await storage.deleteItem('user');
+                            setAuthToken(null);
+                        }
                     }
                 } else {
                     // Si falta alguno, limpiar ambos
@@ -42,6 +51,24 @@ export const AuthProvider = ({ children }) => {
         };
         restore();
     }, []);
+
+    // Verificar periódicamente si el token ha expirado
+    useEffect(() => {
+        if (!user) return;
+
+        const checkTokenExpiration = async () => {
+            const token = await storage.getItem('userToken');
+            if (token && isTokenExpired(token)) {
+                console.warn('[AuthContext] Token expirado detectado, cerrando sesión automáticamente');
+                await logout();
+            }
+        };
+
+        // Verificar cada 1 minuto
+        const interval = setInterval(checkTokenExpiration, 60000);
+
+        return () => clearInterval(interval);
+    }, [user]);
 
     const login = async (credentials) => {
         setLoading(true);
