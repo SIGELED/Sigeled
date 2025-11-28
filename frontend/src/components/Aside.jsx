@@ -8,6 +8,7 @@ import {
     FiFileText,
     FiChevronsLeft,
     FiChevronsRight,
+    FiBarChart2,
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
@@ -64,6 +65,7 @@ export default function Aside() {
         const path = location.pathname;
 
         if (path.startsWith("/dashboard/clampy")) return "clampy";
+        if (path.startsWith("/dashboard/reportes")) return "reportes";
         if (path.startsWith("/dashboard/legajo")) return "legajo";
         if (path.startsWith("/dashboard/mis-contratos")) return "mis-contratos";
         if (path.startsWith("/dashboard/contratos")) return "contratos";
@@ -179,6 +181,17 @@ export default function Aside() {
                 <FiUsers size={24} className="shrink-0 currentColor" />
                 {!collapsed && <span>Usuarios</span>}
             </BotonAside>
+            )}
+
+            {isAdmin && (
+                <BotonAside
+                    onClick={() => navigate("/dashboard/reportes")}
+                    activo={activeSection === "reportes"}
+                    collapsed={collapsed}
+                >
+                    <FiBarChart2 size={24} className="shrink-0 currentColor"/>
+                    {!collapsed && <span>Reportes</span>}
+                </BotonAside>
             )}
 
             {isAdmin && (

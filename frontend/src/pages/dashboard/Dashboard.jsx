@@ -9,6 +9,7 @@ import MiLegajo from './MiLegajo';
 import DashboardHome from './home/DashboardHome';
 import MisContratos from './MisContratos';
 import AiChat from './AiChat';
+import Reportes from './Reportes';
 import { Routes, Route } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -30,6 +31,7 @@ const Dashboard = () => {
                 <Route path = "usuarios/:id" element={<UsuarioDetalle />}/>
                 <Route path = "contratos" element={<Contratos />}/>
                 <Route path="clampy" element={<AiChat/>}/>
+                <Route path="reportes" element={<Reportes/>}/>
               </Route>
             </Routes>
           </Suspense>
