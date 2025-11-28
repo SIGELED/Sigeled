@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, ActivityIndicator, Modal, Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from '../../context/AuthContext';
@@ -49,14 +49,20 @@ const SubirDocumentoScreen = () => {
 
     const handleDocumentPick = async () => {
         try {
+            console.log('📄 Iniciando handleDocumentPick...');
             setError('');
+            
+            console.log('📄 Abriendo selector de documentos...');
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['application/pdf', 'image/*'],
                 copyToCacheDirectory: true,
             });
 
+            console.log('📄 Resultado del selector:', result);
+
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const file = result.assets[0];
+                console.log('📄 Archivo seleccionado:', file);
                 
                 // Validar tamaño (máx 10MB)
                 const maxSize = 10 * 1024 * 1024; // 10MB
@@ -66,26 +72,64 @@ const SubirDocumentoScreen = () => {
                 }
 
                 setDocument(file);
-                console.log('Archivo seleccionado:', file);
+                console.log('🟢 Documento establecido:', file);
+                Alert.alert('Éxito', 'Archivo seleccionado correctamente');
+            } else {
+                console.log('🟡 Selección cancelada');
             }
         } catch (err) {
-            console.error('Error al seleccionar documento:', err);
-            Alert.alert('Error', 'No se pudo seleccionar el archivo');
+            console.error('🔴 Error al seleccionar documento:', err);
+            console.error('🔴 Stack:', err.stack);
+            Alert.alert('Error', `No se pudo seleccionar el archivo: ${err.message}`);
         }
     };
 
     const handleTakePhoto = async () => {
         try {
+            console.log('🔵 Iniciando handleTakePhoto...');
             setError('');
+            
+            // Verificar si hay una sesión pendiente de cámara (común en iOS)
+            if (Platform.OS === 'ios') {
+                try {
+                    const pendingResult = await ImagePicker.getPendingResultAsync();
+                    if (pendingResult && Array.isArray(pendingResult) && pendingResult.length > 0) {
+                        console.log('🟡 Hay sesiones pendientes, limpiando...');
+                    }
+                } catch (pendingErr) {
+                    console.log('🟡 No hay sesiones pendientes o error al verificar:', pendingErr.message);
+                }
+            }
+            
+            // Solicitar permisos de cámara
+            console.log('🔵 Solicitando permisos de cámara...');
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            console.log('🔵 Resultado de permisos:', permissionResult);
+            
+            if (permissionResult.status !== 'granted') {
+                console.log('🔴 Permiso de cámara denegado');
+                Alert.alert(
+                    'Permiso denegado',
+                    'Necesitamos acceso a la cámara para tomar fotos'
+                );
+                return;
+            }
+
+            console.log('🔵 Abriendo cámara...');
+            
             const result = await ImagePicker.launchCameraAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3],
+                allowsEditing: false,
+                quality: 0.5,
+                videoMaxDuration: 0,
+                presentationStyle: Platform.OS === 'ios' ? 'fullScreen' : undefined,
             });
+
+            console.log('🔵 Resultado de la cámara:', result);
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const photo = result.assets[0];
+                console.log('🟢 Foto capturada:', photo);
                 
                 // Crear objeto similar al de DocumentPicker para compatibilidad
                 const file = {
@@ -96,26 +140,50 @@ const SubirDocumentoScreen = () => {
                 };
 
                 setDocument(file);
-                console.log('Foto capturada:', file);
+                console.log('🟢 Documento establecido:', file);
+                Alert.alert('Éxito', 'Foto capturada correctamente');
+            } else {
+                console.log('🟡 Cámara cancelada por el usuario');
             }
         } catch (err) {
-            console.error('Error al tomar foto:', err);
-            Alert.alert('Error', 'No se pudo tomar la foto');
+            console.error('🔴 Error al tomar foto:', err);
+            console.error('🔴 Stack:', err.stack);
+            Alert.alert('Error', `No se pudo tomar la foto: ${err.message}`);
         }
     };
 
     const handlePickFromGallery = async () => {
         try {
+            console.log('🖼️ Iniciando handlePickFromGallery...');
             setError('');
+            
+            // Solicitar permisos de galería
+            console.log('🖼️ Solicitando permisos de galería...');
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            console.log('🖼️ Resultado de permisos:', permissionResult);
+            
+            if (permissionResult.status !== 'granted') {
+                console.log('🔴 Permiso de galería denegado');
+                Alert.alert(
+                    'Permiso denegado',
+                    'Necesitamos acceso a la galería para seleccionar imágenes'
+                );
+                return;
+            }
+
+            console.log('🖼️ Abriendo galería...');
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 0.8,
-                aspect: [4, 3],
+                allowsEditing: false,
+                quality: 0.7,
+                presentationStyle: Platform.OS === 'ios' ? 'fullScreen' : undefined,
             });
+
+            console.log('🖼️ Resultado de la galería:', result);
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const photo = result.assets[0];
+                console.log('🟢 Imagen seleccionada:', photo);
                 
                 // Crear objeto similar al de DocumentPicker para compatibilidad
                 const file = {
@@ -126,11 +194,15 @@ const SubirDocumentoScreen = () => {
                 };
 
                 setDocument(file);
-                console.log('Imagen seleccionada:', file);
+                console.log('🟢 Documento establecido:', file);
+                Alert.alert('Éxito', 'Imagen seleccionada correctamente');
+            } else {
+                console.log('🟡 Galería cancelada por el usuario');
             }
         } catch (err) {
-            console.error('Error al seleccionar imagen:', err);
-            Alert.alert('Error', 'No se pudo seleccionar la imagen');
+            console.error('🔴 Error al seleccionar imagen:', err);
+            console.error('🔴 Stack:', err.stack);
+            Alert.alert('Error', `No se pudo seleccionar la imagen: ${err.message}`);
         }
     };
 
