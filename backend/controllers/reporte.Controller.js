@@ -38,7 +38,13 @@ export const descargarInformeEscalafonarioPDF = async (req, res) => {
     try {
         const { id_persona } = req.params;
 
-        const informe = await reporteModel.getInformeEscalafonario(id_persona);
+        // Aumentar timeout para consultas complejas
+        const informe = await Promise.race([
+            reporteModel.getInformeEscalafonario(id_persona),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('La consulta tardó demasiado tiempo')), 30000)
+            )
+        ]);
 
         if (!informe) {
             return res.status(404).json({
@@ -56,6 +62,24 @@ export const descargarInformeEscalafonarioPDF = async (req, res) => {
         res.send(pdfBuffer);
     } catch (error) {
         console.error('Error al generar PDF:', error);
+        
+        // Manejo específico de errores de conexión
+        if (error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            return res.status(503).json({
+                success: false,
+                message: 'No se pudo conectar a la base de datos. Por favor, verifica tu conexión a internet y vuelve a intentarlo.',
+                error: 'Error de conexión a la base de datos'
+            });
+        }
+        
+        if (error.message === 'La consulta tardó demasiado tiempo') {
+            return res.status(408).json({
+                success: false,
+                message: 'La consulta tardó demasiado tiempo. Intenta nuevamente.',
+                error: error.message
+            });
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Error al generar el PDF del informe',

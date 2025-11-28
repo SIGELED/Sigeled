@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import reporteService from '../../services/reporteService';
+import { reporteService } from '../../services/api';
 import { FiDownload, FiRefreshCw, FiUsers, FiFileText, FiAward, FiCalendar, FiTrendingUp, FiAlertCircle } from 'react-icons/fi';
 import BarChartSimple from '../../components/BarChartSimple';
 import DonutChart from '../../components/DonutChart';
@@ -90,17 +90,17 @@ const Reportes = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen bg-[#020c14] text-white p-6">
+    <div className="min-h-screen bg-[#020c14] text-white p-6 pt-20">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#19F124]">Reportes y Estadísticas</h1>
             <p className="text-gray-400 mt-1">Análisis completo del sistema SIGELED</p>
           </div>
           <button
             onClick={() => refetchGenerales()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#19F124] text-[#020c14] rounded-lg hover:bg-[#3af743] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#19F124] text-[#020c14] rounded-lg hover:bg-[#3af743] transition-colors whitespace-nowrap text-sm sm:text-base w-full sm:w-auto justify-center"
           >
             <FiRefreshCw className="w-4 h-4" />
             Actualizar

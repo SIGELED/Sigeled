@@ -191,4 +191,59 @@ export const aiChatService = {
   getMessages: (id_chat) => api.get(`/ai-chat/sessions/${id_chat}/messages`),
 }
 
+export const reporteService = {
+  // Informe escalafonario
+  getInformeEscalafonario: (id_persona) => 
+    api.get(`/reportes/informe-escalafonario/${id_persona}`),
+  
+  descargarInformeEscalafonarioPDF: async (id_persona, nombreArchivo) => {
+    const response = await api.get(`/reportes/informe-escalafonario/${id_persona}/pdf`, {
+      responseType: 'blob'
+    });
+    
+    // Crear un enlace de descarga
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', nombreArchivo || `informe_escalafonario_${id_persona}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    return response;
+  },
+
+  // Estadísticas
+  getEstadisticasGenerales: () => 
+    api.get('/reportes/estadisticas/generales'),
+  
+  getEstadisticasContratos: (anio) => 
+    api.get('/reportes/estadisticas/contratos', { params: { anio } }),
+  
+  getEstadisticasTitulos: () => 
+    api.get('/reportes/estadisticas/titulos'),
+  
+  getEstadisticasDocumentos: () => 
+    api.get('/reportes/estadisticas/documentos'),
+
+  // Rankings y listados
+  getRankingAntiguedad: (limit = 20) => 
+    api.get('/reportes/ranking/antiguedad', { params: { limit } }),
+  
+  getListadoDocentes: (filtros = {}) => 
+    api.get('/reportes/docentes/listado', { params: filtros }),
+  
+  getContratosProximosVencer: (dias = 30) => 
+    api.get('/reportes/contratos/proximos-vencer', { params: { dias } }),
+
+  // Documentos digitalizados
+  getDocumentosDigitalizados: (filtros = {}) => 
+    api.get('/reportes/documentos/digitalizados', { params: filtros }),
+
+  // Resumen completo
+  getResumenCompleto: () => 
+    api.get('/reportes/resumen-completo')
+}
+
 export default api;

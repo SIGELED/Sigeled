@@ -118,14 +118,19 @@ export async function generateInformeEscalafonarioPDF(informe) {
     }
 
     // Domicilio
-    if (informe.calle || informe.localidad) {
+    if (informe.calle || informe.localidad || informe.barrio) {
         let domicilio = [];
         if (informe.calle) domicilio.push(informe.calle);
-        if (informe.numero) domicilio.push(informe.numero);
-        if (informe.piso) domicilio.push(`Piso ${informe.piso}`);
-        if (informe.depto) domicilio.push(`Depto ${informe.depto}`);
+        if (informe.altura) domicilio.push(informe.altura);
+        if (informe.barrio) domicilio.push(`Barrio ${informe.barrio}`);
+        if (informe.manzana) domicilio.push(`Mzna ${informe.manzana}`);
+        if (informe.casa) domicilio.push(`Casa ${informe.casa}`);
+        if (informe.barrio_piso) domicilio.push(`Piso ${informe.barrio_piso}`);
+        if (informe.barrio_depto) domicilio.push(`Depto ${informe.barrio_depto}`);
         
-        addText(`Domicilio: ${domicilio.join(' ')}`, { size: 11 });
+        if (domicilio.length > 0) {
+            addText(`Domicilio: ${domicilio.join(' ')}`, { size: 11 });
+        }
         
         if (informe.localidad) {
             let localidadCompleta = informe.localidad;
@@ -231,16 +236,16 @@ export async function generateInformeEscalafonarioPDF(informe) {
             
             addText(`   Desde: ${fechaInicio} - Hasta: ${fechaFin}`, { size: 10, indent: 15 });
             
-            if (contrato.cargo) {
-                addText(`   Cargo: ${contrato.cargo}`, { size: 10, indent: 15 });
-            }
-            
             if (contrato.horas_semanales) {
                 addText(`   Horas semanales: ${contrato.horas_semanales}`, { size: 10, indent: 15 });
             }
             
-            if (contrato.remuneracion) {
-                addText(`   Remuneración: $${Number(contrato.remuneracion).toFixed(2)}`, { size: 10, indent: 15 });
+            if (contrato.horas_mensuales) {
+                addText(`   Horas mensuales: ${contrato.horas_mensuales}`, { size: 10, indent: 15 });
+            }
+            
+            if (contrato.monto_hora) {
+                addText(`   Monto por hora: $${Number(contrato.monto_hora).toFixed(2)}`, { size: 10, indent: 15 });
             }
 
             // Materias

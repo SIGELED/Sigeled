@@ -19,7 +19,7 @@ const Dashboard = () => {
     <div className="min-h-screen flex bg-[#020c14] text-white">
       <div className='relative flex-1'> 
         <Nav/>
-        <main>
+        <main className="pt-2">
           <Suspense fallback={<div className='p-6'>Cargando página...</div>}>
             <Routes>
               <Route path = "/" element={<DashboardHome />}/>

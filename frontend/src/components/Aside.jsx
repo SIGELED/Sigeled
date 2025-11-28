@@ -86,9 +86,14 @@ export default function Aside() {
         <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
-            className={`cursor-pointer transition-all  absolute -right-3 top-90 z-10 flex items-center justify-center w-6 h-6 rounded-sm ${collapsed ? "hover:bg-[#19F124] border-2 border-[#19F124] bg-[#030C14] text-[#19F124] hover:text-[#030C14]" : "hover:bg-[#3af743] border-2 border-[#19F124] bg-[#19F124] text-[#030C14]"}`}
+            aria-label={collapsed ? "Expandir menú" : "Plegar menú"}
+            className={`cursor-pointer transition-all absolute -right-3 top-6 z-10 flex items-center justify-center w-8 h-8 rounded-full shadow-sm ${
+                collapsed
+                    ? "hover:bg-[#19F124] border-2 border-[#19F124] bg-[#030C14] text-[#19F124] hover:text-[#030C14]"
+                    : "hover:bg-[#3af743] border-2 border-[#19F124] bg-[#19F124] text-[#030C14]"
+            }`}
         >
-            {collapsed ? <FiChevronsRight size={19} /> : <FiChevronsLeft size={19} />}
+            {collapsed ? <FiChevronsRight size={18} /> : <FiChevronsLeft size={18} />}
         </button>
 
         <div className="flex items-center justify-center mt-6 mb-6">
