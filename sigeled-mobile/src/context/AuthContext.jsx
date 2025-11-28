@@ -76,18 +76,23 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/auth/login', credentials);
             console.log('[AuthContext] login response:', response.data);
             const { token, user } = response.data;
+            
+            // Guardar token primero
             if (token) {
-                setAuthToken(token);
                 await storage.setItem('userToken', token);
+                setAuthToken(token);
                 console.log('[AuthContext] saved token to storage');
             }
+            
+            // Luego guardar usuario
             if (user) {
-                setUser(user);
                 await storage.setItem('user', JSON.stringify(user));
+                setUser(user);
                 console.log('[AuthContext] saved user to storage');
             } else {
                 console.warn('[AuthContext] login response user is undefined');
             }
+            
             return response.data;
         } catch (error) {
             console.error("Login error:", error);
@@ -100,8 +105,8 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         setLoading(true);
         try {
-            // optionally call backend logout if exists
-            try { await api.post('/auth/logout'); } catch(e) { /* ignore */ }
+            // Limpiar solo el almacenamiento local
+            // No es necesario llamar al backend con JWT
             setUser(null);
             await storage.deleteItem('userToken');
             await storage.deleteItem('user');

@@ -1,7 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import colors from '../../theme/colors';
+import SigeledLogo from '../../components/SigeledLogo';
 
 const LoginScreen = ({ navigation }) => {
     const { login } = useContext(AuthContext);
@@ -16,6 +17,9 @@ const LoginScreen = ({ navigation }) => {
         try {
             const resp = await login({ email, password });
             console.log('[LoginScreen] login response:', resp);
+            
+            // Esperar un momento para asegurar que el estado se actualizó
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Resetear el stack de navegación para prevenir volver atrás
             if (navigation.getParent && navigation.getParent()) {
@@ -43,8 +47,12 @@ const LoginScreen = ({ navigation }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View style={styles.content}>
-                <Text style={styles.title}>Iniciar Sesión</Text>
-                <Text style={styles.subtitle}>SIGELED</Text>
+                <View style={styles.logoContainer}>
+                    <SigeledLogo width={120} height={120} />
+                </View>
+                
+                <Text style={styles.title}>SIGELED</Text>
+                <Text style={styles.subtitle}>Sistema de Gestión de Legajos</Text>
                 
                 <View style={styles.formContainer}>
                     <TextInput
@@ -106,18 +114,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 32,
     },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
     title: {
-        fontSize: 48,
+        fontSize: 36,
         fontWeight: 'bold',
         color: colors.primary.main,
-        marginBottom: 8,
-        textAlign: 'left',
+        marginBottom: 4,
+        textAlign: 'center',
     },
     subtitle: {
-        fontSize: 24,
+        fontSize: 14,
         color: colors.text.secondary,
         marginBottom: 48,
-        textAlign: 'left',
+        textAlign: 'center',
     },
     formContainer: {
         width: '100%',
