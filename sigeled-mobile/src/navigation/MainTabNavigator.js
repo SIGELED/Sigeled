@@ -3,6 +3,8 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MiLegajoScreen from '../screens/MiLegajo/MiLegajoScreen';
 import SubirDocumentoScreen from '../screens/SubirDocumento/SubirDocumentoScreen';
+import MisContratosScreen from '../screens/MisContratos/MisContratosScreen';
+import NotificacionesScreen from '../screens/Notificaciones/NotificacionesScreen';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import SigeledLogo from '../components/SigeledLogo';
@@ -59,6 +61,10 @@ const MainTabNavigator = () => {
                             iconName = focused ? 'document-text' : 'document-text-outline';
                         } else if (route.name === 'Subir Documento') {
                             iconName = focused ? 'cloud-upload' : 'cloud-upload-outline';
+                        } else if (route.name === 'Mis Contratos') {
+                            iconName = focused ? 'briefcase' : 'briefcase-outline';
+                        } else if (route.name === 'Notificaciones') {
+                            iconName = focused ? 'notifications' : 'notifications-outline';
                         }
 
                         return <Ionicons name={iconName} size={size} color={color} />;
@@ -82,6 +88,8 @@ const MainTabNavigator = () => {
                 })}
             >
                 <Tab.Screen name="Mi Legajo" component={MiLegajoScreen} />
+                <Tab.Screen name="Mis Contratos" component={MisContratosScreen} />
+                <Tab.Screen name="Notificaciones" component={NotificacionesScreen} />
                 <Tab.Screen name="Subir Documento" component={SubirDocumentoScreen} />
             </Tab.Navigator>
     );

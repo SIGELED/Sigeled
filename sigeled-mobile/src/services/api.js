@@ -233,4 +233,22 @@ export const getDomiciliosByPersona = async (id_persona) => {
   return response.data;
 };
 
+// Obtener contratos del usuario autenticado
+export const getMisContratos = async () => {
+  const response = await api.get('/contratos/mis-contratos');
+  return response.data;
+};
+
+// Obtener notificaciones del usuario autenticado
+export const getMisNotificaciones = async () => {
+  const response = await api.get('/notificaciones/mis-notificaciones');
+  return response.data;
+};
+
+// Marcar notificación como leída
+export const marcarNotificacionLeida = async (id_notificacion) => {
+  const response = await api.patch(`/notificaciones/${id_notificacion}/leido`);
+  return response.data;
+};
+
 export default api;
