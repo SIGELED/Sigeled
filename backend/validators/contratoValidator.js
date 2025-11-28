@@ -136,7 +136,7 @@ export const createContratoGeneralValidators = [
         if (!errors.isEmpty()) {
             return res
             .status(422)
-            .json({ error: "Validación fallida", details: errors.array() });
+            .json({ error: "Validación fallida", detalle: errors.array() });
         }
     next();
 };

@@ -13,6 +13,7 @@ import {
   getTarifasByPersona,
   createContratoGeneral
 } from '../models/contratoModel.js';
+import * as perfilTarifaModel from "../models/perfilTarifaModel.js"
 import { notifyAdminsRRHH, notifyUser } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getPersonaById } from '../models/personaModel.js';
@@ -44,7 +45,7 @@ export async function listarTarifasPorPersona(req, res) {
     console.error('Error en listarTarifasPorPersona:', error);
     res.status(500).json({
       error: 'Error al obtener tarifas para la persona',
-      details:
+      detalle:
         process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
@@ -84,7 +85,7 @@ export async function listarContratos(req, res) {
     console.error('Error en listarContratos:', error);
     res.status(500).json({ 
       error: 'Error al obtener contratos',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -101,7 +102,7 @@ export async function obtenerContrato(req, res) {
     console.error('Error en obtenerContrato:', error);
     res.status(500).json({ 
       error: 'Error al obtener contrato',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -148,7 +149,7 @@ export async function crearContratoHandler(req, res) {
 
   } catch (error) {
     console.error('Error en crearContrato:', error);
-    res.status(400).json({ error: 'Error al crear contrato', details: process.env.NODE_ENV==='development' ? error.message : undefined });
+    res.status(400).json({ error: 'Error al crear contrato', detalle: process.env.NODE_ENV==='development' ? error.message : undefined });
   }
 }
 
@@ -200,7 +201,7 @@ export async function eliminarContrato(req, res) {
     console.error('Error en eliminarContrato:', error);
     res.status(400).json({
       error: 'Error al eliminar contrato',
-      details:
+      detalle:
         process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
@@ -221,7 +222,7 @@ export async function buscarPersonaPorDni(req, res) {
     console.error('Error en buscarPersonaPorDni:', error);
     res.status(500).json({ 
       error: 'Error al buscar persona',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -240,7 +241,7 @@ export async function obtenerDetallesProfesor(req, res) {
     console.error('Error en obtenerDetallesProfesor:', error);
     res.status(500).json({ 
       error: 'Error al obtener detalles del profesor',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -261,7 +262,7 @@ export async function listarMateriasPorCarreraAnio(req, res) {
     console.error('Error en listarMateriasPorCarreraAnio:', error);
     res.status(500).json({ 
       error: 'Error al obtener materias',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -379,7 +380,7 @@ export async function crearNuevoContratoProfesor(req, res) {
     }
     return res.status(500).json({
       error: 'Error al crear contrato de profesor',
-      details: msg,
+      detalle: msg,
     });
   }
 }
@@ -396,7 +397,7 @@ export async function obtenerContratoPorExternalId(req, res) {
     console.error('Error en obtenerContratoPorExternalId:', error);
     res.status(500).json({ 
       error: 'Error al obtener contrato por external_id',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -415,7 +416,7 @@ export async function listarMisContratos(req, res) {
     console.error('Error en listarMisContratos:', error);
     res.status(500).json({
       error: 'Error al obtener mis contratos',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
@@ -499,7 +500,43 @@ export async function crearContratoGeneralHandler(req, res) {
     }
     return res.status(500).json({
       error: 'Error al crear contrato general',
-      details: msg,
+      detalle: msg,
     });
+  }
+}
+
+export async function listarPerfilTarifas(req, res, next) {
+  try {
+    const tarifas = await perfilTarifaModel.findAllPerfilTarifas();
+    res.json(tarifas);
+  } catch (error) {
+      console.error('Error en listarPerfilTarifas:', error);
+      res.status(500).json({ message: 'Error al listar tarifas', detalle: error.message });
+  }
+}
+
+export async function actualizarPerfilTarifa(req, res) {
+  try {
+    const { id_tarifa } = req.params;
+    const { monto_hora } = req.body;
+
+    if (monto_hora == null || Number.isNaN(Number(monto_hora))) {
+      return res
+        .status(400)
+        .json({ error: "monto_hora es requerido y debe ser numérico" });
+    }
+
+    const updated = await perfilTarifaModel.updatePerfilTarifa(id_tarifa, {
+      monto_hora: Number(monto_hora),
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Tarifa no encontrada" });
+    }
+
+    return res.json(updated);
+  } catch (error) {
+    console.error("Error al actualizar tarifa:", error);
+    return res.status(500).json({ error: "Error al actualizar tarifa", detalle: error.message });
   }
 }

@@ -12,7 +12,9 @@ import {
   listarMisContratos,
   listarPeriodos,
   listarTarifasPorPersona,
-  crearContratoGeneralHandler
+  crearContratoGeneralHandler,
+  listarPerfilTarifas,
+  actualizarPerfilTarifa
 } from '../controllers/contrato.Controller.js';
 import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoModel.js';
@@ -48,6 +50,10 @@ contratoRouter.get('/anios', soloAdministrador, async (req, res) => {
 });
 
 contratoRouter.get('/empleados', soloAdministrador, listarEmpleadosContratos);
+
+contratoRouter.get("/perfil-tarifas", soloAdministrador, listarPerfilTarifas);
+
+contratoRouter.put("/perfil-tarifas/:id_tarifa", soloAdministrador, actualizarPerfilTarifa);
 
 contratoRouter.get('/mis-contratos', listarMisContratos);
 
@@ -349,14 +355,37 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res, next) => {
       fileExtension = 'pdf';
     }
 
+    const apellido =
+      contrato.apellido ||
+      contrato.apellido_persona ||
+      contrato.persona_apellido ||
+      contrato.apellido_docente ||
+      null;
+
+    const nombre =
+      contrato.nombre ||
+      contrato.nombre_persona ||
+      contrato.persona_nombre ||
+      contrato.nombre_docente ||
+      null;
+
+    const nombreCompleto = [apellido, nombre]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const baseFileName = nombreCompleto
+      ? `CONTRATO DE ${nombreCompleto}`
+      : `CONTRATO-${id}`;
+
+    const safeFileName = `${baseFileName}.${fileExtension}`.replace(/[^\w.\- áéíóúÁÉÍÓÚñÑ]/g, '_');
+
     res.setHeader('Content-Type', contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=contrato-${id}.${fileExtension}`
-    );
+    res.setHeader('Content-Length', fileContent.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
-    return res.send(fileContent);
-
+    return res.end(fileContent); 
   } catch (error) {
     console.error('Error al exportar contrato:', error);
 
@@ -366,11 +395,11 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res, next) => {
 
     return res.status(500).json({
       error: 'Error al generar el documento',
-      details:
-        process.env.NODE_ENV === 'development' ? error.message : undefined,
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
+
 
 
 /**

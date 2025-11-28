@@ -14,6 +14,7 @@ import {
     FiTrash2,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "motion/react";
+import LoadingState from "../../components/LoadingState";
 
 function timeAgo(date) {
     if (!date) return "";
@@ -169,11 +170,7 @@ export default function Notificaciones() {
 
     if (isLoading) {
         return (
-            <div className="p-6">
-                <p className="text-sm text-gray-400">
-                    Cargando notificaciones...
-                </p>
-            </div>
+                <LoadingState />
         );
     }
 

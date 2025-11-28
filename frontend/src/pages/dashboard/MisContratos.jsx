@@ -16,6 +16,7 @@ import {
     daysDiff,
 } from "../../utils/contratos";
 import { motion, AnimatePresence } from "motion/react";
+import { useAuth } from "../../context/AuthContext";
 import LoadingState from "../../components/LoadingState";
 
 const Panel = ({ className = "", ...props }) => (
@@ -111,6 +112,7 @@ const StatCard = ({ icon, label, value }) => (
 
 export default function MisContratos() {
     const toast = useToast();
+    const { user } = useAuth();
 
     const {
         data: contratos = [],
@@ -175,9 +177,23 @@ export default function MisContratos() {
                 contratoId,
                 format
             );
+
             const a = document.createElement("a");
             a.href = url;
-            a.download = filename || `contrato-${contratoId}.${format}`;
+
+            if (filename) {
+                a.download = filename;
+            } else {
+                const apellido = user?.apellido || "";
+                const nombre = user?.nombre || "";
+                const baseNombre = [apellido, nombre].filter(Boolean).join(" ").trim();
+                const ext = format === "word" ? "docx" : "pdf";
+
+                a.download = baseNombre
+                    ? `CONTRATO DE ${baseNombre}.${ext}`
+                    : `CONTRATO-${contratoId}.${ext}`;
+            }
+
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -188,6 +204,7 @@ export default function MisContratos() {
             toast.error("No se pudo exportar el contrato");
         }
     };
+
 
     return (
         <motion.div

@@ -56,7 +56,7 @@ export async function getAllContratos({ persona } = {}) {
 
   const query = `
     SELECT
-      c.id_contrato AS id_contrato_profesor, -- alias para no romper el front
+      c.id_contrato AS id_contrato_profesor,
       c.id_contrato,
       c.id_persona,
       c.id_periodo,
@@ -69,6 +69,7 @@ export async function getAllContratos({ persona } = {}) {
       c.external_id,
       p.nombre  AS persona_nombre,
       p.apellido AS persona_apellido,
+      p.sexo AS persona_sexo,
       per.descripcion AS nombre_periodo,
       per.descripcion AS periodo_descripcion,
       COALESCE(items.items, '[]') AS items
@@ -106,9 +107,9 @@ export async function getAllContratos({ persona } = {}) {
 }
 
 export async function getContratoById(idContrato) {
-  const qGeneral = `
+const qGeneral = `
     SELECT
-      c.id_contrato             AS id_contrato_profesor, -- alias para front / export
+      c.id_contrato             AS id_contrato_profesor,
       c.id_contrato,
       c.id_persona,
       c.id_periodo,
@@ -119,13 +120,48 @@ export async function getContratoById(idContrato) {
       c.monto_hora_promedio     AS monto_hora,
       c.total_importe_mensual,
       c.external_id,
-      p.nombre  AS persona_nombre,
+
+      p.nombre   AS persona_nombre,
       p.apellido AS persona_apellido,
+      p.sexo     AS persona_sexo,
+
+      pi.dni     AS persona_dni,
+      dom.dir_contrato AS persona_domicilio,
+      tit.nombre_titulo AS titulo_profesional,
+
       per.descripcion AS nombre_periodo,
       per.descripcion AS periodo_descripcion,
       COALESCE(items.items, '[]') AS items
     FROM contrato c
     JOIN personas p ON c.id_persona = p.id_persona
+    LEFT JOIN personas_identificacion pi ON pi.id_persona = p.id_persona
+
+    LEFT JOIN LATERAL (
+      SELECT
+        ('B° ' || db.barrio
+          || COALESCE(' Mz ' || db.manzana, '')
+          || COALESCE(' C '  || db.casa, '')
+          || COALESCE(' Dpto ' || db.departamento, '')
+          || COALESCE(' Piso ' || db.piso, '')
+        ) AS dir_contrato
+      FROM persona_domicilio pd
+      JOIN dom_barrio db ON db.id_dom_barrio = pd.id_dom_barrio
+      WHERE pd.id_persona = p.id_persona
+      ORDER BY pd.id_domicilio DESC
+      LIMIT 1
+    ) dom ON TRUE
+
+    LEFT JOIN LATERAL (
+      SELECT pt.nombre_titulo
+      FROM personas_titulos pt
+      WHERE pt.id_persona = p.id_persona
+      ORDER BY 
+        (pt.id_estado_verificacion = 2) DESC,
+        pt.verificado_en DESC NULLS LAST,
+        pt.fecha_emision DESC NULLS LAST
+      LIMIT 1
+    ) tit ON TRUE
+
     LEFT JOIN periodo per ON per.id_periodo = c.id_periodo
     LEFT JOIN LATERAL (
       SELECT json_agg(
@@ -161,12 +197,46 @@ export async function getContratoById(idContrato) {
       cp.external_id,
       p.nombre AS persona_nombre,
       p.apellido AS persona_apellido,
+      p.sexo AS persona_sexo,
+
+      pi.dni AS persona_dni,
+      dom.dir_contrato AS persona_domicilio,
+      tit.nombre_titulo AS titulo_profesional,
+
       COALESCE(mats.materias, '[]') AS materias,
       CONCAT_WS(' ', p.apellido, p.nombre) AS nombre_profesor,
       per.descripcion AS nombre_periodo,
       per.descripcion AS periodo_descripcion
     FROM contrato_profesor cp
     JOIN personas p ON cp.id_persona = p.id_persona
+    LEFT JOIN personas_identificacion pi ON pi.id_persona = p.id_persona
+
+    LEFT JOIN LATERAL (
+      SELECT
+        ('B° ' || db.barrio
+          || COALESCE(' Mz ' || db.manzana, '')
+          || COALESCE(' C '  || db.casa, '')
+          || COALESCE(' Dpto ' || db.departamento, '')
+          || COALESCE(' Piso ' || db.piso, '')
+        ) AS dir_contrato
+      FROM persona_domicilio pd
+      JOIN dom_barrio db ON db.id_dom_barrio = pd.id_dom_barrio
+      WHERE pd.id_persona = p.id_persona
+      ORDER BY pd.id_domicilio DESC
+      LIMIT 1
+    ) dom ON TRUE
+
+    LEFT JOIN LATERAL (
+      SELECT pt.nombre_titulo
+      FROM personas_titulos pt
+      WHERE pt.id_persona = p.id_persona
+      ORDER BY 
+        (pt.id_estado_verificacion = 2) DESC,
+        pt.verificado_en DESC NULLS LAST,
+        pt.fecha_emision DESC NULLS LAST
+      LIMIT 1
+    ) tit ON TRUE
+
     LEFT JOIN periodo per ON per.id_periodo = cp.id_periodo
     LEFT JOIN LATERAL (
       SELECT json_agg(
@@ -275,22 +345,22 @@ export async function createContrato(data) {
     }
 
     if (idMaterias.length) {
-      const { rows: aniosRows } = await client.query(
+      const { rows: carrerasRows } = await client.query(
         `
-        SELECT DISTINCT m.id_anio
-        FROM materia m
-        WHERE m.id_materia = ANY($1::uuid[])
-          AND m.id_anio IS NOT NULL
-        `,
+        SELECT DISTINCT mc.id_carrera
+        FROM materia_carrera mc
+        WHERE mc.id_materia = ANY($1::uuid[])
+      `,
         [idMaterias]
       );
 
-      if (aniosRows.length > 1) {
+      if (carrerasRows.length > 1) {
         throw new Error(
-          'Las materias seleccionadas pertenecen a distintos años académicos. Cree contratos separados por año.'
+          'Las materias seleccionadas pertenecen a distintas carreras. Cree contratos separados por carrera.'
         );
       }
     }
+
 
     const { rows: tarifasRows } = await client.query(
       `
@@ -635,6 +705,28 @@ export async function createContratoGeneral(data) {
       horas_semanales:
         it.horas_semanales !== undefined ? Number(it.horas_semanales) : null,
     }));
+
+    const materiasDocencia = items
+      .filter((it) => it.tipo_item === 'DOCENCIA')
+      .map((it) => it.id_materia)
+      .filter(Boolean);
+
+    if (materiasDocencia.length) {
+      const { rows: carrerasRows } = await client.query(
+        `
+        SELECT DISTINCT mc.id_carrera
+        FROM materia_carrera mc
+        WHERE mc.id_materia = ANY($1::uuid[])
+      `,
+        [materiasDocencia]
+      );
+
+      if (carrerasRows.length > 1) {
+        throw new Error(
+          'Las materias DOCENCIA pertenecen a distintas carreras. Cree un contrato separado por carrera.'
+        );
+      }
+    }
 
     for (const it of items) {
       if (!it.id_perfil) {

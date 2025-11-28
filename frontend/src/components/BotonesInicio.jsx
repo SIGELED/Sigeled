@@ -10,76 +10,62 @@ const BotonesInicio = () => {
   const isDashboard = location.pathname.startsWith("/dashboard");
   const isActive = user?.activo === true;
 
-  const displayName = user?.nombre || user?.nombre_completo || user?.email;
+  const displayName = user?.nombre || user?.email;
 
   return (
-    <div className="relative p-4">
-      <nav className="relative p-10 bg-[#020c14] text-white rounded-[100px] flex items-center justify-between">
-        
-        {!user && (
-          <div className="absolute flex space-x-4 transform -translate-x-1/2 left-1/2">
+    <div className="flex flex-col items-center w-full md:items-start">
+      
+      {!user && (
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <Link
+            to="/login"
+            className="inline-flex items-center justify-center px-8 py-4 rounded-full font-black text-xl leading-none bg-[#19F124] text-[#030C14] hover:bg-white hover:scale-105 transition-all duration-300"
+            onClick={() => setMenuOpen(false)}
+          >
+            Iniciar Sesión
+          </Link>
+
+          <Link
+            to="/register"
+            className="inline-flex items-center justify-center px-8 py-4 rounded-full font-black text-xl leading-none bg-transparent text-white border-2 border-white hover:bg-white hover:text-[#020c14] transition-all duration-300"
+            onClick={() => setMenuOpen(false)}
+          >
+            Registrarse
+          </Link>
+        </div>
+      )}
+
+      {user && isActive && (
+        <div className="flex flex-col items-center gap-4 md:items-start">
+          <span className="text-2xl text-center text-white/90 md:text-left">
+            Hola, <span className="font-bold text-[#19F124]">{displayName}</span>
+          </span>
+
+          {!isDashboard && (
             <Link
-              to="/login"
-              className="inline-flex items-center justify-center
-                h-16 px-10
-                rounded-full font-black
-                text-[2rem] leading-none whitespace-nowrap
-                bg-gray-50 text-[#020c14]
-                border-2 border-transparent
-                hover:bg-white transition"
-              onClick={() => setMenuOpen(false)}
+              to="/dashboard"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-xl bg-[#19F124] text-[#030C14] hover:bg-white transition-all duration-300"
             >
-              Iniciar Sesión
+              Ir al Dashboard
             </Link>
+          )}
+        </div>
+      )}
 
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center
-                h-16 px-10
-                rounded-full font-black
-                text-[2rem] leading-none whitespace-nowrap
-                bg-transparent text-white
-                border-2 border-white
-                hover:bg-white hover:text-[#020c14] transition"
-              onClick={() => setMenuOpen(false)}
-            >
-              Registrarse
-            </Link>
-          </div>
-        )}
+      {user && !isActive && (
+        <div className="flex flex-col items-center gap-4 md:items-start">
+          <span className="text-xl font-medium text-center text-yellow-400 md:text-left">
+            Tu cuenta está en revisión
+          </span>
 
-        {user && isActive && (
-          <div className="flex items-center justify-between w-full">
-            <span className="text-2xl">
-              Bienvenido de vuelta, <span className="font-bold">{displayName}</span>
-            </span>
-
-            {!isDashboard && (
-              <Link
-                to="/dashboard"
-                className="px-6 py-3 text-lg font-semibold transition  ml-3 bg-[#030C14] border text-[#19F124] border-[#19F124] rounded-full hover:bg-[#19F124] hover:text-[#030C14]"
-              >
-                Ir al Dashboard
-              </Link>
-            )}
-          </div>
-        )}
-
-        {user && !isActive && (
-          <div className="flex items-center justify-between w-full">
-            <span className="text-xl">
-              Tu cuenta está en revisión. Te avisaremos cuando esté activa.
-            </span>
-
-            <button
-              onClick={logout}
-              className="px-4 py-2 rounded-full border border-white hover:bg-white hover:text-[#020c14] transition"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        )}
-      </nav>
+          <button
+            onClick={logout}
+            className="px-6 py-3 font-semibold text-red-500 transition-all border border-red-500 rounded-full hover:bg-red-500 hover:text-white"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      )}
     </div>
   );
 };

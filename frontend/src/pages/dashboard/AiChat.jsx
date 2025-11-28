@@ -13,6 +13,7 @@ import {
     FiAlertCircle,
 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import RenameChatModal from "../../components/RenameModal.jsx";
 import { useToast } from "../../components/ToastProvider.jsx";
 import { useConfirm } from "../../components/ConfirmProvider.jsx";
@@ -353,7 +354,6 @@ export default function AiChat() {
     return (
         <motion.div
             className="flex flex-col h-screen pt-8 pb-6 overflow-hidden"
-            // 👇 Sacamos el desplazamiento en Y para evitar scroll al entrar
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.25 }}
@@ -375,7 +375,6 @@ export default function AiChat() {
                 }}
             />
 
-            {/* Header con selector de sesiones */}
             <div className="flex justify-center mb-6 shrink-0">
                 <div className="relative" ref={dropdownRef}>
                     <motion.button
@@ -490,7 +489,6 @@ export default function AiChat() {
                             >
                                 <div
                                     ref={messagesContainerRef}
-                                    // 👇 overflow-y-auto para que no fuerce scroll si no hace falta
                                     className="flex-1 pb-4 space-y-5 overflow-y-auto [scrollbar-gutter:stable]"
                                 >
                                     {displayMessages.map((m) => {
@@ -587,8 +585,145 @@ export default function AiChat() {
                                                             alt=""
                                                         />
                                                     </div>
-                                                    <div className="px-4 py-3 text-sm rounded-3xl bg-[#050f18] border border-slate-700 whitespace-pre-wrap">
-                                                        <ReactMarkdown>
+                                                    <div className="px-4 py-3 text-sm rounded-3xl bg-[#050f18] border border-slate-700">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[
+                                                                remarkGfm,
+                                                            ]}
+                                                            components={{
+                                                                p: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <p
+                                                                        className="mb-2 leading-relaxed text-slate-100"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                strong: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <strong
+                                                                        className="font-semibold text-slate-50"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                em: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <em
+                                                                        className="text-slate-200"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                ul: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <ul
+                                                                        className="pl-5 my-2 space-y-1 list-disc marker:text-slate-400"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                ol: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <ol
+                                                                        className="pl-5 my-2 space-y-1 list-decimal marker:text-slate-400"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                li: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <li
+                                                                        className="leading-relaxed"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                code: ({
+                                                                    inline,
+                                                                    className,
+                                                                    children,
+                                                                    ...props
+                                                                }) => {
+                                                                    if (inline) {
+                                                                        return (
+                                                                            <code
+                                                                                className="px-1.5 py-0.5 rounded bg-slate-900/80 text-[0.75rem] font-mono"
+                                                                                {...props}
+                                                                            >
+                                                                                {
+                                                                                    children
+                                                                                }
+                                                                            </code>
+                                                                        );
+                                                                    }
+                                                                    return (
+                                                                        <pre className="p-3 my-2 overflow-x-auto rounded-lg bg-slate-900/80 text-[0.75rem]">
+                                                                            <code
+                                                                                {...props}
+                                                                            >
+                                                                                {
+                                                                                    children
+                                                                                }
+                                                                            </code>
+                                                                        </pre>
+                                                                    );
+                                                                },
+                                                                table: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <div className="my-3 overflow-x-auto">
+                                                                        <table
+                                                                            className="w-full text-xs text-left border border-collapse border-slate-700/80"
+                                                                            {...props}
+                                                                        />
+                                                                    </div>
+                                                                ),
+                                                                thead: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <thead
+                                                                        className="bg-slate-900/60"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                th: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <th
+                                                                        className="px-3 py-2 font-semibold border border-slate-700"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                td: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <td
+                                                                        className="px-3 py-1 align-top border border-slate-800/80"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                                hr: ({
+                                                                    node,
+                                                                    ...props
+                                                                }) => (
+                                                                    <hr
+                                                                        className="my-3 border-slate-700/70"
+                                                                        {...props}
+                                                                    />
+                                                                ),
+                                                            }}
+                                                        >
                                                             {m.text}
                                                         </ReactMarkdown>
                                                     </div>
@@ -660,7 +795,6 @@ export default function AiChat() {
 
                 <div className="w-[95%] m-auto h-[0.1rem] rounded-full bg-white/10" />
 
-                {/* Input */}
                 <div className="w-full max-w-4xl mx-auto mt-4 shrink-0">
                     <motion.form
                         onSubmit={handleSend}

@@ -148,20 +148,52 @@ export const contratoService = {
   getTarifasByPersona(idPersona) {
     return api.get(`/contratos/tarifas/${idPersona}`)
   },
+  getPerfilTarifasConfig: () => api.get("/contratos/perfil-tarifas"),
+  updatePerfilTarifa: (id_tarifa, payload) => api.put(`/contratos/perfil-tarifas/${id_tarifa}`, payload),
 
   exportarContrato : async (id, format = 'pdf') => {
     const res = await api.get(`/contratos/${id}/export`, {
       params: { format },
       responseType: 'blob',
     });
+
     const blob = new Blob([res.data], {
       type: format === 'word'
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : 'application/pdf'
     });
+
     const url = URL.createObjectURL(blob);
-    return { url, filename: `contrato-${id}.${format === 'word' ? 'docx' : 'pdf'}` };
+
+      let filename;
+    const disposition =
+      res.headers['content-disposition'] ||
+      res.headers['Content-Disposition'];
+
+    if (disposition) {
+      let match = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1]);
+      } else {
+        match = disposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+    }
+
+    if (!filename) {
+      const ext =
+        format === 'word'
+          ? 'docx'
+          : 'pdf';
+
+      filename = `CONTRATO-${id}.${ext}`;
+    }
+
+    return { url, filename };
   },
+
 
   getCarreras:() => api.get('/contratos/carreras'),
   getPeriodos: () => api.get('/contratos/periodos'),
