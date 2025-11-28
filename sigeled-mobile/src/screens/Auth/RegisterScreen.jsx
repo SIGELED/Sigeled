@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import SigeledLogo from '../../components/SigeledLogo';
+import { registerFull } from '../../services/api';
 
 const RegisterScreen = ({ navigation }) => {
     const [nombre, setNombre] = useState('');
@@ -10,6 +11,11 @@ const RegisterScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [dni, setDni] = useState('');
+    const [cuil, setCuil] = useState('');
+    const [telefono, setTelefono] = useState('');
+    const [fechaNacimiento, setFechaNacimiento] = useState('');
+    const [sexo, setSexo] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +25,8 @@ const RegisterScreen = ({ navigation }) => {
         setError('');
 
         // Validaciones
-        if (!nombre.trim() || !apellido.trim() || !email.trim() || !password || !confirmPassword) {
+        if (!nombre.trim() || !apellido.trim() || !email.trim() || !password || !confirmPassword || 
+            !dni.trim() || !cuil.trim() || !telefono.trim() || !fechaNacimiento.trim() || !sexo.trim()) {
             setError('Todos los campos son obligatorios');
             return;
         }
@@ -29,8 +36,8 @@ const RegisterScreen = ({ navigation }) => {
             return;
         }
 
-        if (password.length < 6) {
-            setError('La contraseña debe tener al menos 6 caracteres');
+        if (password.length < 8) {
+            setError('La contraseña debe tener al menos 8 caracteres');
             return;
         }
 
@@ -40,25 +47,62 @@ const RegisterScreen = ({ navigation }) => {
             return;
         }
 
+        // Validar DNI (solo números, 7-8 dígitos)
+        if (!/^\d{7,8}$/.test(dni)) {
+            setError('DNI inválido (debe tener 7-8 dígitos)');
+            return;
+        }
+
+        // Validar CUIL (formato XX-XXXXXXXX-X)
+        if (!/^\d{2}-?\d{8}-?\d{1}$/.test(cuil.replace(/\s/g, ''))) {
+            setError('CUIL inválido (formato: XX-XXXXXXXX-X)');
+            return;
+        }
+
+        // Validar fecha de nacimiento (formato YYYY-MM-DD o DD/MM/YYYY)
+        let formattedDate = fechaNacimiento;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(fechaNacimiento)) {
+            // Convertir DD/MM/YYYY a YYYY-MM-DD
+            const [day, month, year] = fechaNacimiento.split('/');
+            formattedDate = `${year}-${month}-${day}`;
+        } else if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento)) {
+            setError('Fecha de nacimiento inválida (formato: DD/MM/YYYY o YYYY-MM-DD)');
+            return;
+        }
+
         setSubmitting(true);
 
         try {
-            // Aquí iría la llamada al API de registro cuando esté implementada
-            // await register({ nombre, apellido, email, password });
-            
+            console.log('[RegisterScreen] Enviando registro...');
+            const response = await registerFull({
+                email: email.trim().toLowerCase(),
+                password,
+                nombre: nombre.trim(),
+                apellido: apellido.trim(),
+                dni: dni.trim(),
+                cuil: cuil.trim().replace(/\s/g, ''),
+                telefono: telefono.trim(),
+                fecha_nacimiento: formattedDate,
+                sexo: sexo.trim()
+            });
+
+            console.log('[RegisterScreen] Registro exitoso:', response);
+
             Alert.alert(
-                'Registro no disponible',
-                'La funcionalidad de registro estará disponible próximamente. Por favor, contacta al administrador para crear tu cuenta.',
+                'Registro Exitoso',
+                'Tu cuenta ha sido creada. Ahora debes esperar a que un administrador la active para poder acceder.',
                 [
                     {
-                        text: 'Volver al Login',
+                        text: 'Ir al Login',
                         onPress: () => navigation.navigate('Login')
                     }
                 ]
             );
         } catch (err) {
             console.error('[RegisterScreen] error:', err);
-            setError(err.response?.data?.error || 'Error al crear la cuenta');
+            const errorMsg = err.response?.data?.message || err.message || 'Error al crear la cuenta';
+            setError(errorMsg);
+            Alert.alert('Error', errorMsg);
         } finally {
             setSubmitting(false);
         }
@@ -101,6 +145,90 @@ const RegisterScreen = ({ navigation }) => {
                             autoCapitalize="words"
                             autoComplete="name-family"
                         />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="DNI (sin puntos)"
+                            placeholderTextColor={colors.text.placeholder}
+                            value={dni}
+                            onChangeText={setDni}
+                            keyboardType="numeric"
+                            maxLength={8}
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="CUIL (XX-XXXXXXXX-X)"
+                            placeholderTextColor={colors.text.placeholder}
+                            value={cuil}
+                            onChangeText={setCuil}
+                            keyboardType="numeric"
+                            maxLength={13}
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Teléfono"
+                            placeholderTextColor={colors.text.placeholder}
+                            value={telefono}
+                            onChangeText={setTelefono}
+                            keyboardType="phone-pad"
+                            autoComplete="tel"
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Fecha de Nacimiento (DD/MM/AAAA)"
+                            placeholderTextColor={colors.text.placeholder}
+                            value={fechaNacimiento}
+                            onChangeText={setFechaNacimiento}
+                            keyboardType="numeric"
+                            maxLength={10}
+                        />
+
+                        <View style={styles.sexoContainer}>
+                            <TouchableOpacity
+                                style={[styles.sexoButton, sexo === 'M' && styles.sexoButtonSelected]}
+                                onPress={() => setSexo('M')}
+                            >
+                                <Ionicons 
+                                    name="male" 
+                                    size={24} 
+                                    color={sexo === 'M' ? colors.primary.main : colors.text.tertiary} 
+                                />
+                                <Text style={[styles.sexoText, sexo === 'M' && styles.sexoTextSelected]}>
+                                    Masculino
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.sexoButton, sexo === 'F' && styles.sexoButtonSelected]}
+                                onPress={() => setSexo('F')}
+                            >
+                                <Ionicons 
+                                    name="female" 
+                                    size={24} 
+                                    color={sexo === 'F' ? colors.primary.main : colors.text.tertiary} 
+                                />
+                                <Text style={[styles.sexoText, sexo === 'F' && styles.sexoTextSelected]}>
+                                    Femenino
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.sexoButton, sexo === 'X' && styles.sexoButtonSelected]}
+                                onPress={() => setSexo('X')}
+                            >
+                                <Ionicons 
+                                    name="transgender" 
+                                    size={24} 
+                                    color={sexo === 'X' ? colors.primary.main : colors.text.tertiary} 
+                                />
+                                <Text style={[styles.sexoText, sexo === 'X' && styles.sexoTextSelected]}>
+                                    Otro
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                         
                         <TextInput
                             style={styles.input}
@@ -252,6 +380,35 @@ const styles = StyleSheet.create({
         right: 16,
         top: 16,
         padding: 4,
+    },
+    sexoContainer: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 16,
+    },
+    sexoButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        height: 56,
+        backgroundColor: colors.background.input,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: colors.border.input,
+    },
+    sexoButtonSelected: {
+        borderColor: colors.primary.main,
+        backgroundColor: colors.primary.main + '15',
+    },
+    sexoText: {
+        fontSize: 14,
+        color: colors.text.tertiary,
+        fontWeight: '600',
+    },
+    sexoTextSelected: {
+        color: colors.primary.main,
     },
     button: {
         height: 56,

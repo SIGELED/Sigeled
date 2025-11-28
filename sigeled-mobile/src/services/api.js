@@ -131,6 +131,11 @@ export const register = async (userData) => {
   return response.data;
 };
 
+export const registerFull = async (userData) => {
+  const response = await api.post('/auth/register-full', userData);
+  return response.data;
+};
+
 
 // Funciones para manejar documentos
 export const getLegajo = async () => {
