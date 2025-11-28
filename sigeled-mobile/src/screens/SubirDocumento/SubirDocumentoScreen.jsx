@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, ActivityIndicator, Modal } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from '../../context/AuthContext';
 import { uploadFile, getTiposDocumento, vincularDocumento } from '../../services/api';
 import colors from '../../theme/colors';
@@ -16,22 +17,35 @@ const SubirDocumentoScreen = () => {
     const [tipoSeleccionado, setTipoSeleccionado] = useState(null);
     const [showTipoSelector, setShowTipoSelector] = useState(false);
     const [loadingTipos, setLoadingTipos] = useState(true);
+    const [showSourceSelector, setShowSourceSelector] = useState(false);
 
     useEffect(() => {
-        const fetchTipos = async () => {
-            try {
-                const tipos = await getTiposDocumento();
-                console.log('[SubirDocumento] Tipos disponibles:', tipos);
-                setTiposDocumento(tipos);
-            } catch (err) {
-                console.error('Error al cargar tipos de documento:', err);
-                Alert.alert('Error', 'No se pudieron cargar los tipos de documento');
-            } finally {
-                setLoadingTipos(false);
-            }
-        };
+        requestPermissions();
         fetchTipos();
     }, []);
+
+    const requestPermissions = async () => {
+        // Solicitar permisos para cámara y galería
+        const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+        const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        
+        if (cameraPermission.status !== 'granted' || mediaPermission.status !== 'granted') {
+            console.warn('[SubirDocumento] Permisos de cámara/galería no concedidos');
+        }
+    };
+
+    const fetchTipos = async () => {
+        try {
+            const tipos = await getTiposDocumento();
+            console.log('[SubirDocumento] Tipos disponibles:', tipos);
+            setTiposDocumento(tipos);
+        } catch (err) {
+            console.error('Error al cargar tipos de documento:', err);
+            Alert.alert('Error', 'No se pudieron cargar los tipos de documento');
+        } finally {
+            setLoadingTipos(false);
+        }
+    };
 
     const handleDocumentPick = async () => {
         try {
@@ -57,6 +71,66 @@ const SubirDocumentoScreen = () => {
         } catch (err) {
             console.error('Error al seleccionar documento:', err);
             Alert.alert('Error', 'No se pudo seleccionar el archivo');
+        }
+    };
+
+    const handleTakePhoto = async () => {
+        try {
+            setError('');
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.8,
+                aspect: [4, 3],
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const photo = result.assets[0];
+                
+                // Crear objeto similar al de DocumentPicker para compatibilidad
+                const file = {
+                    uri: photo.uri,
+                    name: `foto_${Date.now()}.jpg`,
+                    mimeType: 'image/jpeg',
+                    size: photo.fileSize || 0,
+                };
+
+                setDocument(file);
+                console.log('Foto capturada:', file);
+            }
+        } catch (err) {
+            console.error('Error al tomar foto:', err);
+            Alert.alert('Error', 'No se pudo tomar la foto');
+        }
+    };
+
+    const handlePickFromGallery = async () => {
+        try {
+            setError('');
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.8,
+                aspect: [4, 3],
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const photo = result.assets[0];
+                
+                // Crear objeto similar al de DocumentPicker para compatibilidad
+                const file = {
+                    uri: photo.uri,
+                    name: `imagen_${Date.now()}.jpg`,
+                    mimeType: 'image/jpeg',
+                    size: photo.fileSize || 0,
+                };
+
+                setDocument(file);
+                console.log('Imagen seleccionada:', file);
+            }
+        } catch (err) {
+            console.error('Error al seleccionar imagen:', err);
+            Alert.alert('Error', 'No se pudo seleccionar la imagen');
         }
     };
 
@@ -176,13 +250,75 @@ const SubirDocumentoScreen = () => {
                 {/* Botón de selección de archivo */}
                 <TouchableOpacity 
                     style={styles.selectButton}
-                    onPress={handleDocumentPick}
+                    onPress={() => setShowSourceSelector(true)}
                     disabled={uploading}
                 >
                     <Ionicons name="cloud-upload-outline" size={32} color={colors.primary.main} />
-                    <Text style={styles.selectButtonText}>Seleccionar Archivo</Text>
-                    <Text style={styles.selectButtonSubtext}>PDF o imagen (máx 10MB)</Text>
+                    <Text style={styles.selectButtonText}>Seleccionar o Capturar</Text>
+                    <Text style={styles.selectButtonSubtext}>Foto, galería o PDF (máx 10MB)</Text>
                 </TouchableOpacity>
+
+                {/* Modal selector de fuente */}
+                <Modal
+                    visible={showSourceSelector}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowSourceSelector(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>¿Cómo quieres agregar el documento?</Text>
+                                <TouchableOpacity onPress={() => setShowSourceSelector(false)}>
+                                    <Ionicons name="close" size={28} color={colors.text.primary} />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.sourceOptionsContainer}>
+                                <TouchableOpacity
+                                    style={styles.sourceOption}
+                                    onPress={() => {
+                                        setShowSourceSelector(false);
+                                        handleTakePhoto();
+                                    }}
+                                >
+                                    <View style={styles.sourceIconContainer}>
+                                        <Ionicons name="camera" size={32} color={colors.primary.main} />
+                                    </View>
+                                    <Text style={styles.sourceOptionTitle}>Tomar Foto</Text>
+                                    <Text style={styles.sourceOptionDesc}>Usar la cámara para capturar</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.sourceOption}
+                                    onPress={() => {
+                                        setShowSourceSelector(false);
+                                        handlePickFromGallery();
+                                    }}
+                                >
+                                    <View style={styles.sourceIconContainer}>
+                                        <Ionicons name="images" size={32} color={colors.primary.main} />
+                                    </View>
+                                    <Text style={styles.sourceOptionTitle}>Galería</Text>
+                                    <Text style={styles.sourceOptionDesc}>Seleccionar desde galería</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.sourceOption}
+                                    onPress={() => {
+                                        setShowSourceSelector(false);
+                                        handleDocumentPick();
+                                    }}
+                                >
+                                    <View style={styles.sourceIconContainer}>
+                                        <Ionicons name="document" size={32} color={colors.primary.main} />
+                                    </View>
+                                    <Text style={styles.sourceOptionTitle}>Archivos</Text>
+                                    <Text style={styles.sourceOptionDesc}>Buscar PDF u otros archivos</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
 
                 {/* Modal selector de tipos */}
                 <Modal
@@ -557,6 +693,39 @@ const styles = StyleSheet.create({
     tipoItemDesc: {
         fontSize: 14,
         color: colors.text.tertiary,
+    },
+    // Estilos para selector de fuente
+    sourceOptionsContainer: {
+        padding: 20,
+        gap: 16,
+    },
+    sourceOption: {
+        backgroundColor: colors.background.primary,
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.border.secondary,
+    },
+    sourceIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: colors.primary.main + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    sourceOptionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: colors.text.primary,
+        marginBottom: 6,
+    },
+    sourceOptionDesc: {
+        fontSize: 14,
+        color: colors.text.tertiary,
+        textAlign: 'center',
     },
 });
 
