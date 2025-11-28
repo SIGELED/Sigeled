@@ -37,6 +37,20 @@ const api = axios.create({
 // Interceptor para agregar el token a todas las peticiones
 api.interceptors.request.use(
   async (config) => {
+    // Rutas que no requieren token (autenticación)
+    const publicRoutes = ['/auth/login', '/auth/register', '/auth/register-full'];
+    const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
+    
+    // Si es una ruta pública, no verificar token
+    if (isPublicRoute) {
+      console.log('[API Request]', config.method?.toUpperCase(), config.url, {
+        hasAuth: false,
+        contentType: config.headers['Content-Type'],
+        isPublic: true
+      });
+      return config;
+    }
+    
     // Si ya hay un token en headers.common, asegurarse que se incluya
     const token = api.defaults.headers.common['Authorization'];
     

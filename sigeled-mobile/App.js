@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import LoadingIndicator from './src/components/LoadingIndicator';
+import NotificationManager from './src/components/NotificationManager';
 
 function RootNavigation() {
   const { loading } = useAuth();
@@ -11,6 +12,7 @@ function RootNavigation() {
   return (
     <NavigationContainer>
       <AppNavigator />
+      <NotificationManager />
     </NavigationContainer>
   );
 }

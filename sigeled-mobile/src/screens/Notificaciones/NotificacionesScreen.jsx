@@ -13,12 +13,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { getMisNotificaciones, marcarNotificacionLeida } from '../../services/api';
 import NotificationItem from '../../components/NotificationItem';
 import colors from '../../theme/colors';
+import { useAuth } from '../../context/AuthContext';
 
 const NotificacionesScreen = () => {
-  const [notificaciones, setNotificaciones] = useState([]);
+  const { notifications, setNotifications, unreadCount, setUnreadCount } = useAuth();
+  const [localNotifications, setLocalNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  // Sincronizar notificaciones del contexto con estado local
+  useEffect(() => {
+    if (notifications.length > 0) {
+      setLocalNotifications(notifications);
+    }
+  }, [notifications]);
 
   const fetchNotificaciones = async (isRefreshing = false) => {
     try {
@@ -29,7 +38,13 @@ const NotificacionesScreen = () => {
       const data = await getMisNotificaciones();
       
       console.log('[Notificaciones] Notificaciones obtenidas:', data.length);
-      setNotificaciones(Array.isArray(data) ? data : []);
+      const notifs = Array.isArray(data) ? data : [];
+      setLocalNotifications(notifs);
+      setNotifications(notifs);
+      
+      // Actualizar contador de no leídas
+      const noLeidas = notifs.filter(n => !n.leido).length;
+      setUnreadCount(noLeidas);
     } catch (err) {
       console.error('[Notificaciones] Error al obtener notificaciones:', err);
       setError(err.message || 'Error al cargar notificaciones');
@@ -74,20 +89,24 @@ const NotificacionesScreen = () => {
       await marcarNotificacionLeida(id_notificacion);
       
       // Actualizar localmente
-      setNotificaciones(prev =>
-        prev.map(notif =>
-          notif.id_notificacion === id_notificacion
-            ? { ...notif, leido: true, fecha_lectura: new Date().toISOString() }
-            : notif
-        )
+      const updatedNotifs = localNotifications.map(notif =>
+        notif.id_notificacion === id_notificacion
+          ? { ...notif, leido: true, fecha_lectura: new Date().toISOString() }
+          : notif
       );
+      setLocalNotifications(updatedNotifs);
+      setNotifications(updatedNotifs);
+      
+      // Actualizar contador
+      const noLeidas = updatedNotifs.filter(n => !n.leido).length;
+      setUnreadCount(noLeidas);
     } catch (err) {
       console.error('[Notificaciones] Error al marcar como leída:', err);
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    const noLeidas = notificaciones.filter(n => !n.leido && !n.fecha_lectura);
+    const noLeidas = localNotifications.filter(n => !n.leido && !n.fecha_lectura);
     
     if (noLeidas.length === 0) {
       Alert.alert('Info', 'No hay notificaciones sin leer');
@@ -126,9 +145,9 @@ const NotificacionesScreen = () => {
   };
 
   const renderHeader = () => {
-    if (notificaciones.length === 0) return null;
+    if (localNotifications.length === 0) return null;
 
-    const noLeidas = notificaciones.filter(n => !n.leido && !n.fecha_lectura).length;
+    const noLeidas = localNotifications.filter(n => !n.leido && !n.fecha_lectura).length;
 
     return (
       <View style={styles.headerContainer}>
@@ -166,7 +185,7 @@ const NotificacionesScreen = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={notificaciones}
+        data={localNotifications}
         keyExtractor={(item) => item.id_notificacion?.toString() || Math.random().toString()}
         renderItem={({ item }) => (
           <NotificationItem 
@@ -177,7 +196,7 @@ const NotificacionesScreen = () => {
         )}
         contentContainerStyle={[
           styles.listContainer,
-          notificaciones.length === 0 && styles.listContainerEmpty
+          localNotifications.length === 0 && styles.listContainerEmpty
         ]}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}

@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import api, { setAuthToken } from '../services/api';
 import storage from '../utils/storage';
 import { isTokenExpired } from '../utils/jwtHelper';
+import socketService from '../services/socketService';
 
 export const AuthContext = createContext();
 
@@ -9,6 +10,24 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Configurar listener de notificaciones en tiempo real
+    useEffect(() => {
+        const handleNewNotification = (notificacion) => {
+            console.log('[AuthContext] Nueva notificación recibida:', notificacion);
+            setNotifications((prev) => [notificacion, ...prev]);
+            if (!notificacion.leido) {
+                setUnreadCount((prev) => prev + 1);
+            }
+        };
+
+        socketService.on('nueva_notificacion', handleNewNotification);
+
+        return () => {
+            socketService.off('nueva_notificacion', handleNewNotification);
+        };
+    }, []);
 
     useEffect(() => {
         const restore = async () => {
@@ -29,6 +48,8 @@ export const AuthProvider = ({ children }) => {
                         setAuthToken(token);
                         try {
                             setUser(JSON.parse(storedUser));
+                            // Conectar socket después de restaurar sesión
+                            socketService.connect(token);
                         } catch (e) {
                             console.warn('[AuthContext] storedUser JSON parse error', e);
                             // Si hay error parseando, limpiar todo
@@ -73,6 +94,12 @@ export const AuthProvider = ({ children }) => {
     const login = async (credentials) => {
         setLoading(true);
         try {
+            // Limpiar cualquier token antiguo antes de intentar login
+            await storage.deleteItem('userToken');
+            await storage.deleteItem('user');
+            setAuthToken(null);
+            console.log('[AuthContext] cleaned old session before login');
+            
             const response = await api.post('/auth/login', credentials);
             console.log('[AuthContext] login response:', response.data);
             const { token, user } = response.data;
@@ -89,6 +116,9 @@ export const AuthProvider = ({ children }) => {
                 await storage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 console.log('[AuthContext] saved user to storage');
+                
+                // Conectar socket después de login exitoso
+                socketService.connect(token);
             } else {
                 console.warn('[AuthContext] login response user is undefined');
             }
@@ -105,9 +135,14 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         setLoading(true);
         try {
+            // Desconectar socket antes de limpiar sesión
+            socketService.disconnect();
+            
             // Limpiar solo el almacenamiento local
             // No es necesario llamar al backend con JWT
             setUser(null);
+            setNotifications([]);
+            setUnreadCount(0);
             await storage.deleteItem('userToken');
             await storage.deleteItem('user');
             setAuthToken(null);
@@ -121,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, notifications }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, notifications, unreadCount, setNotifications, setUnreadCount }}>
             {children}
         </AuthContext.Provider>
     );
