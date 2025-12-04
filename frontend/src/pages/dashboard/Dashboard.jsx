@@ -12,6 +12,9 @@ import Notificaciones from './Notificaciones';
 import ContratoNuevo from './ContratoNuevo';
 import AiChat from './AiChat';
 import MiPerfil from './MiPerfil';
+import Profesor from './Profesor';
+import Cargos from './Cargos';
+import MisMateriasYCargos from './MisMateriasYCargos';
 import { Routes, Route } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -29,6 +32,9 @@ const Dashboard = () => {
               <Route path = "mis-contratos" element={<MisContratos />}/>
               <Route path="notificaciones" element={<Notificaciones />}/>
               <Route path="mi-perfil" element={<MiPerfil />}/>
+              <Route path="mis-materias" element={<Profesor />} />
+              <Route path="mis-cargos" element={<Cargos />} />
+              <Route path="mis-materias-cargos" element={<MisMateriasYCargos />} />
 
               <Route element={<RequireRoles anyOf={["ADMIN", "RRHH", "RECURSOS HUMANOS", "ADMINISTRADOR"]}/>}>
                 <Route path = "usuarios" element={<UsuariosSection user={user} />}/>

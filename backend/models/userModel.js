@@ -37,6 +37,6 @@ export const getAllUsers = async () => {
 };
 
 export const getUsuarioIdPorPersonaId = async (id_persona) => {
-    const res = await db.query('SELECT id_usuario FROM usuarios WHERE id_persona = $1 LIMIT 1', [id_persona]);
+    const res = await db.query('SELECT id_usuario, email FROM usuarios WHERE id_persona = $1 LIMIT 1', [id_persona]);
     return res.rows[0];
 }

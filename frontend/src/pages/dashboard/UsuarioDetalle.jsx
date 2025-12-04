@@ -839,7 +839,6 @@ export default function UsuarioDetalle() {
                 </motion.div>
             )}
 
-            {/* Modal Asignar Perfiles */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <motion.div

@@ -36,7 +36,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const onNewNotification = (notificacion) => {
-      console.log('[Socket.IO] Nueva notificación recibida:', notificacion);
       setNotifications((prev) => [notificacion, ...prev]);
     };
 

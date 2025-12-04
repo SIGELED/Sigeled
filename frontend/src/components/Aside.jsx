@@ -9,6 +9,7 @@ import {
     FiFileText,
     FiChevronsLeft,
     FiChevronsRight,
+    FiBookOpen
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
@@ -60,6 +61,30 @@ export default function Aside() {
                     .map((perfil) => perfilNames[perfil?.nombre] || perfil?.nombre)
                     .join(" • ")
             : "Sin perfil asignado";
+    
+    const perfiles = Array.isArray(user?.perfiles) ? user.perfiles : [];
+
+    const tienePerfilProfesor = perfiles.some(
+        (p) => p?.nombre === "Profesor"
+    );
+    const tienePerfilesNoProfesor = perfiles.some(
+        (p) => p?.nombre && p.nombre !== "Profesor"
+    );
+
+    let asignacionesRoute = null;
+    let asignacionesLabel = null;
+
+    if (tienePerfilProfesor && tienePerfilesNoProfesor) {
+        asignacionesRoute = "/dashboard/mis-materias-cargos";
+        asignacionesLabel = "Mis Materias y Cargos";
+    } else if (tienePerfilProfesor) {
+        asignacionesRoute = "/dashboard/mis-materias";
+        asignacionesLabel = "Mis Materias";
+    } else if (tienePerfilesNoProfesor) {
+        asignacionesRoute = "/dashboard/mis-cargos";
+        asignacionesLabel = "Mis Cargos";
+    }
+
 
     const getActiveSection = () => {
         const path = location.pathname;
@@ -70,6 +95,15 @@ export default function Aside() {
         if (path.startsWith("/dashboard/mis-contratos")) return "mis-contratos";
         if (path.startsWith("/dashboard/contratos")) return "contratos";
         if (path.startsWith("/dashboard/usuarios")) return "usuarios";
+
+        if (
+            path.startsWith("/dashboard/mis-materias") ||
+            path.startsWith("/dashboard/mis-cargos") ||
+            path.startsWith("/dashboard/mis-materias-cargos")
+        ) {
+            return "asignaciones";
+        }
+
         if (path === "/dashboard" || path === "/dashboard/") return "dashboard";
 
         return "dashboard";
@@ -187,7 +221,6 @@ export default function Aside() {
                     collapsed ? "items-center gap-4" : "px-2 space-y-2"
                 }`}
             >
-                {/* Dashboard */}
                 <motion.div
                     whileHover={{ x: 3 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -211,7 +244,6 @@ export default function Aside() {
                     </BotonAside>
                 </motion.div>
 
-                {/* Mi Legajo */}
                 <motion.div
                     whileHover={{ x: 3 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -235,7 +267,6 @@ export default function Aside() {
                     </BotonAside>
                 </motion.div>
 
-                {/* Mis Contratos */}
                 <motion.div
                     whileHover={{ x: 3 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -258,6 +289,32 @@ export default function Aside() {
                         )}
                     </BotonAside>
                 </motion.div>
+
+                {asignacionesRoute && (
+                    <motion.div
+                        whileHover={{ x: 3 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                        className="w-full"
+                    >
+                        <BotonAside
+                            onClick={() => navigate(asignacionesRoute)}
+                            activo={activeSection === "asignaciones"}
+                            collapsed={collapsed}
+                        >
+                            <FiBookOpen size={24} className="shrink-0 currentColor" />
+                            {!collapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0, x: -6 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    {asignacionesLabel}
+                                </motion.span>
+                            )}
+                        </BotonAside>
+                    </motion.div>
+                )}
+
 
                 {isAdmin && (
                     <motion.div

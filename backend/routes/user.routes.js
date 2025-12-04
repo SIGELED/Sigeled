@@ -12,7 +12,6 @@ import { validarCrearUsuario, validarActualizarUsuario } from '../validators/use
 
 const userRouter = express.Router();
 
-// Todas las rutas requieren autenticación
 userRouter.use(verificarToken);
 
 userRouter.get('/:id_usuario', permitirRoles('ADMIN', 'RRHH'), getUserByIdController)

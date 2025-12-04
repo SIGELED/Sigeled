@@ -17,6 +17,7 @@ import * as perfilTarifaModel from "../models/perfilTarifaModel.js"
 import { notifyAdminsRRHH, notifyUser } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getPersonaById } from '../models/personaModel.js';
+import { sendContratoAsignadoEmail } from '../utils/email.js';
 
 function parseMaterias(body) {
   const arr = Array.isArray(body.id_materias)
@@ -33,14 +34,14 @@ export async function listarTarifasPorPersona(req, res) {
     const { idPersona } = req.params;
     const filas = await getTarifasByPersona(idPersona);
 
-    res.json({
-      perfiles: filas.map((f) => ({
+    res.json(
+      filas.map((f) => ({
         id_perfil: f.id_perfil,
-        nombre: f.perfil_nombre,
-        codigo: f.perfil_codigo,
+        perfil_nombre: f.perfil_nombre,
+        perfil_codigo: f.perfil_codigo,
         tarifas: f.tarifas || [],
-      })),
-    });
+      }))
+    );
   } catch (error) {
     console.error('Error en listarTarifasPorPersona:', error);
     res.status(500).json({
@@ -342,6 +343,13 @@ export async function crearNuevoContratoProfesor(req, res) {
       const etiquetaMaterias =
         materias.length === 1 ? '1 materia' : `${materias.length} materias`;
 
+        let contratoCompleto = contrato;
+        try {
+          contratoCompleto = await getContratoById(contrato.id_contrato_profesor)
+        } catch (error) {
+          console.warn('No se pudo obtener el contrato completo para el email:', error.message);
+        }
+
       if (userRow?.id_usuario) {
         await notifyUser(userRow.id_usuario, {
           tipo: 'CONTRATO_ASIGNADO',
@@ -353,6 +361,14 @@ export async function crearNuevoContratoProfesor(req, res) {
             fecha_fin: contrato.fecha_fin,
           },
         });
+      }
+
+      if(userRow?.email){
+        await sendContratoAsignadoEmail({
+          to: userRow.email,
+          nombre: persona?.nombre || "Profesor",
+          contrato: contratoCompleto,
+        })
       }
 
       await notifyAdminsRRHH({
@@ -465,6 +481,13 @@ export async function crearContratoGeneralHandler(req, res) {
       const userRow = await getUsuarioIdPorPersonaId(contrato.id_persona);
       const etiqueta = `${contrato.horas_semanales || 0} h/sem, $${contrato.total_importe_mensual || 0} /mes`;
 
+      let contratoCompleto = contrato;
+      try {
+        contratoCompleto = await getContratoById(contrato.id_contrato);
+      } catch (error) {
+        console.warn('No se pudo obtener el contrato completo (general) para el email:', error.message);
+      }
+
       if (userRow?.id_usuario) {
         await notifyUser(userRow.id_usuario, {
           tipo: 'CONTRATO_ASIGNADO',
@@ -476,6 +499,14 @@ export async function crearContratoGeneralHandler(req, res) {
             fecha_fin: contrato.fecha_fin,
           },
         });
+      }
+
+      if (userRow?.email){
+        await sendContratoAsignadoEmail({
+          to: userRow.email,
+          nombre: persona?.nombre || 'Empleado',
+          contrato: contratoCompleto,
+        })
       }
 
       await notifyAdminsRRHH({

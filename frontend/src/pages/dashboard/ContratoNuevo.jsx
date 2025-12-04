@@ -83,34 +83,51 @@ export default function ContratoNuevo() {
         }
     };
 
-    const { data: tarifasPerfiles } = useQuery({
+    const {
+        data: perfilesTarifas = [],
+    } = useQuery({
         queryKey: ["tarifas-contrato", idPersona],
         enabled: !!idPersona,
         queryFn: async () => {
-            const { data } = await contratoService.getTarifasByPersona(
-                idPersona
-            );
-            return data ?? null;
+            const { data } = await contratoService.getTarifasByPersona(idPersona);
+            return Array.isArray(data) ? data : [];
         },
     });
 
-    const perfiles = tarifasPerfiles?.perfiles || [];
+    const normalizeTarifas = (raw) => {
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === "string") {
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    };
+
+    const perfiles = perfilesTarifas.map((p) => ({
+        ...p,
+        tarifas: normalizeTarifas(p.tarifas),
+    }));
 
     const perfilProfesor = perfiles.find(
-        (p) => p.codigo === "PROF" || p.nombre === "Profesor"
+        (p) => p.perfil_codigo === "PROF" || p.perfil_nombre === "Profesor"
     );
     const perfilCoordinador = perfiles.find(
-        (p) => p.codigo === "COOR" || p.nombre === "Coordinador"
+        (p) => p.perfil_codigo === "COOR" || p.perfil_nombre === "Coordinador"
     );
     const perfilInvestigador = perfiles.find(
-        (p) => p.codigo === "INVEST" || p.nombre === "Investigador"
+        (p) => p.perfil_codigo === "INVEST" || p.perfil_nombre === "Investigador"
     );
     const perfilAdmin = perfiles.find(
-        (p) => p.codigo === "ADMITVO" || p.nombre === "Administrativo"
+        (p) => p.perfil_codigo === "ADMITVO" || p.perfil_nombre === "Administrativo"
     );
     const perfilRRHH = perfiles.find(
-        (p) => p.codigo === "RRHH" || p.nombre === "Recursos Humanos"
+        (p) => p.perfil_codigo === "RRHH" || p.perfil_nombre === "Recursos Humanos"
     );
+
 
     const tarifasProfesor = perfilProfesor?.tarifas || [];
     const tarifasCoordinador = perfilCoordinador?.tarifas || [];
@@ -118,7 +135,7 @@ export default function ContratoNuevo() {
     const tarifasAdmin = perfilAdmin?.tarifas || [];
     const tarifasRRHH = perfilRRHH?.tarifas || [];
 
-    const perfilesNoProfesor = perfiles.filter((p) => p.codigo !== "PROF");
+    const perfilesNoProfesor = perfiles.filter((p) => p.perfil_codigo !== "PROF");
     const mostrarSeccionDocencia = !!perfilProfesor;
     const mostrarActividadesAdicionales = perfilesNoProfesor.length > 0;
 
@@ -162,13 +179,13 @@ export default function ContratoNuevo() {
         const unico = perfilesNoProfesor[0];
 
         const tipoPorDefecto =
-            unico.codigo === "COOR"
+            unico.perfil_codigo === "COOR"
                 ? "COORDINACION"
-                : unico.codigo === "INVEST"
+                : unico.perfil_codigo === "INVEST"
                 ? "INVESTIGACION"
-                : unico.codigo === "ADMITVO"
+                : unico.perfil_codigo === "ADMITVO"
                 ? "ADMINISTRATIVO"
-                : unico.codigo === "RRHH"
+                : unico.perfil_codigo === "RRHH"
                 ? "RRHH"
                 : "";
 
@@ -924,27 +941,16 @@ export default function ContratoNuevo() {
                                                                     e.target
                                                                         .value;
                                                                 const perfilSel =
-                                                                    perfiles.find(
-                                                                        (p) =>
-                                                                            String(
-                                                                                p.id_perfil
-                                                                            ) ===
-                                                                            String(
-                                                                                id_perfil
-                                                                            )
-                                                                    );
+                                                                    perfiles.find((p) => String(p.id_perfil) === String(id_perfil));
+
                                                                 const tipoPorDefecto =
-                                                                    perfilSel?.codigo ===
-                                                                    "COOR"
+                                                                    perfilSel?.perfil_codigo === "COOR"
                                                                         ? "COORDINACION"
-                                                                        : perfilSel?.codigo ===
-                                                                            "INVEST"
+                                                                        : perfilSel?.perfil_codigo === "INVEST"
                                                                         ? "INVESTIGACION"
-                                                                        : perfilSel?.codigo ===
-                                                                            "ADMITVO"
+                                                                        : perfilSel?.perfil_codigo === "ADMITVO"
                                                                         ? "ADMINISTRATIVO"
-                                                                        : perfilSel?.codigo ===
-                                                                            "RRHH"
+                                                                        : perfilSel?.perfil_codigo === "RRHH"
                                                                         ? "RRHH"
                                                                         : "";
 
@@ -973,26 +979,11 @@ export default function ContratoNuevo() {
                                                             <option value="">
                                                                 Seleccionar…
                                                             </option>
-                                                            {perfilesNoProfesor.map(
-                                                                (p) => (
-                                                                    <option
-                                                                        key={
-                                                                            p.id_perfil
-                                                                        }
-                                                                        value={
-                                                                            p.id_perfil
-                                                                        }
-                                                                    >
-                                                                        {p.perfil_nombre ||
-                                                                            p.nombre}{" "}
-                                                                        (
-                                                                        {
-                                                                            p.codigo
-                                                                        }
-                                                                        )
-                                                                    </option>
-                                                                )
-                                                            )}
+                                                            {perfilesNoProfesor.map((p) => (
+                                                                <option key={p.id_perfil} value={p.id_perfil}>
+                                                                        {p.perfil_nombre || "Perfil sin nombre"} ({p.perfil_codigo})
+                                                                </option>
+                                                            ))}
                                                         </select>
                                                     </div>
 
@@ -1073,17 +1064,13 @@ export default function ContratoNuevo() {
                                                                             )
                                                                     );
                                                                 const tarifas =
-                                                                    perfilSel?.codigo ===
-                                                                    "COOR"
+                                                                    perfilSel?.perfil_codigo === "COOR"
                                                                         ? tarifasCoordinador
-                                                                        : perfilSel?.codigo ===
-                                                                            "INVEST"
+                                                                        : perfilSel?.perfil_codigo === "INVEST"
                                                                         ? tarifasInvestigador
-                                                                        : perfilSel?.codigo ===
-                                                                            "ADMITVO"
+                                                                        : perfilSel?.perfil_codigo === "ADMITVO"
                                                                         ? tarifasAdmin
-                                                                        : perfilSel?.codigo ===
-                                                                            "RRHH"
+                                                                        : perfilSel?.perfil_codigo === "RRHH"
                                                                         ? tarifasRRHH
                                                                         : [];
 
@@ -1151,10 +1138,8 @@ export default function ContratoNuevo() {
                                                         );
 
                                                         const esCoordinador =
-                                                            perfilSel?.codigo === "COOR" ||
-                                                            /coordinador/i.test(
-                                                                perfilSel?.perfil_nombre || perfilSel?.nombre || ""
-                                                            );
+                                                            perfilSel?.perfil_codigo === "COOR" ||
+                                                            /coordinador/i.test(perfilSel?.perfil_nombre || "");
 
                                                         if (esCoordinador) {
                                                             return (

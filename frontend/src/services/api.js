@@ -193,8 +193,6 @@ export const contratoService = {
 
     return { url, filename };
   },
-
-
   getCarreras:() => api.get('/contratos/carreras'),
   getPeriodos: () => api.get('/contratos/periodos'),
   createGeneral: (payload) => api.post("/contratos/general/crear", payload),

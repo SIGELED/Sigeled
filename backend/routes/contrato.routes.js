@@ -27,8 +27,6 @@ const contratoRouter = express.Router();
 
 contratoRouter.use(verificarToken);
 
-contratoRouter.get('/tarifas/:idPersona', soloAdministrador, listarTarifasPorPersona);
-
 contratoRouter.post('/general/crear', verificarToken, soloAdministrador, createContratoGeneralValidators, handleValidation, crearContratoGeneralHandler);
 
 contratoRouter.get('/periodos', verificarToken, soloAdministrador, listarPeriodos);
@@ -56,6 +54,35 @@ contratoRouter.get("/perfil-tarifas", soloAdministrador, listarPerfilTarifas);
 contratoRouter.put("/perfil-tarifas/:id_tarifa", soloAdministrador, actualizarPerfilTarifa);
 
 contratoRouter.get('/mis-contratos', listarMisContratos);
+
+function puedeVerDetallesProfesor(req, res, next) {
+  const { idPersona } = req.params;
+  const user = req.user;
+
+  if (!user) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  const roles = Array.isArray(user.roles) ? user.roles: [];
+  const esAdmin = roles.some((r) => {
+    const code = String(
+      typeof r === 'string' ? r : r?.codigo ?? r?.nombre ?? ''
+    ).toUpperCase();
+    return code === 'ADMIN' || code === 'RRHH';
+  })
+
+  if(esAdmin) {
+    return next();
+  }
+
+  if(String(user.id_persona) === String(idPersona)){
+    return next();
+  }
+
+  return res.status(403).json({ error: "Acceso denegado" });
+}
+
+contratoRouter.get('/tarifas/:idPersona', puedeVerDetallesProfesor, listarTarifasPorPersona);
 
 /**
  * @swagger
@@ -132,7 +159,7 @@ contratoRouter.get('/external/:external_id', soloAdministrador, obtenerContratoP
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/profesor/:idPersona/detalles', soloAdministrador, obtenerDetallesProfesor);
+contratoRouter.get('/profesor/:idPersona/detalles', puedeVerDetallesProfesor, obtenerDetallesProfesor);
 
 /**
  * @swagger

@@ -1,15 +1,26 @@
-import db from "./db.js"
+import db from "./db.js";
 
-export async function getEmpleados({ q = '', perfil = ['Profesor', 'Coordinador', 'Administrativo', 'Recursos Humanos', 'Investigador'], limit = 20, offset = 0 }) {
+export async function getEmpleados({
+  q = "",
+  perfil = [
+    "Profesor",
+    "Coordinador",
+    "Administrativo",
+    "Recursos Humanos",
+    "Investigador",
+  ],
+  limit = 20,
+  offset = 0,
+}) {
   let perfilesArray = Array.isArray(perfil)
     ? perfil
     : String(perfil)
-        .split(',')
+        .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
 
   if (!perfilesArray.length) {
-    perfilesArray = ['Profesor', 'Coordinador'];
+    perfilesArray = ["Profesor", "Coordinador"];
   }
 
   const sql = `
@@ -48,7 +59,7 @@ export async function getEmpleados({ q = '', perfil = ['Profesor', 'Coordinador'
 
 export async function getAllContratos({ persona } = {}) {
   const params = [];
-  let where = '';
+  let where = "";
   if (persona) {
     params.push(persona);
     where = `WHERE c.id_persona = $${params.length}`;
@@ -107,7 +118,7 @@ export async function getAllContratos({ persona } = {}) {
 }
 
 export async function getContratoById(idContrato) {
-const qGeneral = `
+  const qGeneral = `
     SELECT
       c.id_contrato             AS id_contrato_profesor,
       c.id_contrato,
@@ -259,7 +270,6 @@ const qGeneral = `
   return rows[0] || null;
 }
 
-
 export async function getContratoByExternalId(externalId) {
   const q = `
     SELECT
@@ -297,16 +307,16 @@ export async function getContratoByExternalId(externalId) {
 export async function createContrato(data) {
   const client = await db.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     let id_profesor = data.id_profesor;
     if (!id_profesor) {
       const { rows: profRows } = await client.query(
-        'SELECT id_profesor FROM profesor WHERE id_persona = $1 LIMIT 1',
+        "SELECT id_profesor FROM profesor WHERE id_persona = $1 LIMIT 1",
         [data.id_persona]
       );
       if (!profRows.length) {
-        throw new Error('La persona no tiene registro de profesor');
+        throw new Error("La persona no tiene registro de profesor");
       }
       id_profesor = profRows[0].id_profesor;
     }
@@ -316,12 +326,12 @@ export async function createContrato(data) {
     let idMaterias = Array.isArray(data.id_materias) ? data.id_materias : [];
     if (!idMaterias.length && data.id_materia) idMaterias = [data.id_materia];
 
-    const isUUID = (s) => typeof s === 'string' && /^[0-9a-fA-F-]{36}$/.test(s);
+    const isUUID = (s) => typeof s === "string" && /^[0-9a-fA-F-]{36}$/.test(s);
 
     if (!items || !items.length) {
       idMaterias = idMaterias.filter(isUUID);
       if (!idMaterias.length) {
-        throw new Error('Debe indicar al menos una materia (UUID)');
+        throw new Error("Debe indicar al menos una materia (UUID)");
       }
 
       items = idMaterias.map((id_materia) => ({
@@ -335,11 +345,13 @@ export async function createContrato(data) {
           id_materia: it.id_materia,
           cargo: it.cargo || null,
           horas_semanales:
-            it.horas_semanales !== undefined ? Number(it.horas_semanales) : null,
+            it.horas_semanales !== undefined
+              ? Number(it.horas_semanales)
+              : null,
         }))
         .filter((it) => isUUID(it.id_materia));
       if (!items.length) {
-        throw new Error('Debe indicar al menos una materia válida en items');
+        throw new Error("Debe indicar al menos una materia válida en items");
       }
       idMaterias = items.map((it) => it.id_materia);
     }
@@ -356,11 +368,10 @@ export async function createContrato(data) {
 
       if (carrerasRows.length > 1) {
         throw new Error(
-          'Las materias seleccionadas pertenecen a distintas carreras. Cree contratos separados por carrera.'
+          "Las materias seleccionadas pertenecen a distintas carreras. Cree contratos separados por carrera."
         );
       }
     }
-
 
     const { rows: tarifasRows } = await client.query(
       `
@@ -378,7 +389,7 @@ export async function createContrato(data) {
 
     if (!tarifasRows.length) {
       throw new Error(
-        'No hay tarifas configuradas para los perfiles vigentes de la persona'
+        "No hay tarifas configuradas para los perfiles vigentes de la persona"
       );
     }
 
@@ -388,7 +399,7 @@ export async function createContrato(data) {
 
     items = items.map((it) => {
       if (!it.cargo) {
-        throw new Error('Debe indicar el cargo para cada materia');
+        throw new Error("Debe indicar el cargo para cada materia");
       }
       const montoTarifa = tarifaPorCargo.get(it.cargo);
       if (!montoTarifa) {
@@ -442,7 +453,7 @@ export async function createContrato(data) {
     ]);
     if (overlapRows.length > 0) {
       throw new Error(
-        'Solapamiento detectado: el profesor ya tiene un contrato en ese rango de fechas'
+        "Solapamiento detectado: el profesor ya tiene un contrato en ese rango de fechas"
       );
     }
 
@@ -490,11 +501,11 @@ export async function createContrato(data) {
     );
     await Promise.all(inserts);
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     return contrato;
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Error en createContrato:', err);
+    await client.query("ROLLBACK");
+    console.error("Error en createContrato:", err);
     throw err;
   } finally {
     client.release();
@@ -504,10 +515,10 @@ export async function createContrato(data) {
 export async function deleteContrato(idContrato) {
   const client = await db.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const { rows: generalRows } = await client.query(
-      'SELECT * FROM contrato WHERE id_contrato = $1',
+      "SELECT * FROM contrato WHERE id_contrato = $1",
       [idContrato]
     );
 
@@ -516,51 +527,46 @@ export async function deleteContrato(idContrato) {
     if (generalRows.length) {
       contrato = generalRows[0];
 
-      // Borrar items hijos
-      await client.query(
-        'DELETE FROM contrato_item WHERE id_contrato = $1',
-        [idContrato]
-      );
+      await client.query("DELETE FROM contrato_item WHERE id_contrato = $1", [
+        idContrato,
+      ]);
 
-      // Borrar contrato
-      await client.query(
-        'DELETE FROM contrato WHERE id_contrato = $1',
-        [idContrato]
-      );
+      await client.query("DELETE FROM contrato WHERE id_contrato = $1", [
+        idContrato,
+      ]);
     } else {
       const { rows: profRows } = await client.query(
-        'SELECT * FROM contrato_profesor WHERE id_contrato_profesor = $1',
+        "SELECT * FROM contrato_profesor WHERE id_contrato_profesor = $1",
         [idContrato]
       );
 
       if (!profRows.length) {
-        throw new Error('Contrato no encontrado');
+        throw new Error("Contrato no encontrado");
       }
 
       contrato = profRows[0];
 
       await client.query(
-        'DELETE FROM contrato_profesor_materia WHERE id_contrato_profesor = $1',
+        "DELETE FROM contrato_profesor_materia WHERE id_contrato_profesor = $1",
         [idContrato]
       );
 
       await client.query(
-        'DELETE FROM contrato_profesor WHERE id_contrato_profesor = $1',
+        "DELETE FROM contrato_profesor WHERE id_contrato_profesor = $1",
         [idContrato]
       );
     }
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     return contrato;
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error en deleteContrato:', error);
+    await client.query("ROLLBACK");
+    console.error("Error en deleteContrato:", error);
     throw error;
   } finally {
     client.release();
   }
 }
-
 
 export async function getPersonaByDni(dni) {
   try {
@@ -573,7 +579,7 @@ export async function getPersonaByDni(dni) {
     const { rows } = await db.query(query, [dni]);
     return rows[0] || null;
   } catch (error) {
-    console.error('Error en getPersonaByDni:', error);
+    console.error("Error en getPersonaByDni:", error);
     throw error;
   }
 }
@@ -582,33 +588,107 @@ export async function getProfesorDetalles(idPersona) {
   try {
     const query = `
       SELECT 
-      p.*,
-      prof.id_profesor AS id_profesor,
-      cg.cargo_descripcion,
-      COALESCE(
-        json_agg(DISTINCT jsonb_build_object(
-          'id_materia', m.id_materia,
-          'descripcion_materia', m.descripcion_materia,
-          'carrera', cr.carrera_descripcion,
-          'anio', a.descripcion
-        )) FILTER (WHERE m.id_materia IS NOT NULL),
-        '[]'
-      ) AS materias
+        p.*,
+        prof.id_profesor AS id_profesor,
+        cg.cargo_descripcion,
+        COALESCE(mats.materias, '[]') AS materias
       FROM profesor prof
       JOIN personas p                 ON p.id_persona = prof.id_persona
       LEFT JOIN cargo_materia cm      ON cm.id_cargo_materia = prof.id_cargo_materia
       LEFT JOIN cargo_profesor cg     ON cg.id_cargo_profesor = cm.id_cargo_profesor
-      LEFT JOIN materia_carrera mc    ON mc.id_materia_carrera = cm.id_materia_carrera
-      LEFT JOIN materia m             ON m.id_materia = mc.id_materia
-      LEFT JOIN carrera cr            ON cr.id_carrera = mc.id_carrera
-      LEFT JOIN anio a                ON a.id_anio = m.id_anio
+      LEFT JOIN LATERAL (
+        WITH materias_contrato AS (
+          SELECT DISTINCT ON (x.id_contrato, x.id_materia)
+            x.id_contrato,
+            x.tipo_contrato,
+            x.id_materia,
+            x.codigo_cargo,
+            x.horas_semanales,
+            x.monto_hora,
+            x.subtotal_mensual,
+            x.periodo_descripcion,
+            x.id_periodo,
+            x.fecha_inicio,
+            x.fecha_fin,
+            m.descripcion_materia,
+            cr.carrera_descripcion AS carrera,
+            a.descripcion AS anio
+          FROM (
+            SELECT
+              c.id_contrato,
+              'GENERAL'::text AS tipo_contrato,
+              ci.id_materia,
+              ci.codigo_cargo,
+              ci.horas_semanales,
+              ci.monto_hora,
+              ci.subtotal_mensual,
+              per.descripcion AS periodo_descripcion,
+              c.id_periodo,
+              c.fecha_inicio,
+              c.fecha_fin
+            FROM contrato c
+            JOIN contrato_item ci ON ci.id_contrato = c.id_contrato
+            LEFT JOIN periodo per ON per.id_periodo = c.id_periodo
+            WHERE c.id_persona = prof.id_persona
+              AND ci.tipo_item = 'DOCENCIA'
+              AND CURRENT_DATE BETWEEN c.fecha_inicio::date
+                                  AND COALESCE(c.fecha_fin::date, 'infinity'::date)
+
+            UNION ALL
+
+            SELECT
+              cp.id_contrato_profesor AS id_contrato,
+              'PROFESOR'::text AS tipo_contrato,
+              cpm.id_materia,
+              cpm.cargo           AS codigo_cargo,
+              cpm.horas_semanales,
+              cpm.monto_hora,
+              (cpm.horas_semanales * 4 * cpm.monto_hora)::numeric AS subtotal_mensual,
+              per.descripcion AS periodo_descripcion,
+              cp.id_periodo,
+              cp.fecha_inicio,
+              cp.fecha_fin
+            FROM contrato_profesor cp
+            JOIN contrato_profesor_materia cpm 
+              ON cpm.id_contrato_profesor = cp.id_contrato_profesor
+            LEFT JOIN periodo per ON per.id_periodo = cp.id_periodo
+            WHERE cp.id_persona = prof.id_persona
+              AND CURRENT_DATE BETWEEN cp.fecha_inicio::date
+                                  AND COALESCE(cp.fecha_fin::date, 'infinity'::date)
+          ) x
+          JOIN materia m           ON m.id_materia = x.id_materia
+          LEFT JOIN materia_carrera mc ON mc.id_materia = m.id_materia
+          LEFT JOIN carrera cr     ON cr.id_carrera = mc.id_carrera
+          LEFT JOIN anio a         ON a.id_anio = m.id_anio
+          ORDER BY x.id_contrato, x.id_materia, cr.carrera_descripcion
+        )
+        SELECT json_agg(
+                json_build_object(
+                  'id_materia',          id_materia,
+                  'descripcion_materia', descripcion_materia,
+                  'carrera',             carrera,
+                  'anio',                anio,
+                  'id_contrato',         id_contrato,
+                  'tipo_contrato',       tipo_contrato,
+                  'codigo_cargo',        codigo_cargo,
+                  'horas_semanales',     horas_semanales,
+                  'monto_hora',          monto_hora,
+                  'subtotal_mensual',    subtotal_mensual,
+                  'periodo',             periodo_descripcion,
+                  'id_periodo',          id_periodo,
+                  'fecha_inicio',        fecha_inicio,
+                  'fecha_fin',           fecha_fin
+                )
+                ORDER BY descripcion_materia
+              ) AS materias
+        FROM materias_contrato
+      ) mats ON TRUE
       WHERE prof.id_persona = $1
-      GROUP BY p.id_persona, prof.id_profesor, cg.id_cargo_profesor
     `;
     const { rows } = await db.query(query, [idPersona]);
     return rows[0] || null;
   } catch (error) {
-    console.error('Error en getProfesorDetalles:', error);
+    console.error("Error en getProfesorDetalles:", error);
     throw error;
   }
 }
@@ -629,19 +709,21 @@ export async function getMateriasByCarreraAnio(idCarrera, idAnio) {
     const { rows } = await db.query(query, [idCarrera, idAnio]);
     return rows;
   } catch (error) {
-    console.error('Error en getMateriasByCarreraAnio:', error);
+    console.error("Error en getMateriasByCarreraAnio:", error);
     throw error;
   }
 }
 
 export async function getAnios() {
-  const { rows } = await db.query('SELECT id_anio, descripcion FROM anio ORDER BY descripcion');
-  return rows
+  const { rows } = await db.query(
+    "SELECT id_anio, descripcion FROM anio ORDER BY descripcion"
+  );
+  return rows;
 }
 
 export async function getPeriodos() {
   const { rows } = await db.query(
-    'SELECT id_periodo, descripcion FROM periodo ORDER BY id_periodo'
+    "SELECT id_periodo, descripcion FROM periodo ORDER BY id_periodo"
   );
   return rows;
 }
@@ -670,7 +752,7 @@ export async function getTarifasByPersona(idPersona) {
           )
           ORDER BY t.codigo_cargo
         ) FILTER (WHERE t.id_tarifa IS NOT NULL),
-        '[]'
+        '[]'::json
       ) AS tarifas
     FROM perfiles_persona p
     LEFT JOIN perfil_tarifa t 
@@ -686,44 +768,50 @@ export async function getTarifasByPersona(idPersona) {
 export async function createContratoGeneral(data) {
   const client = await db.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const { id_persona, id_periodo, fecha_inicio, fecha_fin } = data;
 
     let items = Array.isArray(data.items) ? data.items : [];
     if (!items.length) {
-      throw new Error('Debe indicar al menos un ítem de contrato');
+      throw new Error("Debe indicar al menos un ítem de contrato");
     }
 
     items = items.map((it, idx) => ({
       idx,
       id_perfil: Number(it.id_perfil),
-      tipo_item: String(it.tipo_item || '').toUpperCase(),
+      tipo_item: String(it.tipo_item || "").toUpperCase(),
       id_materia: it.id_materia || null,
       descripcion_actividad: it.descripcion_actividad || null,
-      codigo_cargo: (it.codigo_cargo || it.cargo || '').toUpperCase(),
+      codigo_cargo: (it.codigo_cargo || it.cargo || "").toUpperCase(),
       horas_semanales:
         it.horas_semanales !== undefined ? Number(it.horas_semanales) : null,
     }));
 
     const materiasDocencia = items
-      .filter((it) => it.tipo_item === 'DOCENCIA')
+      .filter((it) => it.tipo_item === "DOCENCIA")
       .map((it) => it.id_materia)
       .filter(Boolean);
 
     if (materiasDocencia.length) {
-      const { rows: carrerasRows } = await client.query(
+      const { rows: carrerasCompatibles } = await client.query(
         `
-        SELECT DISTINCT mc.id_carrera
-        FROM materia_carrera mc
-        WHERE mc.id_materia = ANY($1::uuid[])
-      `,
-        [materiasDocencia]
+        WITH mc AS (
+          SELECT DISTINCT id_materia, id_carrera
+          FROM materia_carrera
+          WHERE id_materia = ANY($1::uuid[])
+        )
+        SELECT id_carrera
+        FROM mc
+        GROUP BY id_carrera
+        HAVING COUNT(DISTINCT id_materia) = $2
+        `,
+        [materiasDocencia, materiasDocencia.length]
       );
 
-      if (carrerasRows.length > 1) {
+      if (!carrerasCompatibles.length) {
         throw new Error(
-          'Las materias DOCENCIA pertenecen a distintas carreras. Cree un contrato separado por carrera.'
+          "Las materias DOCENCIA no comparten una misma carrera. Cree un contrato separado por carrera."
         );
       }
     }
@@ -736,16 +824,12 @@ export async function createContratoGeneral(data) {
         throw new Error(`items[${it.idx}].tipo_item es requerido`);
       }
       if (!it.codigo_cargo) {
-        throw new Error(
-          `items[${it.idx}].codigo_cargo (o cargo) es requerido`
-        );
+        throw new Error(`items[${it.idx}].codigo_cargo (o cargo) es requerido`);
       }
       if (!it.horas_semanales || it.horas_semanales <= 0) {
-        throw new Error(
-          `items[${it.idx}].horas_semanales debe ser > 0`
-        );
+        throw new Error(`items[${it.idx}].horas_semanales debe ser > 0`);
       }
-      const isDocencia = it.tipo_item === 'DOCENCIA';
+      const isDocencia = it.tipo_item === "DOCENCIA";
       if (isDocencia && !it.id_materia) {
         throw new Error(
           `items[${it.idx}].id_materia es requerido para tipo_item=DOCENCIA`
@@ -758,7 +842,9 @@ export async function createContratoGeneral(data) {
       }
     }
 
-    const perfilesIds = [...new Set(items.map((i) => i.id_perfil).filter(Boolean))];
+    const perfilesIds = [
+      ...new Set(items.map((i) => i.id_perfil).filter(Boolean)),
+    ];
 
     const { rows: perfilesRows } = await client.query(
       `
@@ -775,7 +861,7 @@ export async function createContratoGeneral(data) {
     const faltantes = perfilesIds.filter((id) => !perfilesValidos.has(id));
     if (faltantes.length) {
       throw new Error(
-        `La persona no tiene asignados los perfiles: ${faltantes.join(', ')}`
+        `La persona no tiene asignados los perfiles: ${faltantes.join(", ")}`
       );
     }
 
@@ -798,20 +884,24 @@ export async function createContratoGeneral(data) {
 
     if (!tarifasRows.length) {
       throw new Error(
-        'No hay tarifas configuradas para los perfiles vigentes de la persona'
+        "No hay tarifas configuradas para los perfiles vigentes de la persona"
       );
     }
 
     const keyTarifa = (r) =>
-      `${r.id_perfil}__${String(r.codigo_cargo).toUpperCase()}__${r.aplica_materias ? 'M' : 'A'}`;
+      `${r.id_perfil}__${String(r.codigo_cargo).toUpperCase()}__${
+        r.aplica_materias ? "M" : "A"
+      }`;
 
     const tarifaMap = new Map(
       tarifasRows.map((r) => [keyTarifa(r), Number(r.monto_hora)])
     );
 
     items = items.map((it) => {
-      const isDocencia = it.tipo_item === 'DOCENCIA';
-      const clave = `${it.id_perfil}__${it.codigo_cargo}__${isDocencia ? 'M' : 'A'}`;
+      const isDocencia = it.tipo_item === "DOCENCIA";
+      const clave = `${it.id_perfil}__${it.codigo_cargo}__${
+        isDocencia ? "M" : "A"
+      }`;
       const tarifa = tarifaMap.get(clave);
 
       if (!tarifa) {
@@ -840,9 +930,7 @@ export async function createContratoGeneral(data) {
       0
     );
     const montoHoraPromedio =
-      totalHorasSem > 0
-        ? totalImporteMensual / horasMensuales
-        : null;
+      totalHorasSem > 0 ? totalImporteMensual / horasMensuales : null;
 
     const { rows: overlap } = await client.query(
       `
@@ -858,7 +946,7 @@ export async function createContratoGeneral(data) {
 
     if (overlap.length) {
       throw new Error(
-        'Solapamiento detectado: la persona ya tiene un contrato en ese rango de fechas'
+        "Solapamiento detectado: la persona ya tiene un contrato en ese rango de fechas"
       );
     }
 
@@ -912,17 +1000,15 @@ export async function createContratoGeneral(data) {
       ]);
     }
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     return { ...contrato, items };
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Error en createContratoGeneral:', err);
+    await client.query("ROLLBACK");
+    console.error("Error en createContratoGeneral:", err);
     throw err;
   } finally {
     client.release();
   }
 }
-
-
 
 export const crearContratoProfesor = createContrato;
