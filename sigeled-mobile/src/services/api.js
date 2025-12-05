@@ -149,20 +149,11 @@ export const uploadDocument = async (formData) => {
 };
 
 // Nueva función para subir archivos con progreso
-export const uploadFile = async (file, id_persona, onProgress) => {
-  const formData = new FormData();
-  
-  // En React Native, FormData necesita el archivo en un formato específico
-  formData.append('archivo', {
-    uri: file.uri,
-    type: file.mimeType || 'application/octet-stream',
-    name: file.name,
-  });
-
-  console.log('[uploadFile] Subiendo archivo:', file.name, 'para persona:', id_persona);
+export const uploadFile = async (formData, onProgress) => {
+  console.log('[uploadFile] Subiendo archivo');
   console.log('[uploadFile] Headers actuales:', api.defaults.headers.common);
 
-  const response = await api.post(`/persona/${id_persona}/archivo`, formData, {
+  const response = await api.post('/archivos/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
       // Asegurar que el token se incluya explícitamente
@@ -212,12 +203,8 @@ export const getTiposDocumento = async () => {
   return response.data;
 };
 
-export const vincularDocumento = async (id_persona, id_tipo_doc, id_archivo) => {
-  const response = await api.post('/persona-doc', {
-    id_persona,
-    id_tipo_doc,
-    id_archivo
-  });
+export const vincularDocumento = async (data) => {
+  const response = await api.post('/persona-doc', data);
   return response.data;
 };
 
@@ -253,6 +240,49 @@ export const getMisNotificaciones = async () => {
 // Marcar notificación como leída
 export const marcarNotificacionLeida = async (id_notificacion) => {
   const response = await api.patch(`/notificaciones/${id_notificacion}/leido`);
+  return response.data;
+};
+
+// === DOMICILIOS ===
+export const createDomicilio = async (id_persona, domicilioData) => {
+  const response = await api.post(`/persona/${id_persona}/domicilio`, domicilioData);
+  return response.data;
+};
+
+export const getLocalidades = async () => {
+  const response = await api.get('/domicilio/localidades');
+  return response.data;
+};
+
+export const getBarriosByLocalidad = async (id_localidad) => {
+  const response = await api.get(`/domicilio/localidades/${id_localidad}/barrios`);
+  return response.data;
+};
+
+export const createBarrio = async (id_localidad, barrioData) => {
+  const response = await api.post(`/domicilio/localidades/${id_localidad}/barrios`, barrioData);
+  return response.data;
+};
+
+export const assignBarrioToPersona = async (id_persona, id_barrio) => {
+  const response = await api.post(`/persona/${id_persona}/barrio`, { id_dom_barrio: id_barrio });
+  return response.data;
+};
+
+// === TÍTULOS ===
+export const getTiposTitulo = async () => {
+  const response = await api.get('/persona-titu/tipos-titulo');
+  return response.data;
+};
+
+export const createTitulo = async (tituloData) => {
+  const response = await api.post('/persona-titu', tituloData);
+  return response.data;
+};
+
+// === LEGAJO ===
+export const recalcularLegajo = async (id_persona) => {
+  const response = await api.post(`/legajo/${id_persona}/recalcular`);
   return response.data;
 };
 

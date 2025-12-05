@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
 import SigeledLogo from '../../components/SigeledLogo';
-import { registerFull } from '../../services/api';
+import { registerFull, setAuthToken } from '../../services/api';
+import storage from '../../utils/storage';
 
 const RegisterScreen = ({ navigation }) => {
     const [nombre, setNombre] = useState('');
@@ -88,13 +89,28 @@ const RegisterScreen = ({ navigation }) => {
 
             console.log('[RegisterScreen] Registro exitoso:', response);
 
+            // Guardar token y usuario
+            if (response.token) {
+                await storage.setItem('userToken', response.token);
+                await storage.setItem('user', JSON.stringify(response.user));
+                setAuthToken(response.token);
+                console.log('[RegisterScreen] Token guardado');
+            }
+
+            // Extraer id_persona de la respuesta
+            const id_persona = response.user?.id_persona || response.id_persona;
+
+            if (!id_persona) {
+                throw new Error('No se pudo obtener el ID de persona');
+            }
+
             Alert.alert(
                 'Registro Exitoso',
-                'Tu cuenta ha sido creada. Ahora debes esperar a que un administrador la active para poder acceder.',
+                'Tu cuenta ha sido creada. Ahora completa tus datos personales.',
                 [
                     {
-                        text: 'Ir al Login',
-                        onPress: () => navigation.navigate('Login')
+                        text: 'Continuar',
+                        onPress: () => navigation.navigate('CompletarRegistro', { id_persona })
                     }
                 ]
             );
