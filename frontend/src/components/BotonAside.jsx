@@ -20,7 +20,7 @@ export default function BotonAside({
         }
     } else if (collapsed) {
         className =
-        "flex items-center justify-center transition-colors duration-200 rounded-full w-11 h-11";
+        "flex items-center justify-center m-auto transition-colors duration-200 rounded-full w-9 h-9";
 
         if (activo) {
         className +=
@@ -36,10 +36,10 @@ export default function BotonAside({
         `;
 
         if (activo) {
-        className += "text-[#19F124] font-black bg-[#21303f]";
+            className += "text-[#19F124] font-black bg-[#21303f]";
         } else {
-        className +=
-            "text-white font-medium hover:bg-[#13293c] hover:text-[#19F124] hover:cursor-pointer";
+            className +=
+                "text-white font-medium hover:bg-[#13293c] hover:text-[#19F124] hover:cursor-pointer";
         }
     }
 

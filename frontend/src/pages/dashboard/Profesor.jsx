@@ -95,7 +95,7 @@ export default function Profesor() {
             transition={{ duration: 0.25 }}
         >
             <h1 className="text-4xl font-medium">
-            Mis <span className="text-[#19F124] font-black">Materias</span>
+            Mis <span className="font-black">Materias</span>
             </h1>
 
             {detalles && (
@@ -203,110 +203,110 @@ export default function Profesor() {
                         whileHover={{ y: -2, scale: 1.01 }}
                     >
                         <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#212e3a] border border-[#283746] rounded-xl">
-                            <FiBook className="text-[#19F124]" size={24} />
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#212e3a] border border-[#283746] rounded-xl">
+                                    <FiBook className="text-[#19F124]" size={24} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-bg opacity-70">Materia</span>
+                                    <span className="text-xl text-white">
+                                        {m.descripcion_materia || "Materia sin nombre"}
+                                    </span>
+                                    {m.carrera && (
+                                        <span className="text-bg text-[#9fb2c1] mt-0.5">
+                                        Carrera: {m.carrera}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                            <span className="text-sm opacity-70">Materia</span>
-                            <span className="text-base text-white">
-                                {m.descripcion_materia || "Materia sin nombre"}
-                            </span>
-                            {m.carrera && (
-                                <span className="text-xs text-[#9fb2c1] mt-0.5">
-                                Carrera: {m.carrera}
+
+                            {m.anio && (
+                                <span className="px-4 w-40 text-center justify-center py-1 text-bg rounded-full bg-[#142033] text-[#9fb2c1] flex items-center gap-1">
+                                    <FiLayers size={14} />
+                                    {m.anio}
                                 </span>
                             )}
                             </div>
-                        </div>
 
-                        {m.anio && (
-                            <span className="px-4 w-40 m-auto text-center justify-center py-1 text-xs rounded-full bg-[#142033] text-[#9fb2c1] flex items-center gap-1">
-                            <FiLayers size={12} />
-                            {m.anio}
-                            </span>
-                        )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2 text-xs text-[#9fb2c1]">
-                        {m.codigo_cargo && (
-                            <div className="flex items-center gap-2">
-                            <FiLayers size={12} />
-                            <span>
-                                Cargo en esta materia:{" "}
-                                <span className="text-white">
-                                {cargoNormalizado(m.codigo_cargo)}
+                            <div className="grid grid-cols-1 gap-2 text-bg text-[#9fb2c1]">
+                            {m.codigo_cargo && (
+                                <div className="flex items-center gap-2">
+                                <FiLayers size={16} />
+                                <span>
+                                    Cargo en esta materia:{" "}
+                                    <span className="text-white">
+                                    {cargoNormalizado(m.codigo_cargo)}
+                                    </span>
                                 </span>
-                            </span>
-                            </div>
-                        )}
+                                </div>
+                            )}
 
-                        {horasSem != null && (
-                            <div className="flex items-center gap-2">
-                            <FiClock size={12} />
-                            <span>
-                                Horas semanales:{" "}
-                                <span className="text-white">{horasSem}</span>
-                            </span>
-                            </div>
-                        )}
-
-                        {horasMensuales != null && (
-                            <div className="flex items-center gap-2">
-                            <FiClock size={12} />
-                            <span>
-                                Horas mensuales:{" "}
-                                <span className="text-white">{horasMensuales}</span>
-                            </span>
-                            </div>
-                        )}
-
-                        {montoHora != null && (
-                            <div className="flex items-center gap-2">
-                            <FiDollarSign size={12} />
-                            <span>
-                                Monto por hora:{" "}
-                                <span className="text-[#19F124]">
-                                $ {montoHora.toFixed(2)}
+                            {horasSem != null && (
+                                <div className="flex items-center gap-2">
+                                <FiClock size={16} />
+                                <span>
+                                    Horas semanales:{" "}
+                                    <span className="text-white">{horasSem}</span>
                                 </span>
-                            </span>
-                            </div>
-                        )}
+                                </div>
+                            )}
 
-                        {subtotalMensual != null && (
-                            <div className="flex items-center gap-2">
-                            <FiDollarSign size={12} />
-                            <span>
-                                Subtotal mensual (horas_mensuales × monto_hora):{" "}
-                                <span className="text-[#19F124] font-bold">
-                                $ {subtotalMensual.toFixed(2)}
+                            {horasMensuales != null && (
+                                <div className="flex items-center gap-2">
+                                <FiClock size={16} />
+                                <span>
+                                    Horas mensuales:{" "}
+                                    <span className="text-white">{horasMensuales}</span>
                                 </span>
-                            </span>
-                            </div>
-                        )}
+                                </div>
+                            )}
 
-                        {getPeriodo(m) && (
-                            <div className="flex items-center gap-2">
-                            <FiTarget size={12} />
-                            <span>
-                                Período:{" "}
-                                <span className="text-white">{getPeriodo(m)}</span>
-                            </span>
-                            </div>
-                        )}
-
-                        {(fechaInicio || fechaFin) && (
-                            <div className="flex items-center gap-2">
-                            <FiCalendar size={12} />
-                            <span>
-                                Vigencia:{" "}
-                                <span className="text-white">
-                                {fechaInicio || "¿sin inicio?"} {"  →  "}
-                                {fechaFin || "¿sin fin?"}
+                            {montoHora != null && (
+                                <div className="flex items-center gap-2">
+                                <FiDollarSign size={16} />
+                                <span>
+                                    Monto por hora:{" "}
+                                    <span className="text-[#19F124]">
+                                    $ {montoHora.toFixed(2)}
+                                    </span>
                                 </span>
-                            </span>
-                            </div>
-                        )}
+                                </div>
+                            )}
+
+                            {subtotalMensual != null && (
+                                <div className="flex items-center gap-2">
+                                <FiDollarSign size={16} />
+                                <span>
+                                    Subtotal mensual (horas_mensuales × monto_hora):{" "}
+                                    <span className="text-[#19F124] font-bold">
+                                    $ {subtotalMensual.toFixed(2)}
+                                    </span>
+                                </span>
+                                </div>
+                            )}
+
+                            {getPeriodo(m) && (
+                                <div className="flex items-center gap-2">
+                                <FiTarget size={16} />
+                                <span>
+                                    Período:{" "}
+                                    <span className="text-white">{getPeriodo(m)}</span>
+                                </span>
+                                </div>
+                            )}
+
+                            {(fechaInicio || fechaFin) && (
+                                <div className="flex items-center gap-2">
+                                <FiCalendar size={16} />
+                                <span>
+                                    Vigencia:{" "}
+                                    <span className="text-white">
+                                    {fechaInicio || "¿sin inicio?"} {"  →  "}
+                                    {fechaFin || "¿sin fin?"}
+                                    </span>
+                                </span>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                     );

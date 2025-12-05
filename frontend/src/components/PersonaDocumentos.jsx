@@ -61,6 +61,7 @@ export default function PersonaDocumentos({
     });
     const [showNew, setShowNew] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [savingEstado, setSavingEstado] = useState(false);
 
     const [loadingPreview, setLoadingPreview] = useState(false);
 
@@ -76,6 +77,8 @@ export default function PersonaDocumentos({
     const confirm = useConfirm();
 
     const [preview, setPreview] = useState({ open: false, url: "", title: "" });
+
+    const showOverlay = loadingPreview || saving || archivoSubiendo || savingEstado;
 
     const recalcularLegajo = async () => {
         if (!idPersona) return;
@@ -181,6 +184,9 @@ export default function PersonaDocumentos({
         onError: (error) => {
             console.error("Error al cambiar estado:", error);
             toast.error("No se pudo cambiar el estado");
+        },
+        onSettled: () => {
+            setSavingEstado(false);
         },
     });
 
@@ -322,8 +328,12 @@ export default function PersonaDocumentos({
             id_estado_verificacion,
             observacion: verificacion.obs.trim() || null,
         };
+
+        setSavingEstado(true);
+
         changeStateMutation.mutate({ docId: verificacion.doc.id_persona_doc, payload });
     };
+
 
     const renderPanel = () => (
         <motion.div
@@ -707,11 +717,7 @@ export default function PersonaDocumentos({
                                             disabled={saving || archivoSubiendo}
                                             className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
                                         >
-                                            {archivoSubiendo
-                                                ? "Subiendo archivo..."
-                                                : saving
-                                                ? "Guardando..."
-                                                : "Guardar"}
+                                            {saving || archivoSubiendo ? "Guardando..." : "Guardar"}
                                         </button>
                                     </div>
                                 </form>
@@ -781,8 +787,9 @@ export default function PersonaDocumentos({
                     }
                 }}
             />
+
             <AnimatePresence>
-                {loadingPreview && (
+                {showOverlay && (
                     <motion.div
                         className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
                         initial={{ opacity: 0 }}

@@ -71,6 +71,7 @@ export default function PersonaTitulos({
     const toast = useToast();
     const confirm = useConfirm();
     const [loadingPreview, setLoadingPreview] = useState(false);
+    const [savingEstado, setSavingEstado] = useState(false); 
 
     const queryClient = useQueryClient();
 
@@ -106,6 +107,7 @@ export default function PersonaTitulos({
     const [reqDelTit, setReqDelTit] = useState({ open: false, target: null });
 
     const [preview, setPreview] = useState({ open: false, url: "", title: "" });
+    const showOverlay = loadingPreview || saving || savingEstado;
 
     const {
         data: titulos = [],
@@ -183,18 +185,21 @@ export default function PersonaTitulos({
 
     const changeStateMutation = useMutation({
         mutationFn: ({ tituloId, payload }) =>
-        tituloService.cambiarEstado(tituloId, payload),
+            tituloService.cambiarEstado(tituloId, payload),
         onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["titulos", idPersona] });
-        queryClient.invalidateQueries({ queryKey: ["adminStats"] });
-        queryClient.invalidateQueries({ queryKey: ["documentosPendientes"] });
-        recalcularLegajo();
-        closeCambiarEstado();
-        toast.success("Estado cambiado con éxito");
+            queryClient.invalidateQueries({ queryKey: ["titulos", idPersona] });
+            queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+            queryClient.invalidateQueries({ queryKey: ["documentosPendientes"] });
+            recalcularLegajo();
+            closeCambiarEstado();
+            toast.success("Estado cambiado con éxito");
         },
         onError: (error) => {
-        console.error("Error al cambiar estado:", error);
-        toast.error("No se pudo cambiar el estado");
+            console.error("Error al cambiar estado:", error);
+            toast.error("No se pudo cambiar el estado");
+        },
+        onSettled: () => {
+            setSavingEstado(false);
         },
     });
 
@@ -223,20 +228,24 @@ export default function PersonaTitulos({
         const id_estado_verificacion = Number(verificacion.estado);
 
         if (requiereObs(id_estado_verificacion) && !verificacion.obs.trim()) {
-        toast.warning(
-            "Debés indicar una observación para Rechazado/Observado"
-        );
-        return;
+            toast.warning(
+                "Debés indicar una observación para Rechazado/Observado"
+            );
+            return;
         }
         const payload = {
-        id_estado_verificacion,
-        observacion: verificacion.obs.trim() || null,
+            id_estado_verificacion,
+            observacion: verificacion.obs.trim() || null,
         };
+
+        setSavingEstado(true); 
+
         changeStateMutation.mutate({
-        tituloId: verificacion.titulo.id_titulo,
-        payload,
+            tituloId: verificacion.titulo.id_titulo,
+            payload,
         });
     };
+
 
     const openPreview = async (doc) => {
         if (!doc.id_archivo) return;
@@ -496,7 +505,6 @@ export default function PersonaTitulos({
             />
         )}
 
-        {/* MODAL CAMBIAR ESTADO CON ANIMACIONES */}
         <AnimatePresence>
             {canChangeState && verificacion.open && (
             <motion.div
@@ -612,7 +620,6 @@ export default function PersonaTitulos({
             )}
         </AnimatePresence>
 
-        {/* MODAL NUEVO TÍTULO CON ANIMACIONES */}
         <AnimatePresence>
             {showNew && (
             <motion.div
@@ -753,11 +760,11 @@ export default function PersonaTitulos({
                         Cancelar
                         </button>
                         <button
-                        type="submit"
-                        disabled={saving}
-                        className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
+                            type="submit"
+                            disabled={saving}
+                            className="cursor-pointer px-4 py-2 rounded-xl font-bold bg-[#19F124] text-[#101922] disabled:opacity-50"
                         >
-                        {saving ? "Guardando..." : "Guardar"}
+                            {saving ? "Guardando..." : "Guardar"}
                         </button>
                     </div>
                     </form>
@@ -819,7 +826,7 @@ export default function PersonaTitulos({
             />
 
         <AnimatePresence>
-            {loadingPreview && (
+            {showOverlay && (
                 <motion.div
                     className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
                     initial={{ opacity: 0 }}
@@ -830,7 +837,6 @@ export default function PersonaTitulos({
                 </motion.div>
             )}
         </AnimatePresence>
-        
         </>
     );
 }

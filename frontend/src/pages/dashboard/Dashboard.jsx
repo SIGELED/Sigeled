@@ -15,6 +15,7 @@ import MiPerfil from './MiPerfil';
 import Profesor from './Profesor';
 import Cargos from './Cargos';
 import MisMateriasYCargos from './MisMateriasYCargos';
+import Reportes from './Reportes';
 import { Routes, Route } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -42,6 +43,7 @@ const Dashboard = () => {
                 <Route path = "contratos" element={<Contratos />}/>
                 <Route path = "contratos/nuevo/:idPersona" element={<ContratoNuevo />}/>
                 <Route path="clampy" element={<AiChat/>}/>
+                <Route path="reportes" element={<Reportes/>}/>
               </Route>
             </Routes>
           </Suspense>

@@ -47,6 +47,7 @@ export default function PersonaDomicilios({
     const [barrioPiso, setBarrioPiso] = useState("");
 
     const [reqDelDom, setReqDelDom] = useState({ open: false, target: null });
+    const [savingDom, setSavingDom] = useState(false);
 
     const recalcularLegajo = async () => {
         if (!idPersona) return;
@@ -238,25 +239,31 @@ export default function PersonaDomicilios({
         }
 
         try {
+            setSavingDom(true);
+
             await createDomicilioMutation.mutateAsync({
-            idPersona,
-            payload: {
-                calle: calle.trim(),
-                altura: alturaNum,
-                id_dom_barrio: Number(selectedBarrioId),
-            },
+                idPersona,
+                payload: {
+                    calle: calle.trim(),
+                    altura: alturaNum,
+                    id_dom_barrio: Number(selectedBarrioId),
+                },
             });
+
             resetWizard();
             setShowWizard(false);
         } catch (error) {
             console.error("Error al crear domicilio:", error);
             const msg =
-            error?.response?.data?.message ||
-            error?.response?.data?.detalle ||
-            "No se pudo crear el domicilio";
+                error?.response?.data?.message ||
+                error?.response?.data?.detalle ||
+                "No se pudo crear el domicilio";
             toast.error(msg);
+        } finally {
+            setSavingDom(false);
         }
     };
+
 
 
     const handleDelete = async (domi) => {
@@ -871,6 +878,18 @@ export default function PersonaDomicilios({
                     });
                 }}
             />
+            <AnimatePresence>
+                {savingDom && (
+                    <motion.div
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <LoadingState classNameContainer="min-h-0" classNameImg="w-32 h-32" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </>
     );
 }

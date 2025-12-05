@@ -1,7 +1,4 @@
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { notificacionService } from "../services/api";
 import React, { useRef, useEffect } from "react";
 import {
     FiInbox,
@@ -60,37 +57,13 @@ const LEVEL = {
 
 const levelUi = (lvl) => LEVEL[(lvl || "info").toLowerCase()] ?? LEVEL.info;
 
-// 👉 Máximo de notificaciones visibles en el dropdown
 const MAX_DROPDOWN_ITEMS = 8;
 
 export default function DropdownNotificaciones({ onClose, anchorRef }) {
-    const { notifications = [], setNotifications } = useAuth();
-    const navigate = useNavigate();
+    const { notifications = [] } = useAuth();
     const containerRef = useRef(null);
 
     const visibleNotifications = notifications.slice(0, MAX_DROPDOWN_ITEMS);
-
-    const markAsReadMutation = useMutation({
-        mutationFn: async (id_notificacion) => {
-            const res = await notificacionService.marcarComoLeido(id_notificacion);
-            return res.data;
-        },
-        onSuccess: (updatedNotif) => {
-            setNotifications((prev) =>
-                prev.map((n) =>
-                    n.id_notificacion === updatedNotif.id_notificacion
-                        ? updatedNotif
-                        : n
-                )
-            );
-        },
-    });
-
-    const handleClick = (notif) => {
-        if (!notif.leido) markAsReadMutation.mutate(notif.id_notificacion);
-        if (notif.link) navigate(notif.link);
-        onClose();
-    };
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -142,12 +115,11 @@ export default function DropdownNotificaciones({ onClose, anchorRef }) {
                                     return (
                                         <motion.div
                                             key={notif.id_notificacion}
-                                            onClick={() => handleClick(notif)}
                                             initial={{ opacity: 0, y: 6 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -4 }}
                                             transition={{ duration: 0.18 }}
-                                            className={`relative p-3 pl-4 flex items-start gap-3 cursor-pointer transition
+                                            className={`relative p-3 pl-4 flex items-start gap-3 cursor-default transition
                                                 hover:bg-[#1A2430] ${
                                                     notif.leido
                                                         ? "opacity-70"
@@ -212,7 +184,8 @@ export default function DropdownNotificaciones({ onClose, anchorRef }) {
                 <div className="p-2 text-center bg-[#0b1420] border-t border-[#1b2a37]">
                     <button
                         onClick={() => {
-                            navigate("/dashboard/notificaciones");
+                            window.location.href =
+                                "/dashboard/notificaciones";
                             onClose();
                         }}
                         className="cursor-pointer text-sm font-medium text-[#19F124] border p-1 px-3 rounded-full hover:text-white transition-all hover:border-white"

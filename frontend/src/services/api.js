@@ -24,7 +24,8 @@ export const authService = {
   logout:() =>{
     localStorage.removeItem('token');
     return Promise.resolve();
-  }
+  },
+  changePassword: (payload) => api.post('/auth/change-password', payload),
 };
 
 export const userService = {
@@ -54,7 +55,8 @@ export const personaService = {
     if(search) params.search = search;
     if(perfil) params.perfil = perfil;
     return api.get('/persona/buscar', { params });
-  }
+  },
+  updatePersonaBasica:(id_persona, data) => api.patch(`/persona/${id_persona}`, data),
 };
 
 export const identificationService = {
@@ -228,6 +230,55 @@ export const aiChatService = {
   deleteSession: (id_chat) => api.delete(`/ai-chat/sessions/${id_chat}`),
   sendMessage: ({ id_chat, message }) => api.post("/ai-chat/message", { id_chat, message }),
   getMessages: (id_chat) => api.get(`/ai-chat/sessions/${id_chat}/messages`),
+}
+
+export const reporteService = {
+  getInformeEscalafonario: (id_persona) => 
+    api.get(`/reportes/informe-escalafonario/${id_persona}`),
+  
+  descargarInformeEscalafonarioPDF: async (id_persona, nombreArchivo) => {
+    const response = await api.get(`/reportes/informe-escalafonario/${id_persona}/pdf`, {
+      responseType: 'blob'
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', nombreArchivo || `informe_escalafonario_${id_persona}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    return response;
+  },
+
+  getEstadisticasGenerales: () => 
+    api.get('/reportes/estadisticas/generales'),
+  
+  getEstadisticasContratos: (anio) => 
+    api.get('/reportes/estadisticas/contratos', { params: { anio } }),
+  
+  getEstadisticasTitulos: () => 
+    api.get('/reportes/estadisticas/titulos'),
+  
+  getEstadisticasDocumentos: () => 
+    api.get('/reportes/estadisticas/documentos'),
+
+  getRankingAntiguedad: (limit = 20) => 
+    api.get('/reportes/ranking/antiguedad', { params: { limit } }),
+  
+  getListadoDocentes: (filtros = {}) => 
+    api.get('/reportes/docentes/listado', { params: filtros }),
+  
+  getContratosProximosVencer: (dias = 30) => 
+    api.get('/reportes/contratos/proximos-vencer', { params: { dias } }),
+
+  getDocumentosDigitalizados: (filtros = {}) => 
+    api.get('/reportes/documentos/digitalizados', { params: filtros }),
+
+  getResumenCompleto: () => 
+    api.get('/reportes/resumen-completo')
 }
 
 export default api;

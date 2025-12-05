@@ -85,6 +85,10 @@ export default function Contratos() {
     const confirm = useConfirm();
     const { user } = useAuth();
     const isAdmin = !!user?.roles?.includes("ADMIN");
+    const isRRHH = !!user?.roles?.includes("RRHH");
+    const canVerKpisContratos = isAdmin || isRRHH;
+    const canCrearContratos = isAdmin || isRRHH;
+    const canDeleteContratos = isAdmin || isRRHH;
     const navigate = useNavigate();
 
     const [filtroEstado, setFiltroEstado] = useState("TODOS");
@@ -127,7 +131,7 @@ export default function Contratos() {
         },
     } = useQuery({
         queryKey: ["contratos", "all"],
-        enabled: isAdmin,
+        enabled: canVerKpisContratos,
         staleTime: 5 * 60 * 1000,
         gcTime: 15 * 60 * 1000,
         queryFn: async () => {
@@ -283,7 +287,7 @@ export default function Contratos() {
     )
 
     const eliminar = async (row) => {
-        if (!isAdmin) return;
+        if (!canDeleteContratos) return;
         const ok = await confirm({
             title: "Eliminar contrato",
             description: `¿Estás seguro que deseas eliminar el contrato #${row.id_contrato_profesor}? Esta acción no se puede deshacer.`,
@@ -349,7 +353,7 @@ export default function Contratos() {
                         Gestión de Contratos
                     </h1>
 
-                    {isAdmin && (
+                    {canVerKpisContratos && (
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <StatCard icon={<FiFileText />} label="Total Contratos" value={kpis.total} />
                             <StatCard
@@ -568,7 +572,7 @@ export default function Contratos() {
                                             <h3 className="font-semibold">
                                                 Contratos de: {selected.apellido} {selected.nombre}
                                             </h3>
-                                            {isAdmin && (
+                                            {canCrearContratos && (
                                                 <SolidBtn
                                                     onClick={() =>
                                                         navigate(
@@ -736,7 +740,7 @@ export default function Contratos() {
                                                                                 >
                                                                                     Word
                                                                                 </OutlineBtn>
-                                                                                {isAdmin && (
+                                                                                {canDeleteContratos && (
                                                                                     <MutedBtn
                                                                                         disabled={
                                                                                             busyId ===
@@ -812,7 +816,7 @@ export default function Contratos() {
                 )}
                 {isSavingTarifas && (
                     <motion.div
-                        className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
+                        className="fixed inset-0 z-999 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -829,7 +833,7 @@ export default function Contratos() {
 
             {showTarifaModal && (
                 <motion.div
-                    className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
+                    className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-[2px]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}

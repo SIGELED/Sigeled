@@ -589,11 +589,6 @@ export default function MiLegajo() {
                                                     </span>
                                                     <span>
                                                         {displayPerfilName(p)}
-                                                        {code && (
-                                                            <span className="ml-2 text-xs opacity-60">
-                                                                ({code})
-                                                            </span>
-                                                        )}
                                                     </span>
                                                 </div>
                                             );

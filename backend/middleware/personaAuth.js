@@ -1,12 +1,10 @@
-// Middleware de autorización para edición/eliminación/verificación de datos de persona
 import jwt from 'jsonwebtoken';
 
 export function autorizarEdicion(req, res, next) {
-    const usuario = req.usuario; // Se asume que el usuario ya está en req.usuario por el middleware de autenticación
+    const usuario = req.usuario; 
     const id_persona = req.params.id_persona;
-    // Solo el propio usuario puede editar/eliminar sus datos
     if (usuario.rol === 'RRHH' || usuario.rol === 'ADMINISTRATIVO') {
-        return next(); // RRHH y Administrativo pueden verificar
+        return next();
     }
     if (usuario.id_usuario && usuario.id_usuario.toString() === id_persona.toString()) {
         return next();

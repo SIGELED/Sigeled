@@ -9,7 +9,8 @@ import {
     FiFileText,
     FiChevronsLeft,
     FiChevronsRight,
-    FiBookOpen
+    FiBookOpen,
+    FiBarChart2,
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
@@ -91,6 +92,7 @@ export default function Aside() {
 
         if (path.startsWith("/dashboard/mi-perfil")) return "mi-perfil";
         if (path.startsWith("/dashboard/clampy")) return "clampy";
+        if (path.startsWith("/dashboard/reportes")) return "reportes";
         if (path.startsWith("/dashboard/legajo")) return "legajo";
         if (path.startsWith("/dashboard/mis-contratos")) return "mis-contratos";
         if (path.startsWith("/dashboard/contratos")) return "contratos";
@@ -170,16 +172,16 @@ export default function Aside() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                    className={`flex items-center cursor-pointer justify-center p-2 mt-4 mb-3 rounded-xl transition-all ${
+                    className={`flex items-center cursor-pointer justify-center p-2 mt-1 mb-1 rounded-xl transition-all ${
                         isPerfilActive
                             ? "bg-[#13293c] border border-white/10"
                             : "hover:bg-[#21303f]"
                     }`}
                     title={`${user.apellido} ${user.nombre} · ${perfilesFormateados}`}
                 >
-                    <div className="w-12 h-12 rounded-full bg-[#030C14] flex items-center justify-center text-white text-lg font-semibold">
-                        {initials}
-                    </div>
+                            <div className="w-12 h-12 rounded-full bg-[#030C14] flex items-center justify-center text-white text-lg font-semibold">
+                                {initials}
+                            </div>
                 </motion.button>
             ) : (
                 <motion.button
@@ -360,6 +362,31 @@ export default function Aside() {
                                     transition={{ duration: 0.2 }}
                                 >
                                     Usuarios
+                                </motion.span>
+                            )}
+                        </BotonAside>
+                    </motion.div>
+                )}
+
+                {isAdmin && (
+                    <motion.div
+                        whileHover={{ x: 3 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                        className="w-full"
+                    >
+                        <BotonAside
+                            onClick={() => navigate("/dashboard/reportes")}
+                            activo={activeSection === "reportes"}
+                            collapsed={collapsed}
+                        >
+                            <FiBarChart2 size={24} className="shrink-0 currentColor" />
+                            {!collapsed && (
+                                <motion.span
+                                    initial={{ opacity: 0, x: -6 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    Reportes
                                 </motion.span>
                             )}
                         </BotonAside>

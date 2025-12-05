@@ -15,10 +15,12 @@ import {
 
 const Panel = ({ className = "", ...props }) => (
   <div
-    className={`bg-[#0b1420] border border-[#1b2a37] rounded-2xl ${className}`}
+    className={`bg-[#101922] border border-[#1b2a37] rounded-2xl ${className}`}
     {...props}
   />
 );
+
+const MotionPanel = motion.create(Panel);
 
 const safeNumber = (value) => {
   const n = Number(value);
@@ -206,7 +208,7 @@ export default function MisMateriasYCargos() {
     >
       <div className="space-y-1 shrink-0">
         <h1 className="ml-5 text-4xl font-medium text-white">
-          Mis Materias y Cargos
+          Mis <span className="font-black">Materias</span> y <span className="font-black">Cargos</span>
         </h1>
 
         {!loadingAll &&
@@ -273,7 +275,7 @@ export default function MisMateriasYCargos() {
           <Panel className="flex flex-col overflow-hidden">
             <div className="p-4 border-b border-[#1b2a37] flex items-center justify-between gap-2">
               <div>
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+                <h2 className="flex items-center gap-2 text-3xl font-semibold text-[#19F124]">
                   <FiBook className="text-[#19F124]" />
                   Mis Materias
                 </h2>
@@ -335,7 +337,7 @@ export default function MisMateriasYCargos() {
                       return (
                         <motion.div
                           key={key}
-                          className="bg-[#101922] border border-[#1b2a37] rounded-2xl p-3 flex flex-col gap-2"
+                          className="flex flex-col gap-3 p-4 mb-1 font-semibold bg-[#10242a] border border-[#19f12423] rounded-xl"
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2 }}
@@ -343,19 +345,19 @@ export default function MisMateriasYCargos() {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-lg bg-[#0b1420] border border-[#243447]">
+                              <div className="p-2 bg-[#212e3a] border border-[#283746] rounded-xl">
                                 <FiBook
                                   size={16}
                                   className="text-[#19F124]"
                                 />
                               </div>
                               <div>
-                                <h3 className="text-xs font-semibold text-white">
+                                <h3 className="text-xl font-semibold text-white">
                                   {m.descripcion_materia ||
                                     "Materia sin nombre"}
                                 </h3>
                                 {m.carrera && (
-                                  <p className="text-[0.7rem] text-[#9fb2c1]">
+                                  <p className="text-bg text-[#9fb2c1]">
                                     {m.carrera}
                                   </p>
                                 )}
@@ -363,17 +365,17 @@ export default function MisMateriasYCargos() {
                             </div>
 
                             {m.anio && (
-                              <span className="px-2 py-0.5 rounded-full bg-[#142033] text-[0.7rem] text-[#9fb2c1] flex items-center gap-1">
-                                <FiLayers size={11} />
+                              <span className="px-4 w-40 py-0.5 rounded-full text-center justify-center text-bg bg-[#142033] text-[#9fb2c1] flex items-center gap-1">
+                                <FiLayers size={14} />
                                 {m.anio}
                               </span>
                             )}
                           </div>
 
-                          <div className="space-y-1 text-[0.72rem] text-[#9fb2c1]">
+                          <div className="space-y-1 text-bg text-[#9fb2c1]">
                             {m.codigo_cargo && (
                               <div className="flex items-center gap-2">
-                                <FiLayers size={12} />
+                                <FiLayers size={16} />
                                 <span>
                                   Cargo en esta materia:{" "}
                                   <span className="text-white">
@@ -385,7 +387,7 @@ export default function MisMateriasYCargos() {
 
                             {horasSem != null && (
                               <div className="flex items-center gap-1.5">
-                                <FiClock size={11} />
+                                <FiClock size={16} />
                                 <span>
                                   Horas semanales:{" "}
                                   <span className="text-white">
@@ -397,7 +399,7 @@ export default function MisMateriasYCargos() {
 
                             {horasMensuales != null && (
                               <div className="flex items-center gap-1.5">
-                                <FiClock size={11} />
+                                <FiClock size={16} />
                                 <span>
                                   Horas mensuales:{" "}
                                   <span className="text-white">
@@ -409,7 +411,7 @@ export default function MisMateriasYCargos() {
 
                             {montoHora != null && (
                               <div className="flex items-center gap-1.5">
-                                <FiDollarSign size={11} />
+                                <FiDollarSign size={16} />
                                 <span>
                                   Monto por hora:{" "}
                                   <span className="text-[#19F124]">
@@ -421,7 +423,7 @@ export default function MisMateriasYCargos() {
 
                             {subtotalMensual != null && (
                               <div className="flex items-center gap-1.5">
-                                <FiDollarSign size={11} />
+                                <FiDollarSign size={16} />
                                 <span>
                                   Subtotal mensual:{" "}
                                   <span className="text-[#19F124] font-semibold">
@@ -433,7 +435,7 @@ export default function MisMateriasYCargos() {
 
                             {getPeriodo(m) && (
                               <div className="flex items-center gap-2">
-                                <FiTarget size={12} />
+                                <FiTarget size={16} />
                                 <span>
                                   Período:{" "}
                                   <span className="text-white">
@@ -445,7 +447,7 @@ export default function MisMateriasYCargos() {
 
                             {(fechaInicio || fechaFin) && (
                               <div className="flex items-center gap-1.5">
-                                <FiCalendar size={11} />
+                                <FiCalendar size={16} />
                                 <span>
                                   Vigencia:{" "}
                                   <span className="text-white">
@@ -467,8 +469,8 @@ export default function MisMateriasYCargos() {
 
           <Panel className="flex flex-col overflow-hidden">
             <div className="p-4 border-b border-[#1b2a37]">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
-                <FiBriefcase className="text-[#FFD54F]" />
+              <h2 className="flex items-center gap-2 text-3xl font-semibold text-[#19F124]">
+                <FiBriefcase className="text-[#19F124]" />
                 Mis Cargos
               </h2>
             </div>
@@ -511,9 +513,9 @@ export default function MisMateriasYCargos() {
                     const esCoordinador = esPerfilCoordinador(perfil);
 
                     return (
-                      <motion.Panel
+                      <MotionPanel
                         key={perfil.id_perfil ?? idxPerfil}
-                        className="bg-[#101922] border border-[#1b2a37] rounded-2xl p-3 flex flex-col"
+                        className="flex flex-col gap-3 p-4 mb-5 font-semibold bg-[#10242a] border border-[#19f12423] rounded-xl"
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2 }}
@@ -521,13 +523,13 @@ export default function MisMateriasYCargos() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-[#0b1420] border border-[#243447]">
+                            <div className="p-2 bg-[#212e3a] border border-[#283746] rounded-xl">
                               <FiLayers
-                                size={14}
+                                size={24}
                                 className="text-[#4FC3F7]"
                               />
                             </div>
-                            <h3 className="text-sm font-semibold text-white">
+                            <h3 className="text-xl font-semibold text-white">
                               {nombrePerfil}
                             </h3>
                           </div>
@@ -558,19 +560,19 @@ export default function MisMateriasYCargos() {
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                     <FiBriefcase
-                                      size={13}
+                                      size={16}
                                       className="text-[#FFE082]"
                                     />
-                                    <span className="font-semibold text-white">
+                                    <span className="text-xl font-semibold text-white">
                                       {t.descripcion ||
                                         "Cargo sin descripción"}
                                     </span>
                                   </div>
                                 </div>
 
-                                <div className="mt-1 flex flex-wrap items-center gap-3 text-[0.7rem]">
+                                <div className="flex flex-col gap-3 mt-3 text-sm">
                                   <span className="flex items-center gap-1.5">
-                                    <FiTarget size={11} />
+                                    <FiTarget size={16} />
                                     <span>
                                       Aplica a:{" "}
                                       <span className="text-white">
@@ -583,7 +585,7 @@ export default function MisMateriasYCargos() {
 
                                   {montoHoraTarifa != null && (
                                     <span className="flex items-center gap-1.5">
-                                      <FiDollarSign size={11} />
+                                      <FiDollarSign size={16} />
                                       <span>
                                         Monto / hora:{" "}
                                         <span className="text-[#19F124] font-semibold">
@@ -603,7 +605,7 @@ export default function MisMateriasYCargos() {
                             );
                           })}
                         </div>
-                      </motion.Panel>
+                      </MotionPanel>
                     );
                   })}
                 </div>

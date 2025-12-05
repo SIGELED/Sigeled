@@ -10,8 +10,10 @@ export async function hasPersonaCore(id_persona){
     const { rows } = await db.query(q, [id_persona]);
     if(!rows.length) return false;
     const p = rows[0];
-    return !!(p.nombre && p.apellido && p.fecha_nacimiento && p.sexo && p.telefono);
+
+    return !!(p.nombre && p.apellido && p.fecha_nacimiento && p.sexo);
 }
+
 
 export async function hasIdentificacion(id_persona) {
     const q = `
@@ -26,17 +28,20 @@ export async function hasIdentificacion(id_persona) {
     return !!(r.dni && r.cuil);
 }
 
-export async function hasDocsRequeridos(id_persona, codigosOblig = ['DNI','CUIL','DOM','CV','TIT','CON_SER']) {
-    const q = `
-        SELECT COUNT(DISTINCT t.codigo) AS cnt
-        FROM personas_documentos pd
-        JOIN tipos_documento t ON t.id_tipo_doc = pd.id_tipo_doc
-        WHERE pd.id_persona = $1
+export async function hasDocsRequeridos(
+        id_persona,
+        codigosOblig = ['DNI','CUIL','DOM']  
+    ) {
+        const q = `
+            SELECT COUNT(DISTINCT t.codigo) AS cnt
+            FROM personas_documentos pd
+            JOIN tipos_documento t ON t.id_tipo_doc = pd.id_tipo_doc
+            WHERE pd.id_persona = $1
             AND t.codigo = ANY($2)
-    `;
-    const { rows } = await db.query(q, [id_persona, codigosOblig]);
-    const cnt = Number(rows?.[0]?.cnt || 0);
-    return cnt === codigosOblig.length;
+        `;
+        const { rows } = await db.query(q, [id_persona, codigosOblig]);
+        const cnt = Number(rows?.[0]?.cnt || 0);
+        return cnt === codigosOblig.length;
 }
 
 export async function hasDomicilioYBarrio(id_persona){
@@ -197,8 +202,10 @@ export async function hasPersonaCoreTx(client, id_persona) {
     );
     if(!rows.length) return false;
     const p = rows[0];
-    return !!(p.nombre && p.apellido && p.fecha_nacimiento && p.sexo && p.telefono);
+
+    return !!(p.nombre && p.apellido && p.fecha_nacimiento && p.sexo);
 }
+
 
 export async function hasIdentificacionTx(client, id_persona) {
     const { rows } = await client.query(
@@ -211,7 +218,11 @@ export async function hasIdentificacionTx(client, id_persona) {
     return !!(r.dni && r.cuil);
 }
 
-export async function hasDocsRequeridosTx(client, id_persona, codigosOblig = ['DNI','CUIL','DOM','CV','TIT','CON_SER']) {
+export async function hasDocsRequeridosTx(
+    client,
+    id_persona,
+    codigosOblig = ['DNI','CUIL','DOM']   
+) {
     const { rows } = await client.query(
         `SELECT COUNT(DISTINCT t.codigo) AS cnt
         FROM personas_documentos pd

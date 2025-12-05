@@ -39,8 +39,6 @@ export const AuthProvider = ({ children }) => {
       setNotifications((prev) => [notificacion, ...prev]);
     };
 
-    socket.on('connect', () => console.log('[Socket.IO] Conectado'));
-    socket.on('disconnect', () => console.log('[Socket.IO] Desconectado'));
     socket.on('connect_error', (err) => {
       console.error('[Socket.IO] connect_error:', err?.message || err);
     });

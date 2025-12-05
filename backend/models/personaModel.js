@@ -177,3 +177,27 @@ export const getPerfilesDePersona = async (id_persona) => {
     );
     return res.rows;
 };
+
+export const updatePersonaBasica = async (id_persona, campos) => {
+    const permitidos = ["nombre", "apellido", "fecha_nacimiento", "sexo", "telefono"];
+    const keys = permitidos.filter((k) => campos[k] !== undefined);
+
+    if (keys.length === 0) {
+        const res = await db.query("SELECT * FROM personas WHERE id_persona = $1", [id_persona]);
+        return res.rows[0] || null;
+    }
+
+    const sets = keys.map((k, idx) => `${k} = $${idx + 1}`);
+    const values = keys.map((k) => campos[k]);
+    values.push(id_persona);
+
+    const query = `
+        UPDATE personas
+        SET ${sets.join(", ")}
+        WHERE id_persona = $${keys.length + 1}
+        RETURNING *
+    `;
+
+    const res = await db.query(query, values);
+    return res.rows[0] || null;
+};

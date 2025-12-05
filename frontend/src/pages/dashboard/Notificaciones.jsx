@@ -366,14 +366,6 @@ export default function Notificaciones() {
                                                     )}
                                                 </span>
                                             )}
-                                            {n.link && (
-                                                <a
-                                                    href={n.link}
-                                                    className="ml-auto text-xs text-[#19F124] hover:underline"
-                                                >
-                                                    Ver detalle
-                                                </a>
-                                            )}
                                         </div>
                                     </div>
 
