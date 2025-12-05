@@ -14,7 +14,9 @@ const getSocketURL = (apiUrl) => {
   }
 };
 
-const socketURL = getSocketURL(import.meta.env.VITE_API_URL);
+const socketURL =
+  import.meta.env.VITE_SOCKET_URL ||
+  getSocketURL(import.meta.env.VITE_API_URL);
 
 const socket = io(socketURL, {
   autoConnect: false,

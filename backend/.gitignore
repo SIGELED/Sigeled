@@ -3,3 +3,4 @@ node_modules/
 
 #Entornos
 .env
+.env.docker
