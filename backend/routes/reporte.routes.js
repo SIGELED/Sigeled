@@ -1,15 +1,8 @@
 import express from 'express';
-<<<<<<< HEAD
 import * as reporteController from '../controllers/reporte.Controller.js';
 import { verificarToken } from '../middleware/authMiddleware.js';
 
-const router = express.Router();
-=======
-import * as reporteController from "../controllers/reporte.Controller.js";
-import { verificarToken } from '../middleware/authMiddleware.js';
-
 const reporteRouter = express.Router();
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -41,11 +34,7 @@ const reporteRouter = express.Router();
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/informe-escalafonario/:id_persona', verificarToken, reporteController.getInformeEscalafonario);
-=======
 reporteRouter.get('/informe-escalafonario/:id_persona', verificarToken, reporteController.getInformeEscalafonario);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -75,11 +64,7 @@ reporteRouter.get('/informe-escalafonario/:id_persona', verificarToken, reporteC
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/informe-escalafonario/:id_persona/pdf', verificarToken, reporteController.descargarInformeEscalafonarioPDF);
-=======
 reporteRouter.get('/informe-escalafonario/:id_persona/pdf', verificarToken, reporteController.descargarInformeEscalafonarioPDF);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -95,11 +80,7 @@ reporteRouter.get('/informe-escalafonario/:id_persona/pdf', verificarToken, repo
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/estadisticas/generales', verificarToken, reporteController.getEstadisticasGenerales);
-=======
 reporteRouter.get('/estadisticas/generales', verificarToken, reporteController.getEstadisticasGenerales);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -121,11 +102,7 @@ reporteRouter.get('/estadisticas/generales', verificarToken, reporteController.g
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/estadisticas/contratos', verificarToken, reporteController.getEstadisticasContratos);
-=======
 reporteRouter.get('/estadisticas/contratos', verificarToken, reporteController.getEstadisticasContratos);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -141,11 +118,7 @@ reporteRouter.get('/estadisticas/contratos', verificarToken, reporteController.g
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/estadisticas/titulos', verificarToken, reporteController.getEstadisticasTitulos);
-=======
 reporteRouter.get('/estadisticas/titulos', verificarToken, reporteController.getEstadisticasTitulos);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -161,11 +134,7 @@ reporteRouter.get('/estadisticas/titulos', verificarToken, reporteController.get
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/estadisticas/documentos', verificarToken, reporteController.getEstadisticasDocumentos);
-=======
 reporteRouter.get('/estadisticas/documentos', verificarToken, reporteController.getEstadisticasDocumentos);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -188,11 +157,7 @@ reporteRouter.get('/estadisticas/documentos', verificarToken, reporteController.
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/ranking/antiguedad', verificarToken, reporteController.getRankingAntiguedad);
-=======
 reporteRouter.get('/ranking/antiguedad', verificarToken, reporteController.getRankingAntiguedad);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -219,11 +184,7 @@ reporteRouter.get('/ranking/antiguedad', verificarToken, reporteController.getRa
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/docentes/listado', verificarToken, reporteController.getListadoDocentes);
-=======
 reporteRouter.get('/docentes/listado', verificarToken, reporteController.getListadoDocentes);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -246,11 +207,7 @@ reporteRouter.get('/docentes/listado', verificarToken, reporteController.getList
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/contratos/proximos-vencer', verificarToken, reporteController.getContratosProximosVencer);
-=======
 reporteRouter.get('/contratos/proximos-vencer', verificarToken, reporteController.getContratosProximosVencer);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -277,11 +234,7 @@ reporteRouter.get('/contratos/proximos-vencer', verificarToken, reporteControlle
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/documentos/digitalizados', verificarToken, reporteController.getDocumentosDigitalizados);
-=======
 reporteRouter.get('/documentos/digitalizados', verificarToken, reporteController.getDocumentosDigitalizados);
->>>>>>> origin/main
 
 /**
  * @swagger
@@ -297,12 +250,6 @@ reporteRouter.get('/documentos/digitalizados', verificarToken, reporteController
  *       500:
  *         description: Error del servidor
  */
-<<<<<<< HEAD
-router.get('/resumen-completo', verificarToken, reporteController.getResumenCompleto);
-
-export default router;
-=======
 reporteRouter.get('/resumen-completo', verificarToken, reporteController.getResumenCompleto);
 
 export default reporteRouter;
->>>>>>> origin/main

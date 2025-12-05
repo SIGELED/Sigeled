@@ -30,7 +30,7 @@ export async function hasIdentificacion(id_persona) {
 
 export async function hasDocsRequeridos(
         id_persona,
-        codigosOblig = ['DNI','CUIL','DOM']  
+        codigosOblig = ['DNI','DOM','TIT']  
     ) {
         const q = `
             SELECT COUNT(DISTINCT t.codigo) AS cnt
@@ -221,7 +221,7 @@ export async function hasIdentificacionTx(client, id_persona) {
 export async function hasDocsRequeridosTx(
     client,
     id_persona,
-    codigosOblig = ['DNI','CUIL','DOM']   
+    codigosOblig = ['DNI','DOM','TIT']   
 ) {
     const { rows } = await client.query(
         `SELECT COUNT(DISTINCT t.codigo) AS cnt

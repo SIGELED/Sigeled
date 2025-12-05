@@ -227,11 +227,24 @@ const SubirDocumentoScreen = () => {
         setUploadProgress(0);
 
         try {
+            // Crear FormData con el archivo
+            const formData = new FormData();
+            
+            if (Platform.OS === 'web' && document instanceof File) {
+                formData.append('archivo', document);
+            } else {
+                formData.append('archivo', {
+                    uri: document.uri,
+                    name: document.name,
+                    type: document.mimeType || 'application/octet-stream',
+                });
+            }
+
             // Paso 1: Subir el archivo
             console.log('[handleUpload] Subiendo archivo...');
             const uploadResult = await uploadFile(
-                document,
                 user.id_persona,
+                formData,
                 (progress) => {
                     setUploadProgress(Math.round(progress * 100));
                 }
@@ -241,11 +254,11 @@ const SubirDocumentoScreen = () => {
 
             // Paso 2: Vincular el archivo con persona_documentos
             console.log('[handleUpload] Vinculando documento...');
-            await vincularDocumento(
-                user.id_persona,
-                tipoSeleccionado.id_tipo_doc,
-                uploadResult.id_archivo
-            );
+            await vincularDocumento({
+                id_persona: user.id_persona,
+                id_tipo_doc: tipoSeleccionado.id_tipo_doc,
+                id_archivo: uploadResult.id_archivo
+            });
 
             console.log('[handleUpload] Documento vinculado exitosamente');
             Alert.alert(

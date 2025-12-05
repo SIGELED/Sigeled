@@ -9,10 +9,7 @@ import {
     FiFileText,
     FiChevronsLeft,
     FiChevronsRight,
-<<<<<<< HEAD
-=======
     FiBookOpen,
->>>>>>> origin/main
     FiBarChart2,
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
@@ -139,20 +136,6 @@ export default function Aside() {
                 collapsed ? "items-center self-center" : ""
             }`}
         >
-<<<<<<< HEAD
-        <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            aria-label={collapsed ? "Expandir menú" : "Plegar menú"}
-            className={`cursor-pointer transition-all absolute -right-3 top-6 z-10 flex items-center justify-center w-8 h-8 rounded-full shadow-sm ${
-                collapsed
-                    ? "hover:bg-[#19F124] border-2 border-[#19F124] bg-[#030C14] text-[#19F124] hover:text-[#030C14]"
-                    : "hover:bg-[#3af743] border-2 border-[#19F124] bg-[#19F124] text-[#030C14]"
-            }`}
-        >
-            {collapsed ? <FiChevronsRight size={18} /> : <FiChevronsLeft size={18} />}
-        </button>
-=======
             <motion.button
                 type="button"
                 onClick={() => setCollapsed((c) => !c)}
@@ -167,7 +150,6 @@ export default function Aside() {
             >
                 {collapsed ? <FiChevronsRight size={19} /> : <FiChevronsLeft size={19} />}
             </motion.button>
->>>>>>> origin/main
 
             <div className="flex items-center justify-center mt-6 mb-6">
                 <motion.img
@@ -241,73 +223,10 @@ export default function Aside() {
                     collapsed ? "items-center gap-4" : "px-2 space-y-2"
                 }`}
             >
-<<<<<<< HEAD
-                <FiHome size={24} className="shrink-0 currentColor" />
-                {!collapsed && <span>Dashboard</span>}
-            </BotonAside>
-
-            <BotonAside
-            onClick={() => navigate("/dashboard/legajo")}
-            activo={activeSection === "legajo"}
-            collapsed={collapsed}
-            >
-                <FiArchive size={24} className="shrink-0 currentColor" />
-                {!collapsed && <span>Mi Legajo</span>}
-            </BotonAside>
-
-            <BotonAside
-            onClick={() => navigate("/dashboard/mis-contratos")}
-            activo={activeSection === "mis-contratos"}
-            collapsed={collapsed}
-            >
-                <FiFileText size={24} className="shrink-0 currentColor" />
-                {!collapsed && <span>Mis Contratos</span>}
-            </BotonAside>
-
-            {isAdmin && (
-            <BotonAside
-                onClick={() => navigate("/dashboard/contratos")}
-                activo={activeSection === "contratos"}
-                collapsed={collapsed}
-            >
-                <FiClipboard size={24} className="shrink-0 currentColor" />
-                {!collapsed && <span>Contratos</span>}
-            </BotonAside>
-            )}
-
-            {isAdmin && (
-            <BotonAside
-                onClick={() => navigate("/dashboard/usuarios")}
-                activo={activeSection === "usuarios"}
-                collapsed={collapsed}
-            >
-                <FiUsers size={24} className="shrink-0 currentColor" />
-                {!collapsed && <span>Usuarios</span>}
-            </BotonAside>
-            )}
-
-            {isAdmin && (
-                <BotonAside
-                    onClick={() => navigate("/dashboard/reportes")}
-                    activo={activeSection === "reportes"}
-                    collapsed={collapsed}
-                >
-                    <FiBarChart2 size={24} className="shrink-0 currentColor"/>
-                    {!collapsed && <span>Reportes</span>}
-                </BotonAside>
-            )}
-
-            {isAdmin && (
-                <BotonAside
-                    onClick={() => navigate("/dashboard/clampy")}
-                    activo={activeSection === "clampy"}
-                    collapsed={collapsed}
-=======
                 <motion.div
                     whileHover={{ x: 3 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
                     className="w-full"
->>>>>>> origin/main
                 >
                     <BotonAside
                         onClick={() => navigate("/dashboard")}

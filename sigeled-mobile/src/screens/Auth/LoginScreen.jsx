@@ -35,7 +35,22 @@ const LoginScreen = ({ navigation }) => {
             }
         } catch (error) {
             console.error('[LoginScreen] login error', error);
-            setError('Credenciales incorrectas. Inténtalo de nuevo.');
+            console.error('[LoginScreen] error response:', error.response?.data);
+            console.error('[LoginScreen] error status:', error.response?.status);
+            
+            // Mostrar mensaje específico del backend
+            let errorMessage = 'Credenciales incorrectas. Inténtalo de nuevo.';
+            
+            if (error.response?.status === 403) {
+                // Cuenta inactiva - pendiente de revisión
+                errorMessage = error.response.data?.message || 'Tu cuenta está en revisión. Espera a que sea activada por un administrador.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            setError(errorMessage);
         } finally {
             setSubmitting(false);
         }

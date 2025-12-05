@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import colors from '../../theme/colors';
 import { getTiposTitulo, createTitulo, uploadFile, recalcularLegajo } from '../../services/api';
 
-const Step3Titulos = ({ id_persona, onBack, navigation }) => {
+const Step3Titulos = ({ id_persona, onSetTitulo, onBack, onFinish, saving }) => {
   const [loading, setLoading] = useState(false);
   const [tiposTitulo, setTiposTitulo] = useState([]);
   const [showTipoModal, setShowTipoModal] = useState(false);
@@ -109,25 +109,25 @@ const Step3Titulos = ({ id_persona, onBack, navigation }) => {
     try {
       setLoading(true);
 
-      const formData = new FormData();
+      const formDataToSend = new FormData();
       const fileName = uri.split('/').pop();
       const fileType = fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
 
-      formData.append('file', {
+      formDataToSend.append('archivo', {
         uri,
         name: fileName,
         type: fileType,
       });
 
-      const uploadResponse = await uploadFile(formData);
+      const uploadResponse = await uploadFile(id_persona, formDataToSend);
 
-      if (!uploadResponse.file || !uploadResponse.file.id_archivo) {
+      if (!uploadResponse.archivo || !uploadResponse.archivo.id_archivo) {
         throw new Error('Error al subir archivo');
       }
 
       setFormData(prev => ({
         ...prev,
-        id_archivo: uploadResponse.file.id_archivo,
+        id_archivo: uploadResponse.archivo.id_archivo,
         archivo_nombre: fileName,
       }));
 
@@ -141,47 +141,37 @@ const Step3Titulos = ({ id_persona, onBack, navigation }) => {
   };
 
   const handleFinalizar = async () => {
+    console.log('[Step3Titulos] ===== INICIO handleFinalizar =====');
+    console.log('[Step3Titulos] formData:', JSON.stringify(formData, null, 2));
+    
     // Validar campos requeridos
     if (!formData.id_tipo_titulo || !formData.nombre_titulo.trim()) {
+      console.warn('[Step3Titulos] Validación fallida: campos requeridos vacíos');
       Alert.alert('Campos incompletos', 'Debes completar al menos Tipo de título y Nombre del título');
       return;
     }
 
-    try {
-      setLoading(true);
-
-      // Crear título
-      const tituloPayload = {
-        id_persona,
-        id_tipo_titulo: formData.id_tipo_titulo,
-        nombre_titulo: formData.nombre_titulo.trim(),
-        institucion: formData.institucion.trim() || null,
-        fecha_emision: formData.fecha_emision || null,
-        matricula_prof: formData.matricula_prof.trim() || null,
-        id_archivo: formData.id_archivo || null,
-      };
-
-      await createTitulo(tituloPayload);
-
-      // Recalcular legajo
-      await recalcularLegajo(id_persona);
-
-      Alert.alert(
-        'Registro completo',
-        'Tu información ha sido enviada para revisión. Serás notificado cuando un administrador active tu cuenta.',
-        [
-          {
-            text: 'Continuar',
-            onPress: () => navigation.navigate('Revision'),
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error finalizando registro:', error);
-      Alert.alert('Error', error.message || 'No se pudo completar el registro');
-    } finally {
-      setLoading(false);
-    }
+    // NO llamamos al backend aquí - solo guardamos los datos localmente
+    // Igual que en el web que usa setTituloDraft
+    console.log('[Step3Titulos] Validaciones OK - Guardando datos localmente');
+    
+    const tituloPayload = {
+      id_tipo_titulo: formData.id_tipo_titulo,
+      nombre_titulo: formData.nombre_titulo.trim(),
+      institucion: formData.institucion.trim() || null,
+      fecha_emision: formData.fecha_emision || null,
+      matricula_prof: formData.matricula_prof.trim() || null,
+      id_archivo: formData.id_archivo || null,
+    };
+    
+    console.log('[Step3Titulos] Payload a guardar:', tituloPayload);
+    onSetTitulo(tituloPayload);
+    
+    // Llamar a la función finalizar del padre (CompletarRegistroScreen)
+    // que guardará TODOS los datos (domicilio + título)
+    console.log('[Step3Titulos] ✅ Datos guardados - Llamando a onFinish()');
+    await onFinish();
+    console.log('[Step3Titulos] ===== FIN handleFinalizar =====');
   };
 
   return (
@@ -273,7 +263,7 @@ const Step3Titulos = ({ id_persona, onBack, navigation }) => {
               <TouchableOpacity
                 onPress={() => setFormData(prev => ({ ...prev, id_archivo: null, archivo_nombre: '' }))}
               >
-                <Ionicons name="close-circle" size={24} color={colors.error} />
+                <Ionicons name="close-circle" size={24} color={colors.status.error} />
               </TouchableOpacity>
             </View>
           ) : (

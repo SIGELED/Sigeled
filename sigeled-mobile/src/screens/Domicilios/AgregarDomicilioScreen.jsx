@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,22 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
-import { getDepartamentos, getLocalidades, getBarriosByLocalidad, createBarrio } from '../../services/api';
+import { AuthContext } from '../../context/AuthContext';
+import { 
+  getDepartamentos, 
+  getLocalidades, 
+  getBarriosByLocalidad, 
+  createBarrio, 
+  assignBarrioToPersona,
+  createDomicilio 
+} from '../../services/api';
 
-const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
+const AgregarDomicilioScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [departamentos, setDepartamentos] = useState([]);
   const [localidades, setLocalidades] = useState([]);
@@ -149,63 +159,81 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
     setShowBarrioModal(false);
   };
 
-  const handleContinuar = async () => {
-    console.log('[Step2Domicilio] ===== INICIO handleContinuar =====');
-    console.log('[Step2Domicilio] formData:', JSON.stringify(formData, null, 2));
-    console.log('[Step2Domicilio] crearNuevoBarrio:', crearNuevoBarrio);
-    
+  const handleGuardar = async () => {
     // Validar campos requeridos
     if (!formData.calle.trim() || !formData.altura.trim() || !formData.id_localidad) {
-      console.warn('[Step2Domicilio] Validación fallida: campos básicos incompletos');
       Alert.alert('Campos incompletos', 'Debes completar Localidad, Calle y Altura');
       return;
     }
 
     if (!crearNuevoBarrio && !formData.id_barrio) {
-      console.warn('[Step2Domicilio] Validación fallida: barrio no seleccionado');
       Alert.alert('Barrio requerido', 'Selecciona un barrio o crea uno nuevo');
       return;
     }
 
     if (crearNuevoBarrio && !formData.barrio_nombre.trim()) {
-      console.warn('[Step2Domicilio] Validación fallida: nombre de barrio vacío');
       Alert.alert('Nombre de barrio', 'Ingresa el nombre del barrio');
       return;
     }
 
-    // NO llamamos al backend aquí - solo guardamos los datos localmente
-    // Igual que en el web que usa setDomPayload
-    console.log('[Step2Domicilio] Validaciones OK - Guardando datos localmente');
-    
-    const domicilioPayload = {
-      calle: formData.calle.trim(),
-      altura: formData.altura.trim(),
-      id_dom_barrio: crearNuevoBarrio ? null : formData.id_barrio,
-      barrioNuevo: crearNuevoBarrio ? {
-        id_dom_localidad: formData.id_localidad,
-        barrio: formData.barrio_nombre.trim(),
-        manzana: formData.manzana || null,
-        casa: formData.casa || null,
-        departamento: formData.departamento || null,
-        piso: formData.piso || null,
-      } : null,
-    };
-    
-    console.log('[Step2Domicilio] Payload a guardar:', domicilioPayload);
-    onSetDomicilio(domicilioPayload);
-    console.log('[Step2Domicilio] ✅ Datos guardados - Avanzando al siguiente paso');
-    onNext();
-    console.log('[Step2Domicilio] ===== FIN handleContinuar =====');
+    try {
+      setLoading(true);
+      
+      let barrioId = formData.id_barrio || null;
+
+      // Crear barrio nuevo si es necesario
+      if (!barrioId && crearNuevoBarrio) {
+        const barrioCreado = await createBarrio(formData.id_localidad, {
+          barrio: formData.barrio_nombre.trim(),
+          manzana: formData.manzana || null,
+          casa: formData.casa || null,
+          departamento: formData.departamento || null,
+          piso: formData.piso || null,
+        });
+        barrioId = barrioCreado.id_dom_barrio;
+      }
+
+      // Asignar barrio a la persona
+      if (barrioId) {
+        await assignBarrioToPersona(user.id_persona, barrioId);
+      }
+
+      // Crear domicilio
+      await createDomicilio(user.id_persona, {
+        calle: formData.calle.trim(),
+        altura: formData.altura.trim(),
+        id_dom_barrio: barrioId,
+      });
+
+      const msg = 'Domicilio agregado correctamente';
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Éxito', msg);
+      }
+
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error guardando domicilio:', error);
+      const msg = error.response?.data?.message || error.message || 'No se pudo guardar el domicilio';
+      if (Platform.OS === 'web') {
+        window.alert(`Error: ${msg}`);
+      } else {
+        Alert.alert('Error', msg);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Ionicons name="home" size={40} color={colors.primary} />
-          <Text style={styles.title}>Datos de domicilio</Text>
+          <Ionicons name="home" size={40} color={colors.primary.main} />
+          <Text style={styles.title}>Agregar Domicilio</Text>
           <Text style={styles.subtitle}>
-            Completá tu dirección para continuar con el registro
+            Completá los datos de tu nueva dirección
           </Text>
         </View>
 
@@ -219,7 +247,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
             <Text style={formData.departamento_nombre ? styles.selectButtonTextFilled : styles.selectButtonText}>
               {formData.departamento_nombre || 'Seleccionar departamento...'}
             </Text>
-            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+            <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -235,7 +263,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
               <Text style={formData.localidad_nombre ? styles.selectButtonTextFilled : styles.selectButtonText}>
                 {formData.localidad_nombre || (localidades.length === 0 ? 'Cargando...' : 'Seleccionar localidad...')}
               </Text>
-              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+              <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -255,15 +283,14 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
                   <Text style={formData.barrio_nombre ? styles.selectButtonTextFilled : styles.selectButtonText}>
                     {formData.barrio_nombre || (barrios.length === 0 ? 'Cargando...' : 'Seleccionar barrio...')}
                   </Text>
-                  <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={styles.linkButton}
                   onPress={() => setCrearNuevoBarrio(true)}
                 >
-                  <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-                  <Text style={styles.linkText}>Crear nuevo barrio</Text>
+                  <Text style={styles.linkButtonText}>+ Crear nuevo barrio</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -271,76 +298,19 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Nombre del barrio"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.text.disabled}
                   value={formData.barrio_nombre}
                   onChangeText={(value) => handleInputChange('barrio_nombre', value)}
                 />
-                
-                <View style={styles.row}>
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>Manzana</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Opcional"
-                      placeholderTextColor={colors.textSecondary}
-                      value={formData.manzana}
-                      onChangeText={(value) => handleInputChange('manzana', value)}
-                    />
-                  </View>
-                  
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>Casa</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Opcional"
-                      placeholderTextColor={colors.textSecondary}
-                      value={formData.casa}
-                      onChangeText={(value) => handleInputChange('casa', value)}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.row}>
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>Piso</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Opcional"
-                      placeholderTextColor={colors.textSecondary}
-                      value={formData.piso}
-                      onChangeText={(value) => handleInputChange('piso', value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>Depto</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Opcional"
-                      placeholderTextColor={colors.textSecondary}
-                      value={formData.departamento}
-                      onChangeText={(value) => handleInputChange('departamento', value)}
-                    />
-                  </View>
-                </View>
                 
                 <TouchableOpacity
                   style={styles.linkButton}
                   onPress={() => {
                     setCrearNuevoBarrio(false);
-                    setFormData(prev => ({
-                      ...prev,
-                      barrio_nombre: '',
-                      manzana: '',
-                      casa: '',
-                      departamento: '',
-                      piso: '',
-                    }));
+                    handleInputChange('barrio_nombre', '');
                   }}
                 >
-                  <Ionicons name="arrow-back-circle-outline" size={20} color={colors.primary} />
-                  <Text style={styles.linkText}>Seleccionar barrio existente</Text>
+                  <Text style={styles.linkButtonText}>← Seleccionar barrio existente</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -349,23 +319,23 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
 
         {/* Calle y Altura */}
         <View style={styles.row}>
-          <View style={styles.flexInput}>
+          <View style={[styles.inputGroup, styles.flex2]}>
             <Text style={styles.label}>Calle *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ej: Av. Siempre Viva"
-              placeholderTextColor={colors.textSecondary}
+              placeholder="Av. Libertad"
+              placeholderTextColor={colors.text.disabled}
               value={formData.calle}
               onChangeText={(value) => handleInputChange('calle', value)}
             />
           </View>
-          
-          <View style={styles.smallInput}>
+
+          <View style={[styles.inputGroup, styles.flex1]}>
             <Text style={styles.label}>Altura *</Text>
             <TextInput
               style={styles.input}
               placeholder="742"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.text.disabled}
               value={formData.altura}
               onChangeText={(value) => handleInputChange('altura', value)}
               keyboardType="numeric"
@@ -374,7 +344,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
         </View>
 
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color={colors.primary} />
+          <Ionicons name="information-circle" size={20} color={colors.primary.main} />
           <Text style={styles.infoText}>
             Los campos marcados con * son obligatorios
           </Text>
@@ -384,30 +354,30 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.buttonSecondary}
-          onPress={onBack}
+          onPress={() => navigation.goBack()}
           disabled={loading}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-          <Text style={styles.buttonSecondaryText}>Atrás</Text>
+          <Ionicons name="close" size={20} color={colors.text.primary} />
+          <Text style={styles.buttonSecondaryText}>Cancelar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.buttonPrimary, loading && styles.buttonDisabled]}
-          onPress={handleContinuar}
+          onPress={handleGuardar}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.buttonPrimaryText}>Continuar</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Text style={styles.buttonPrimaryText}>Guardar</Text>
+              <Ionicons name="checkmark" size={20} color="#fff" />
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Modal de departamentos */}
+      {/* Modales */}
       <Modal
         visible={showDepartamentoModal}
         transparent={true}
@@ -419,7 +389,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar departamento</Text>
               <TouchableOpacity onPress={() => setShowDepartamentoModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
             
@@ -440,7 +410,6 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
         </View>
       </Modal>
 
-      {/* Modal de localidades */}
       <Modal
         visible={showLocalidadModal}
         transparent={true}
@@ -452,7 +421,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar localidad</Text>
               <TouchableOpacity onPress={() => setShowLocalidadModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
             
@@ -461,24 +430,18 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
               keyExtractor={(item) => item.id_dom_localidad.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.modalItem,
-                    item.id_dom_localidad === formData.id_localidad && styles.modalItemSelected,
-                  ]}
+                  style={styles.modalItem}
                   onPress={() => handleSelectLocalidad(item)}
                 >
                   <Text style={styles.modalItemText}>{item.localidad}</Text>
-                  {item.id_dom_localidad === formData.id_localidad && (
-                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-                  )}
                 </TouchableOpacity>
               )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
           </View>
         </View>
       </Modal>
 
-      {/* Modal de barrios */}
       <Modal
         visible={showBarrioModal}
         transparent={true}
@@ -490,7 +453,7 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar barrio</Text>
               <TouchableOpacity onPress={() => setShowBarrioModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
             
@@ -499,18 +462,13 @@ const Step2Domicilio = ({ onSetDomicilio, onNext, onBack }) => {
               keyExtractor={(item) => item.id_dom_barrio.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[
-                    styles.modalItem,
-                    item.id_dom_barrio === formData.id_barrio && styles.modalItemSelected,
-                  ]}
+                  style={styles.modalItem}
                   onPress={() => handleSelectBarrio(item)}
                 >
                   <Text style={styles.modalItemText}>{item.barrio}</Text>
-                  {item.id_dom_barrio === formData.id_barrio && (
-                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-                  )}
                 </TouchableOpacity>
               )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
             />
           </View>
         </View>
@@ -528,55 +486,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
   },
   header: {
+    padding: 16,
     alignItems: 'center',
-    marginBottom: 30,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text.primary,
-    marginTop: 10,
+    marginTop: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
+    marginTop: 4,
     textAlign: 'center',
-    marginTop: 5,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
+    fontWeight: '600',
     color: colors.text.primary,
     marginBottom: 8,
-    fontWeight: '600',
   },
   input: {
     backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: colors.border.secondary,
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: 8,
     padding: 12,
     fontSize: 16,
     color: colors.text.primary,
   },
   selectButton: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.secondary,
-    borderRadius: 10,
-    padding: 12,
   },
   selectButtonText: {
     fontSize: 16,
-    color: colors.text.tertiary,
+    color: colors.text.disabled,
   },
   selectButtonTextFilled: {
     fontSize: 16,
@@ -584,135 +542,113 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
-  halfInput: {
+  flex1: {
     flex: 1,
   },
-  flexInput: {
+  flex2: {
     flex: 2,
   },
-  smallInput: {
-    flex: 1,
-  },
   linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    gap: 8,
+    marginTop: 8,
   },
-  linkText: {
+  linkButtonText: {
     color: colors.primary.main,
     fontSize: 14,
-    fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background.secondary,
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-    gap: 10,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
   },
   infoText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.text.secondary,
     flex: 1,
-    fontSize: 13,
-    color: colors.text.primary,
   },
   footer: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 10,
+    padding: 16,
+    gap: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border.secondary,
-    backgroundColor: colors.background.secondary,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background.primary,
   },
   buttonSecondary: {
+    flex: 1,
     flexDirection: 'row',
-    padding: 15,
-    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: colors.border.secondary,
+    borderColor: colors.border,
     gap: 8,
   },
   buttonSecondaryText: {
-    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '600',
-  },
-  buttonTertiary: {
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonTertiaryText: {
-    color: colors.text.tertiary,
-    fontSize: 16,
+    color: colors.text.primary,
   },
   buttonPrimary: {
     flex: 1,
     flexDirection: 'row',
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: colors.primary.main,
     gap: 8,
+  },
+  buttonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonPrimaryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
     maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text.primary,
   },
   modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: colors.background.secondary,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  modalItemSelected: {
-    backgroundColor: colors.background.primary,
-    borderWidth: 2,
-    borderColor: colors.primary.main,
+    padding: 16,
   },
   modalItemText: {
     fontSize: 16,
     color: colors.text.primary,
   },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
 });
 
-export default Step2Domicilio;
+export default AgregarDomicilioScreen;

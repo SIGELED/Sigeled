@@ -1,12 +1,6 @@
 import * as reporteModel from '../models/reporteModel.js';
 import { generateInformeEscalafonarioPDF } from '../utils/escalafon.js';
 
-<<<<<<< HEAD
-/**
- * Obtiene el informe escalafonario completo de un docente
- */
-=======
->>>>>>> origin/main
 export const getInformeEscalafonario = async (req, res) => {
     try {
         const { id_persona } = req.params;
@@ -34,20 +28,10 @@ export const getInformeEscalafonario = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Genera y descarga el PDF del informe escalafonario
- */
-=======
->>>>>>> origin/main
 export const descargarInformeEscalafonarioPDF = async (req, res) => {
     try {
         const { id_persona } = req.params;
 
-<<<<<<< HEAD
-        // Aumentar timeout para consultas complejas
-=======
->>>>>>> origin/main
         const informe = await Promise.race([
             reporteModel.getInformeEscalafonario(id_persona),
             new Promise((_, reject) => 
@@ -72,10 +56,6 @@ export const descargarInformeEscalafonarioPDF = async (req, res) => {
     } catch (error) {
         console.error('Error al generar PDF:', error);
         
-<<<<<<< HEAD
-        // Manejo específico de errores de conexión
-=======
->>>>>>> origin/main
         if (error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             return res.status(503).json({
                 success: false,
@@ -100,12 +80,6 @@ export const descargarInformeEscalafonarioPDF = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas generales del sistema
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasGenerales = async (req, res) => {
     try {
         const estadisticas = await reporteModel.getEstadisticasGenerales();
@@ -124,12 +98,6 @@ export const getEstadisticasGenerales = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de contratos por período
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasContratos = async (req, res) => {
     try {
         const { anio } = req.query;
@@ -150,12 +118,6 @@ export const getEstadisticasContratos = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de títulos por tipo
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasTitulos = async (req, res) => {
     try {
         const estadisticas = await reporteModel.getEstadisticasTitulosPorTipo();
@@ -174,12 +136,6 @@ export const getEstadisticasTitulos = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de documentos por tipo
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasDocumentos = async (req, res) => {
     try {
         const estadisticas = await reporteModel.getEstadisticasDocumentosPorTipo();
@@ -198,12 +154,6 @@ export const getEstadisticasDocumentos = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene ranking de docentes por antigüedad
- */
-=======
->>>>>>> origin/main
 export const getRankingAntiguedad = async (req, res) => {
     try {
         const { limit } = req.query;
@@ -226,12 +176,6 @@ export const getRankingAntiguedad = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene listado de docentes con resumen
- */
-=======
->>>>>>> origin/main
 export const getListadoDocentes = async (req, res) => {
     try {
         const { search, tiene_contratos_activos } = req.query;
@@ -258,12 +202,6 @@ export const getListadoDocentes = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene contratos próximos a vencer
- */
-=======
->>>>>>> origin/main
 export const getContratosProximosVencer = async (req, res) => {
     try {
         const { dias } = req.query;
@@ -287,12 +225,6 @@ export const getContratosProximosVencer = async (req, res) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene documentos digitalizados con filtros
- */
-=======
->>>>>>> origin/main
 export const getDocumentosDigitalizados = async (req, res) => {
     try {
         const { id_persona, tipo } = req.query;
@@ -355,8 +287,4 @@ export const getResumenCompleto = async (req, res) => {
             error: error.message
         });
     }
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> origin/main

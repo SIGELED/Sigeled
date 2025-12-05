@@ -233,10 +233,6 @@ export const aiChatService = {
 }
 
 export const reporteService = {
-<<<<<<< HEAD
-  // Informe escalafonario
-=======
->>>>>>> origin/main
   getInformeEscalafonario: (id_persona) => 
     api.get(`/reportes/informe-escalafonario/${id_persona}`),
   
@@ -245,10 +241,6 @@ export const reporteService = {
       responseType: 'blob'
     });
     
-<<<<<<< HEAD
-    // Crear un enlace de descarga
-=======
->>>>>>> origin/main
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
@@ -261,10 +253,6 @@ export const reporteService = {
     return response;
   },
 
-<<<<<<< HEAD
-  // Estadísticas
-=======
->>>>>>> origin/main
   getEstadisticasGenerales: () => 
     api.get('/reportes/estadisticas/generales'),
   
@@ -277,10 +265,6 @@ export const reporteService = {
   getEstadisticasDocumentos: () => 
     api.get('/reportes/estadisticas/documentos'),
 
-<<<<<<< HEAD
-  // Rankings y listados
-=======
->>>>>>> origin/main
   getRankingAntiguedad: (limit = 20) => 
     api.get('/reportes/ranking/antiguedad', { params: { limit } }),
   
@@ -290,17 +274,9 @@ export const reporteService = {
   getContratosProximosVencer: (dias = 30) => 
     api.get('/reportes/contratos/proximos-vencer', { params: { dias } }),
 
-<<<<<<< HEAD
-  // Documentos digitalizados
   getDocumentosDigitalizados: (filtros = {}) => 
     api.get('/reportes/documentos/digitalizados', { params: filtros }),
 
-  // Resumen completo
-=======
-  getDocumentosDigitalizados: (filtros = {}) => 
-    api.get('/reportes/documentos/digitalizados', { params: filtros }),
-
->>>>>>> origin/main
   getResumenCompleto: () => 
     api.get('/reportes/resumen-completo')
 }

@@ -11,13 +11,10 @@ import MisContratos from './MisContratos';
 import Notificaciones from './Notificaciones';
 import ContratoNuevo from './ContratoNuevo';
 import AiChat from './AiChat';
-<<<<<<< HEAD
-=======
 import MiPerfil from './MiPerfil';
 import Profesor from './Profesor';
 import Cargos from './Cargos';
 import MisMateriasYCargos from './MisMateriasYCargos';
->>>>>>> origin/main
 import Reportes from './Reportes';
 import { Routes, Route } from 'react-router-dom';
 

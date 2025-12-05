@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MiLegajoScreen from '../screens/MiLegajo/MiLegajoScreen';
 import SubirDocumentoScreen from '../screens/SubirDocumento/SubirDocumentoScreen';
 import MisContratosScreen from '../screens/MisContratos/MisContratosScreen';
 import NotificacionesScreen from '../screens/Notificaciones/NotificacionesScreen';
+import PerfilStackNavigator from './PerfilStackNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import SigeledLogo from '../components/SigeledLogo';
@@ -23,24 +24,33 @@ const LogoTitle = () => {
 const LogoutButton = () => {
     const { logout } = useAuth();
 
-    const handleLogout = () => {
-        Alert.alert(
-            'Cerrar sesión',
-            '¿Estás seguro que deseas salir?',
-            [
-                {
-                    text: 'Cancelar',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Salir',
-                    onPress: async () => {
-                        await logout();
+    const handleLogout = async () => {
+        // En web, ejecutar logout directamente sin confirmación
+        // ya que Alert.alert no funciona correctamente en React Native Web
+        if (Platform.OS === 'web') {
+            const confirmed = window.confirm('¿Estás seguro que deseas cerrar sesión?');
+            if (confirmed) {
+                await logout();
+            }
+        } else {
+            Alert.alert(
+                'Cerrar sesión',
+                '¿Estás seguro que deseas salir?',
+                [
+                    {
+                        text: 'Cancelar',
+                        style: 'cancel'
                     },
-                    style: 'destructive'
-                }
-            ]
-        );
+                    {
+                        text: 'Salir',
+                        onPress: async () => {
+                            await logout();
+                        },
+                        style: 'destructive'
+                    }
+                ]
+            );
+        }
     };
 
     return (
@@ -65,6 +75,8 @@ const MainTabNavigator = () => {
                             iconName = focused ? 'briefcase' : 'briefcase-outline';
                         } else if (route.name === 'Notificaciones') {
                             iconName = focused ? 'notifications' : 'notifications-outline';
+                        } else if (route.name === 'Mi Perfil') {
+                            iconName = focused ? 'person' : 'person-outline';
                         }
 
                         return <Ionicons name={iconName} size={size} color={color} />;
@@ -89,8 +101,8 @@ const MainTabNavigator = () => {
             >
                 <Tab.Screen name="Mi Legajo" component={MiLegajoScreen} />
                 <Tab.Screen name="Mis Contratos" component={MisContratosScreen} />
-                <Tab.Screen name="Notificaciones" component={NotificacionesScreen} />
                 <Tab.Screen name="Subir Documento" component={SubirDocumentoScreen} />
+                <Tab.Screen name="Mi Perfil" component={PerfilStackNavigator} />
             </Tab.Navigator>
     );
 };

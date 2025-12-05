@@ -1,11 +1,5 @@
 import db from './db.js';
 
-<<<<<<< HEAD
-/**
- * Obtiene información completa para el informe escalafonario de un docente
- */
-=======
->>>>>>> origin/main
 export const getInformeEscalafonario = async (id_persona) => {
     try {
         const query = `
@@ -166,12 +160,6 @@ export const getInformeEscalafonario = async (id_persona) => {
     }
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas generales del sistema
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasGenerales = async () => {
     const query = `
         WITH stats AS (
@@ -209,12 +197,6 @@ export const getEstadisticasGenerales = async () => {
     return rows[0];
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de contratos por período
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasContratosPorPeriodo = async (anio) => {
     const query = `
         SELECT 
@@ -239,12 +221,6 @@ export const getEstadisticasContratosPorPeriodo = async (anio) => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de títulos por tipo
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasTitulosPorTipo = async () => {
     const query = `
         SELECT 
@@ -273,12 +249,6 @@ export const getEstadisticasTitulosPorTipo = async () => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene ranking de docentes por antigüedad
- */
-=======
->>>>>>> origin/main
 export const getRankingDocentesPorAntiguedad = async (limit = 20) => {
     const query = `
         SELECT 
@@ -303,12 +273,6 @@ export const getRankingDocentesPorAntiguedad = async (limit = 20) => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene listado de docentes con resumen para informes
- */
-=======
->>>>>>> origin/main
 export const getListadoDocentesResumen = async (filtros = {}) => {
     let whereConditions = ['pp.vigente = true', "pf.nombre = 'Profesor'"];
     const params = [];
@@ -380,12 +344,6 @@ export const getListadoDocentesResumen = async (filtros = {}) => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene estadísticas de documentos por tipo
- */
-=======
->>>>>>> origin/main
 export const getEstadisticasDocumentosPorTipo = async () => {
     const query = `
         SELECT 
@@ -404,12 +362,6 @@ export const getEstadisticasDocumentosPorTipo = async () => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene contratos próximos a vencer
- */
-=======
->>>>>>> origin/main
 export const getContratosProximosAVencer = async (dias = 30) => {
     const query = `
         SELECT 
@@ -444,12 +396,6 @@ export const getContratosProximosAVencer = async (dias = 30) => {
     return rows;
 };
 
-<<<<<<< HEAD
-/**
- * Obtiene documentos digitalizados con filtros
- */
-=======
->>>>>>> origin/main
 export const getDocumentosDigitalizados = async (filtros = {}) => {
     let whereConditions = ['a.id_archivo IS NOT NULL'];
     const params = [];
@@ -518,8 +464,4 @@ export const getDocumentosDigitalizados = async (filtros = {}) => {
 
     const { rows } = await db.query(query, params);
     return rows;
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> origin/main

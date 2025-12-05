@@ -104,16 +104,23 @@ const RegisterScreen = ({ navigation }) => {
                 throw new Error('No se pudo obtener el ID de persona');
             }
 
-            Alert.alert(
-                'Registro Exitoso',
-                'Tu cuenta ha sido creada. Ahora completa tus datos personales.',
-                [
-                    {
-                        text: 'Continuar',
-                        onPress: () => navigation.navigate('CompletarRegistro', { id_persona })
-                    }
-                ]
-            );
+            console.log('[RegisterScreen] Navegando a CompletarRegistro con id_persona:', id_persona);
+
+            // En web, Alert.alert puede no funcionar correctamente, navegar directamente
+            if (Platform.OS === 'web') {
+                navigation.navigate('CompletarRegistro', { id_persona });
+            } else {
+                Alert.alert(
+                    'Registro Exitoso',
+                    'Tu cuenta ha sido creada. Ahora completa tus datos personales.',
+                    [
+                        {
+                            text: 'Continuar',
+                            onPress: () => navigation.navigate('CompletarRegistro', { id_persona })
+                        }
+                    ]
+                );
+            }
         } catch (err) {
             console.error('[RegisterScreen] error:', err);
             const errorMsg = err.response?.data?.message || err.message || 'Error al crear la cuenta';

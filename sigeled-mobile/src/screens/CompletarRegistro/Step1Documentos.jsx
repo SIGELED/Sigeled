@@ -8,12 +8,14 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import colors from '../../theme/colors';
-import { getTiposDocumento, uploadFile, vincularDocumento } from '../../services/api';
+import { getTiposDocumento, uploadFile, vincularDocumento, setAuthToken } from '../../services/api';
+import storage from '../../utils/storage';
 
 const Step1Documentos = ({ id_persona, onNext, navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,25 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
   useEffect(() => {
     cargarTiposDocumento();
     requestPermissions();
+    verificarToken();
   }, []);
+
+  const verificarToken = async () => {
+    try {
+      const token = await storage.getItem('userToken');
+      console.log('[Step1Documentos] Token guardado:', token ? 'SÍ' : 'NO');
+      if (token) {
+        console.log('[Step1Documentos] Token primeros caracteres:', token.substring(0, 20));
+        // Asegurarse de que el token esté configurado en la API
+        setAuthToken(token);
+        console.log('[Step1Documentos] Token configurado en API');
+      } else {
+        console.warn('[Step1Documentos] No hay token guardado - esto es un problema!');
+      }
+    } catch (error) {
+      console.error('[Step1Documentos] Error verificando token:', error);
+    }
+  };
 
   const requestPermissions = async () => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
@@ -42,22 +62,64 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
   const cargarTiposDocumento = async () => {
     try {
       setLoading(true);
+      
+      // Asegurarse de que el token esté configurado antes de hacer la petición
+      const token = await storage.getItem('userToken');
+      console.log('[Step1Documentos] ===== INICIO CARGA TIPOS =====');
+      console.log('[Step1Documentos] Token existe?', !!token);
+      if (token) {
+        console.log('[Step1Documentos] Configurando token...');
+        setAuthToken(token);
+        console.log('[Step1Documentos] Token configurado');
+      } else {
+        console.error('[Step1Documentos] ⚠️ NO HAY TOKEN GUARDADO');
+      }
+      
+      console.log('[Step1Documentos] Haciendo petición a getTiposDocumento...');
       const tipos = await getTiposDocumento();
-      // Filtrar los tipos más importantes
-      const tiposRequeridos = tipos.filter(t => 
-        ['DNI_FRENTE', 'DNI_DORSO', 'CERTIFICADO_DOMICILIO'].includes(t.codigo)
-      );
-      setTiposDocumento(tiposRequeridos);
+      console.log('[Step1Documentos] ✅ Respuesta recibida:', tipos);
+      console.log('[Step1Documentos] Cantidad de tipos:', tipos?.length || 0);
+      
+      // Mostrar TODOS los códigos disponibles
+      if (tipos && tipos.length > 0) {
+        console.log('[Step1Documentos] 📋 CÓDIGOS DISPONIBLES:');
+        tipos.forEach(t => {
+          console.log(`  - ${t.codigo} (${t.nombre})`);
+        });
+      }
+      
+      // Mostrar TODOS los tipos de documento disponibles (igual que el web)
+      console.log('[Step1Documentos] Mostrando todos los tipos disponibles');
+      if (tipos && tipos.length === 0) {
+        console.warn('[Step1Documentos] ⚠️ No hay tipos de documento disponibles');
+      }
+      setTiposDocumento(tipos || []);
+      console.log('[Step1Documentos] ===== FIN CARGA TIPOS =====');
     } catch (error) {
-      console.error('Error cargando tipos de documento:', error);
-      Alert.alert('Error', 'No se pudieron cargar los tipos de documento');
+      console.error('[Step1Documentos] ❌ ERROR cargando tipos de documento:', error);
+      console.error('[Step1Documentos] Error mensaje:', error.message);
+      console.error('[Step1Documentos] Error response:', error.response?.data);
+      console.error('[Step1Documentos] Error status:', error.response?.status);
+      
+      const errorMsg = error.response?.data?.message || error.message || 'No se pudieron cargar los tipos de documento';
+      console.error('[Step1Documentos] Mostrando error al usuario:', errorMsg);
+      
+      if (Platform.OS === 'web') {
+        alert(`ERROR: ${errorMsg}\n\nRevisa la consola para más detalles.`);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelectSource = (tipo) => {
-    console.log('[Step1Documentos] Documento seleccionado:', tipo.nombre);
+    console.log('[Step1Documentos] ========================================');
+    console.log('[Step1Documentos] Documento clickeado:', tipo);
+    console.log('[Step1Documentos] Tipo nombre:', tipo.nombre);
+    console.log('[Step1Documentos] Tipo codigo:', tipo.codigo);
+    console.log('[Step1Documentos] ========================================');
     setTipoSeleccionado(tipo);
     setShowSourceModal(true);
   };
@@ -79,89 +141,164 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
   const handlePickFromGallery = async () => {
     setShowSourceModal(false);
     
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    // En web, usar input file nativo del navegador
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,application/pdf';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          subirArchivo(file, tipoSeleccionado);
+        }
+      };
+      input.click();
+    } else {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      subirArchivo(result.assets[0].uri, tipoSeleccionado);
+      if (!result.canceled && result.assets[0]) {
+        subirArchivo(result.assets[0].uri, tipoSeleccionado);
+      }
     }
   };
 
   const handleDocumentPick = async () => {
     setShowSourceModal(false);
     
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/*'],
-      copyToCacheDirectory: true,
-    });
+    // En web, usar el mismo input file que en gallery
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,application/pdf';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          subirArchivo(file, tipoSeleccionado);
+        }
+      };
+      input.click();
+    } else {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
 
-    if (result.type === 'success') {
-      subirArchivo(result.uri, tipoSeleccionado);
+      if (result.type === 'success') {
+        subirArchivo(result.uri, tipoSeleccionado);
+      }
     }
   };
 
-  const subirArchivo = async (uri, tipo) => {
+  const subirArchivo = async (fileOrUri, tipo) => {
     try {
       setLoading(true);
 
-      // Crear FormData con el archivo
       const formData = new FormData();
-      const fileName = uri.split('/').pop();
-      const fileType = fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+      
+      // Distinguir entre archivo del navegador (File object) y URI de React Native
+      if (Platform.OS === 'web' && fileOrUri instanceof File) {
+        // En web, fileOrUri es un objeto File del navegador
+        console.log('[Step1Documentos] Subiendo archivo File del navegador:', fileOrUri.name);
+        formData.append('archivo', fileOrUri);
+      } else {
+        // En móvil nativo, fileOrUri es una URI
+        const fileName = fileOrUri.split('/').pop();
+        const fileType = fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+        
+        console.log('[Step1Documentos] Subiendo archivo desde URI:', fileName);
+        formData.append('archivo', {
+          uri: fileOrUri,
+          name: fileName,
+          type: fileType,
+        });
+      }
 
-      formData.append('file', {
-        uri,
-        name: fileName,
-        type: fileType,
-      });
-
-      // Subir archivo
-      const uploadResponse = await uploadFile(formData, (progress) => {
+      console.log('[Step1Documentos] Subiendo archivo para persona:', id_persona);
+      
+      // Subir archivo usando la misma ruta que el web
+      const uploadResponse = await uploadFile(id_persona, formData, (progress) => {
         console.log(`Progreso: ${progress}%`);
       });
 
-      if (!uploadResponse.file || !uploadResponse.file.id_archivo) {
-        throw new Error('Error al subir archivo');
+      console.log('[Step1Documentos] Upload response:', uploadResponse);
+
+      // La respuesta del backend web es: { data: { id_archivo, ... } }
+      const id_archivo = uploadResponse.data?.id_archivo || uploadResponse.id_archivo;
+      
+      if (!id_archivo) {
+        throw new Error('Error al subir archivo - no se obtuvo id_archivo');
       }
 
       // Vincular con persona_documentos
       await vincularDocumento({
         id_persona,
-        id_tipo_documento: tipo.id_tipo_documento,
-        id_archivo: uploadResponse.file.id_archivo,
+        id_tipo_doc: tipo.id_tipo_doc,
+        id_archivo: id_archivo,
       });
 
-      setDocumentosSubidos({
-        ...documentosSubidos,
+      // Obtener el nombre del archivo
+      const fileName = Platform.OS === 'web' && fileOrUri instanceof File 
+        ? fileOrUri.name 
+        : fileOrUri.split('/').pop();
+
+      // Usar forma funcional para evitar problemas de estado desactualizado
+      setDocumentosSubidos(prevDocs => ({
+        ...prevDocs,
         [tipo.codigo]: {
           nombre: fileName,
-          id_archivo: uploadResponse.file.id_archivo,
+          id_archivo: id_archivo,
         },
-      });
+      }));
 
-      Alert.alert('Éxito', `${tipo.nombre} subido correctamente`);
+      if (Platform.OS === 'web') {
+        window.alert(`${tipo.nombre} subido correctamente`);
+      } else {
+        Alert.alert('Éxito', `${tipo.nombre} subido correctamente`);
+      }
     } catch (error) {
-      console.error('Error subiendo archivo:', error);
-      Alert.alert('Error', 'No se pudo subir el documento');
+      console.error('[Step1Documentos] ❌ Error subiendo archivo:', error);
+      console.error('[Step1Documentos] Error message:', error.message);
+      console.error('[Step1Documentos] Error response:', error.response?.data);
+      console.error('[Step1Documentos] Error status:', error.response?.status);
+      
+      const errorMsg = error.response?.data?.message || error.message || 'No se pudo subir el documento';
+      
+      if (Platform.OS === 'web') {
+        window.alert(`Error: ${errorMsg}`);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleContinuar = () => {
-    // Verificar que se hayan subido al menos DNI frente y dorso
-    const requiredDocs = ['DNI_FRENTE', 'DNI_DORSO'];
+    // Verificar documentos obligatorios según backend: DNI, DOM, TIT
+    const requiredDocs = ['DNI', 'DOM', 'TIT'];
     const missing = requiredDocs.filter(codigo => !documentosSubidos[codigo]);
 
     if (missing.length > 0) {
-      Alert.alert(
-        'Documentos faltantes',
-        'Debes subir al menos el DNI (frente y dorso) para continuar',
-        [{ text: 'OK' }]
-      );
+      const missingNames = missing.map(codigo => {
+        const tipo = tiposDocumento.find(t => t.codigo === codigo);
+        return tipo?.nombre || codigo;
+      });
+      
+      if (Platform.OS === 'web') {
+        window.alert(
+          `Documentos obligatorios faltantes:\n\n${missingNames.join('\n')}\n\nDebes subir al menos: DNI, Constancia de domicilio y Título habilitante para continuar.`
+        );
+      } else {
+        Alert.alert(
+          'Documentos obligatorios faltantes',
+          `Debes subir al menos:\n\n${missingNames.join('\n')}`,
+          [{ text: 'OK' }]
+        );
+      }
       return;
     }
 
@@ -186,18 +323,26 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
           <Text style={styles.subtitle}>
             Necesitamos tu DNI (frente y dorso) para verificar tu identidad
           </Text>
+          <Text style={styles.debugText}>
+            Documentos cargados: {tiposDocumento.length}
+          </Text>
         </View>
 
         <View style={styles.documentsList}>
+          {tiposDocumento.length === 0 && (
+            <Text style={styles.noDocsText}>No se encontraron tipos de documento</Text>
+          )}
           {tiposDocumento.map((tipo) => {
             const subido = documentosSubidos[tipo.codigo];
+            console.log('[Step1Documentos] Renderizando documento:', tipo.nombre, 'subido:', !!subido);
             
             return (
               <TouchableOpacity
-                key={tipo.id_tipo_documento}
+                key={tipo.id_tipo_doc}
                 style={[styles.documentCard, subido && styles.documentCardSubido]}
                 onPress={() => handleSelectSource(tipo)}
                 disabled={loading}
+                activeOpacity={0.7}
               >
                 <View style={styles.documentInfo}>
                   <Ionicons
@@ -225,7 +370,7 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
         <View style={styles.infoBox}>
           <Ionicons name="information-circle" size={20} color={colors.primary.main} />
           <Text style={styles.infoText}>
-            Toca cada documento para subirlo. El DNI (frente y dorso) es obligatorio para continuar.
+            Toca cada documento para subirlo. Son obligatorios: DNI, Constancia de domicilio y Título habilitante.
           </Text>
         </View>
       </ScrollView>
@@ -235,10 +380,10 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
           style={[
             styles.buttonPrimary,
             loading && styles.buttonDisabled,
-            (!documentosSubidos['DNI_FRENTE'] || !documentosSubidos['DNI_DORSO']) && styles.buttonDisabled
+            (!documentosSubidos['DNI'] || !documentosSubidos['DOM'] || !documentosSubidos['TIT']) && styles.buttonDisabled
           ]}
           onPress={handleContinuar}
-          disabled={loading || !documentosSubidos['DNI_FRENTE'] || !documentosSubidos['DNI_DORSO']}
+          disabled={loading || !documentosSubidos['DNI'] || !documentosSubidos['DOM'] || !documentosSubidos['TIT']}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -262,17 +407,17 @@ const Step1Documentos = ({ id_persona, onNext, navigation }) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Selecciona una opción</Text>
             
-            <TouchableOpacity style={styles.sourceOption} onPress={handleTakePhoto}>
+            <TouchableOpacity key="camera" style={styles.sourceOption} onPress={handleTakePhoto}>
               <Ionicons name="camera" size={32} color={colors.primary.main} />
               <Text style={styles.sourceOptionText}>Tomar foto</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sourceOption} onPress={handlePickFromGallery}>
+            <TouchableOpacity key="gallery" style={styles.sourceOption} onPress={handlePickFromGallery}>
               <Ionicons name="images" size={32} color={colors.primary.main} />
               <Text style={styles.sourceOptionText}>Elegir de galería</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sourceOption} onPress={handleDocumentPick}>
+            <TouchableOpacity key="document" style={styles.sourceOption} onPress={handleDocumentPick}>
               <Ionicons name="document" size={32} color={colors.primary.main} />
               <Text style={styles.sourceOptionText}>Seleccionar archivo</Text>
             </TouchableOpacity>
@@ -328,6 +473,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
   },
+  debugText: {
+    fontSize: 12,
+    color: colors.primary.main,
+    textAlign: 'center',
+    marginTop: 10,
+    fontWeight: 'bold',
+  },
   documentsList: {
     gap: 15,
   },
@@ -340,6 +492,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border.secondary,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+    minHeight: 70,
   },
   documentCardSubido: {
     borderColor: colors.primary.main,
@@ -442,6 +596,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
     gap: 15,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+  },
+  noDocsText: {
+    textAlign: 'center',
+    color: colors.text.tertiary,
+    fontSize: 14,
+    padding: 20,
   },
   sourceOptionText: {
     fontSize: 16,

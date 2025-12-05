@@ -12,11 +12,7 @@ export default function Nav() {
     const unreadCount = notifications.filter(n => !n.leido).length;
 
     return(
-<<<<<<< HEAD
-        <div className='fixed z-50 flex space-x-4 top-7 right-7'>
-=======
         <div className='absolute z-50 flex mt-5 space-x-4 transform right-7'>
->>>>>>> origin/main
             <div className="relative">
                 <button
                     ref={btnNotifRef}

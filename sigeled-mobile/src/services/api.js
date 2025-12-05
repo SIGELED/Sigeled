@@ -148,12 +148,12 @@ export const uploadDocument = async (formData) => {
   return response.data;
 };
 
-// Nueva función para subir archivos con progreso
-export const uploadFile = async (formData, onProgress) => {
-  console.log('[uploadFile] Subiendo archivo');
+// Nueva función para subir archivos con progreso (usa la misma ruta que el web)
+export const uploadFile = async (id_persona, formData, onProgress) => {
+  console.log('[uploadFile] Subiendo archivo para persona:', id_persona);
   console.log('[uploadFile] Headers actuales:', api.defaults.headers.common);
 
-  const response = await api.post('/archivos/upload', formData, {
+  const response = await api.post(`/persona/${id_persona}/archivo`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
       // Asegurar que el token se incluya explícitamente
@@ -163,8 +163,8 @@ export const uploadFile = async (formData, onProgress) => {
     },
     onUploadProgress: (progressEvent) => {
       if (onProgress && progressEvent.total) {
-        const progress = progressEvent.loaded / progressEvent.total;
-        onProgress(progress);
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percentCompleted);
       }
     },
   });
@@ -205,6 +205,11 @@ export const getTiposDocumento = async () => {
 
 export const vincularDocumento = async (data) => {
   const response = await api.post('/persona-doc', data);
+  return response.data;
+};
+
+export const getEstadosVerificacion = async () => {
+  const response = await api.get('/persona/estados-verificacion');
   return response.data;
 };
 
@@ -249,40 +254,62 @@ export const createDomicilio = async (id_persona, domicilioData) => {
   return response.data;
 };
 
-export const getLocalidades = async () => {
-  const response = await api.get('/domicilio/localidades');
+export const getDepartamentos = async () => {
+  const response = await api.get('/persona/dom/departamentos');
+  return response.data;
+};
+
+export const getLocalidades = async (id_departamento) => {
+  const response = await api.get(`/persona/dom/departamentos/${id_departamento}/localidades`);
   return response.data;
 };
 
 export const getBarriosByLocalidad = async (id_localidad) => {
-  const response = await api.get(`/domicilio/localidades/${id_localidad}/barrios`);
+  const response = await api.get(`/persona/dom/localidades/${id_localidad}/barrios`);
   return response.data;
 };
 
 export const createBarrio = async (id_localidad, barrioData) => {
-  const response = await api.post(`/domicilio/localidades/${id_localidad}/barrios`, barrioData);
+  const response = await api.post(`/persona/dom/localidades/${id_localidad}/barrios`, barrioData);
   return response.data;
 };
 
 export const assignBarrioToPersona = async (id_persona, id_barrio) => {
-  const response = await api.post(`/persona/${id_persona}/barrio`, { id_dom_barrio: id_barrio });
+  const response = await api.post(`/persona/${id_persona}/barrios`, { id_dom_barrio: id_barrio });
+  return response.data;
+};
+
+// === DOCUMENTOS ===
+export const solicitarEliminacionDocumento = async (id_persona_doc) => {
+  const response = await api.post(`/persona-doc/${id_persona_doc}/solicitar_eliminacion`);
+  return response.data;
+};
+
+// === DOMICILIOS ===
+export const eliminarDomicilio = async (id_persona, id_domicilio) => {
+  const response = await api.delete(`/persona/${id_persona}/domicilio/${id_domicilio}`);
   return response.data;
 };
 
 // === TÍTULOS ===
 export const getTiposTitulo = async () => {
-  const response = await api.get('/persona-titu/tipos-titulo');
+  const response = await api.get('/titulos/tipos');
   return response.data;
 };
 
 export const createTitulo = async (tituloData) => {
-  const response = await api.post('/persona-titu', tituloData);
+  const response = await api.post('/titulos/', tituloData);
+  return response.data;
+};
+
+export const solicitarEliminacionTitulo = async (id_titulo) => {
+  const response = await api.post(`/titulos/${id_titulo}/solicitar_eliminacion`);
   return response.data;
 };
 
 // === LEGAJO ===
 export const recalcularLegajo = async (id_persona) => {
-  const response = await api.post(`/legajo/${id_persona}/recalcular`);
+  const response = await api.post(`/legajo/persona/${id_persona}/recalcular`);
   return response.data;
 };
 

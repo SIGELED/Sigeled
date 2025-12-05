@@ -70,12 +70,24 @@ const Register = () => {
         cuil: userData.cuil,
       };
 
+      console.log('[Register] Payload a enviar:', payload);
+
       const res = await authService.registerFull(payload);
       await login(res.data.user, res.data.token);
       const idp = res?.data?.user?.id_persona;
       navigate(`/registro/archivos?persona=${idp}`);
     } catch (error) {
-      setError(error.response?.data?.message || "Error en el registro");
+      console.error('[Register] Error completo:', error);
+      console.error('[Register] Error response:', error.response?.data);
+      const errorMsg = error.response?.data?.message || "Error en el registro";
+      const errorDetails = error.response?.data?.errors;
+      
+      if (errorDetails && Array.isArray(errorDetails)) {
+        console.error('[Register] Errores de validación:', errorDetails);
+        setError(errorDetails.map(e => e.msg).join(', '));
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSubmitting(false);
     }
