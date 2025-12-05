@@ -24,7 +24,8 @@ export const authService = {
   logout:() =>{
     localStorage.removeItem('token');
     return Promise.resolve();
-  }
+  },
+  changePassword: (payload) => api.post('/auth/change-password', payload),
 };
 
 export const userService = {
@@ -54,7 +55,8 @@ export const personaService = {
     if(search) params.search = search;
     if(perfil) params.perfil = perfil;
     return api.get('/persona/buscar', { params });
-  }
+  },
+  updatePersonaBasica:(id_persona, data) => api.patch(`/persona/${id_persona}`, data),
 };
 
 export const identificationService = {
@@ -145,22 +147,57 @@ export const contratoService = {
   getProfesorDetalles: (idPersona) => api.get(`/contratos/profesor/${idPersona}/detalles`),
   getMateriasByCarreraAnio: (idCarrera, idAnio) => api.get(`/contratos/materias`, {params: { idCarrera, idAnio }}),
   getAnios: () => api.get('/contratos/anios'),
+  getTarifasByPersona(idPersona) {
+    return api.get(`/contratos/tarifas/${idPersona}`)
+  },
+  getPerfilTarifasConfig: () => api.get("/contratos/perfil-tarifas"),
+  updatePerfilTarifa: (id_tarifa, payload) => api.put(`/contratos/perfil-tarifas/${id_tarifa}`, payload),
 
   exportarContrato : async (id, format = 'pdf') => {
     const res = await api.get(`/contratos/${id}/export`, {
       params: { format },
       responseType: 'blob',
     });
+
     const blob = new Blob([res.data], {
       type: format === 'word'
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : 'application/pdf'
     });
-    const url = URL.createObjectURL(blob);
-    return { url, filename: `contrato-${id}.${format === 'word' ? 'docx' : 'pdf'}` };
-  },
 
-  getCarreras:() => api.get('/contratos/carreras')
+    const url = URL.createObjectURL(blob);
+
+      let filename;
+    const disposition =
+      res.headers['content-disposition'] ||
+      res.headers['Content-Disposition'];
+
+    if (disposition) {
+      let match = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1]);
+      } else {
+        match = disposition.match(/filename="?([^"]+)"?/i);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+    }
+
+    if (!filename) {
+      const ext =
+        format === 'word'
+          ? 'docx'
+          : 'pdf';
+
+      filename = `CONTRATO-${id}.${ext}`;
+    }
+
+    return { url, filename };
+  },
+  getCarreras:() => api.get('/contratos/carreras'),
+  getPeriodos: () => api.get('/contratos/periodos'),
+  createGeneral: (payload) => api.post("/contratos/general/crear", payload),
 };
 
 export const legajoService = {
@@ -179,7 +216,11 @@ export const dashboardService = {
 
 export const notificacionService = {
   getMisNotificaciones: () => api.get('/notificaciones/mis-notificaciones'),
-  marcarComoLeido:async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  listar: async () => (await api.get('/notificaciones/mis-notificaciones')).data,
+  marcarLeida: async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  marcarComoLeido: async (id_notificacion) => (await api.patch(`/notificaciones/${id_notificacion}/leido`)).data,
+  marcarTodasLeidas: async() => (await api.post('/notificaciones/marcar-todas-leidas')).data,
+  eliminar: async (id_notificacion) => (await api.delete(`/notificaciones/${id_notificacion}`)).data,
 }
 
 export const aiChatService = {
@@ -192,7 +233,10 @@ export const aiChatService = {
 }
 
 export const reporteService = {
+<<<<<<< HEAD
   // Informe escalafonario
+=======
+>>>>>>> origin/main
   getInformeEscalafonario: (id_persona) => 
     api.get(`/reportes/informe-escalafonario/${id_persona}`),
   
@@ -201,7 +245,10 @@ export const reporteService = {
       responseType: 'blob'
     });
     
+<<<<<<< HEAD
     // Crear un enlace de descarga
+=======
+>>>>>>> origin/main
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
@@ -214,7 +261,10 @@ export const reporteService = {
     return response;
   },
 
+<<<<<<< HEAD
   // Estadísticas
+=======
+>>>>>>> origin/main
   getEstadisticasGenerales: () => 
     api.get('/reportes/estadisticas/generales'),
   
@@ -227,7 +277,10 @@ export const reporteService = {
   getEstadisticasDocumentos: () => 
     api.get('/reportes/estadisticas/documentos'),
 
+<<<<<<< HEAD
   // Rankings y listados
+=======
+>>>>>>> origin/main
   getRankingAntiguedad: (limit = 20) => 
     api.get('/reportes/ranking/antiguedad', { params: { limit } }),
   
@@ -237,11 +290,17 @@ export const reporteService = {
   getContratosProximosVencer: (dias = 30) => 
     api.get('/reportes/contratos/proximos-vencer', { params: { dias } }),
 
+<<<<<<< HEAD
   // Documentos digitalizados
   getDocumentosDigitalizados: (filtros = {}) => 
     api.get('/reportes/documentos/digitalizados', { params: filtros }),
 
   // Resumen completo
+=======
+  getDocumentosDigitalizados: (filtros = {}) => 
+    api.get('/reportes/documentos/digitalizados', { params: filtros }),
+
+>>>>>>> origin/main
   getResumenCompleto: () => 
     api.get('/reportes/resumen-completo')
 }

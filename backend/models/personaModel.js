@@ -1,12 +1,10 @@
 import db from './db.js';
 
-// Obtener todas las personas
 export const getAllPersonas = async () => {
     const res = await db.query('SELECT * FROM personas');
     return res.rows;
 };
 
-// Buscar personas por nombre de perfil (ej: 'profesor', 'investigador', etc.)
 export const buscarPersonasPorNombrePerfil = async (nombre_perfil) => {
     const query = `
         SELECT p.*
@@ -20,7 +18,6 @@ export const buscarPersonasPorNombrePerfil = async (nombre_perfil) => {
     return res.rows;
 };
 
-// Buscar personas por varios perfiles (array de nombres de perfil)
 export const buscarPersonasPorNombresPerfiles = async (nombres_perfiles) => {
     const placeholders = nombres_perfiles.map((_, i) => `$${i + 1}`).join(', ');
     const query = `
@@ -35,7 +32,6 @@ export const buscarPersonasPorNombresPerfiles = async (nombres_perfiles) => {
     return res.rows;
 };
 
-// Buscar persona por DNI (el DNI está en personas_identificacion)
 export const buscarPersonaPorDNI = async (dni) => {
     const query = `
         SELECT p.*
@@ -47,7 +43,6 @@ export const buscarPersonaPorDNI = async (dni) => {
     return res.rows;
 };
 
-// Buscador avanzado de personas (ahora permite filtrar por DNI)
 export const getPersonasFiltros = async (filtros) => {
     let query = `SELECT
                 p.id_persona, p.nombre, p.apellido, p.fecha_nacimiento, p.sexo, p.telefono,
@@ -156,29 +151,22 @@ export const asignarPerfilPersona = async (id_persona, id_perfil, usuario_editor
     return ins.rows[0];
 };
 
-// Obtener perfiles 
 export const obtenerPerfiles = async() => {
     const res = await db.query('SELECT * FROM perfiles');
     return res.rows;
 }
 
-// Eliminar perfil de persona
-export const desasignarPerfilPersona = async(id_persona, id_perfil, usuario_editor) => {
+export const desasignarPerfilPersona = async (id_persona, id_perfil, _usuario_editor) => {
     const res = await db.query(
-        `UPDATE personas_perfiles
-        SET vigente = false,
-            actualizado_por_usuario = $3,
-            actualizado_en = NOW()
-        WHERE id_persona = $1
+        `DELETE FROM personas_perfiles
+            WHERE id_persona = $1
             AND id_perfil = $2
-            AND vigente = true
-        RETURNING *`,
-        [id_persona, id_perfil, usuario_editor]
+         RETURNING *`,
+        [id_persona, id_perfil]
     );
     return res.rowCount ? res.rows[0] : null;
-}
+};
 
-// Obtener perfiles vigentes de una persona
 export const getPerfilesDePersona = async (id_persona) => {
     const res = await db.query(
         `SELECT pf.*
@@ -188,4 +176,28 @@ export const getPerfilesDePersona = async (id_persona) => {
         [id_persona]
     );
     return res.rows;
+};
+
+export const updatePersonaBasica = async (id_persona, campos) => {
+    const permitidos = ["nombre", "apellido", "fecha_nacimiento", "sexo", "telefono"];
+    const keys = permitidos.filter((k) => campos[k] !== undefined);
+
+    if (keys.length === 0) {
+        const res = await db.query("SELECT * FROM personas WHERE id_persona = $1", [id_persona]);
+        return res.rows[0] || null;
+    }
+
+    const sets = keys.map((k, idx) => `${k} = $${idx + 1}`);
+    const values = keys.map((k) => campos[k]);
+    values.push(id_persona);
+
+    const query = `
+        UPDATE personas
+        SET ${sets.join(", ")}
+        WHERE id_persona = $${keys.length + 1}
+        RETURNING *
+    `;
+
+    const res = await db.query(query, values);
+    return res.rows[0] || null;
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { domOtrosService } from "../../services/api";
 import { useToast } from "../../components/ToastProvider";
+import { motion } from "motion/react";
 
 export default function RegisterDomicilio({ onSetDomicilio, onNext, onBack }) {
     const [departamentos, setDepartamentos] = useState([]);
@@ -57,7 +58,9 @@ export default function RegisterDomicilio({ onSetDomicilio, onNext, onBack }) {
 
     const confirmar = () => {
         if (!canNext) {
-            return toast.success("Completá Departamento, Localidad, Barrio, Calle y Altura.");
+        return toast.success(
+            "Completá Departamento, Localidad, Barrio, Calle y Altura."
+        );
         }
 
         const payload = {
@@ -76,138 +79,150 @@ export default function RegisterDomicilio({ onSetDomicilio, onNext, onBack }) {
 
         onSetDomicilio?.(payload);
         onNext?.();
-
     };
 
     return (
-        <div className="w-full bg-[#101922] rounded-2xl p-6 text-white">
-        <h3 className="pt-2 pl-5 pr-5 mb-4 text-3xl font-semibold text-white">
+        <motion.div
+        className="w-full bg-[#101922] rounded-2xl p-6 text-white"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        >
+        <h3 className="pt-2 pl-5 pr-5 mb-4 text-3xl font-semibold text.white">
             Completá los datos de tu domicilio
         </h3>
 
         <div className="pl-5 pr-5">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-            <label className="block mb-1 text-sm opacity-80">Departamento</label>
-            <select
+                <label className="block mb-1 text-sm opacity-80">Departamento</label>
+                <select
                 value={id_depto}
                 onChange={(e) => setIdDepto(e.target.value)}
                 className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-            >
+                >
                 <option value="">
-                {loadingDeptos ? "Cargando…" : "Seleccionar…"}
+                    {loadingDeptos ? "Cargando…" : "Seleccionar…"}
                 </option>
                 {departamentos.map((d) => (
-                <option key={d.id_dom_departamento} value={d.id_dom_departamento}>
+                    <option
+                    key={d.id_dom_departamento}
+                    value={d.id_dom_departamento}
+                    >
                     {d.departamento}
-                </option>
+                    </option>
                 ))}
-            </select>
+                </select>
             </div>
 
             <div>
-            <label className="block mb-1 text-sm opacity-80">Localidad *</label>
-            <select
+                <label className="block mb-1 text-sm opacity-80">Localidad *</label>
+                <select
                 value={id_localidad}
                 onChange={(e) => setIdLocalidad(e.target.value)}
                 className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
                 disabled={!id_depto}
-            >
+                >
                 <option value="">
-                {loadingLocs ? "Cargando…" : "Seleccionar…"}
+                    {loadingLocs ? "Cargando…" : "Seleccionar…"}
                 </option>
                 {localidades.map((l) => (
-                <option key={l.id_dom_localidad} value={l.id_dom_localidad}>
+                    <option
+                    key={l.id_dom_localidad}
+                    value={l.id_dom_localidad}
+                    >
                     {l.localidad}
-                </option>
+                    </option>
                 ))}
-            </select>
+                </select>
             </div>
-        </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-3 mt-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 mt-3 md:grid-cols-2">
             <div className="md:col-span-2">
-            <label className="block mb-1 text-sm opacity-80">Barrio *</label>
-            <input
-                value={barrioNombre}
-                onChange={(e) => setBarrioNombre(e.target.value)}
-                className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                placeholder="Nombre del barrio"
-            />
+                <label className="block mb-1 text-sm opacity-80">Barrio *</label>
+                <input
+                    value={barrioNombre}
+                    onChange={(e) => setBarrioNombre(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                    placeholder="Nombre del barrio"
+                />
             </div>
             <div>
-            <label className="block mb-1 text-sm opacity-80">Manzana</label>
-            <input
+                <label className="block mb-1 text-sm opacity-80">Manzana</label>
+                <input
                 value={barrioManzana}
                 onChange={(e) => setBarrioManzana(e.target.value)}
                 className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-            />
+                />
             </div>
             <div>
-            <label className="block mb-1 text-sm opacity-80">Casa</label>
-            <input
+                <label className="block mb-1 text-sm opacity-80">Casa</label>
+                <input
                 value={barrioCasa}
                 onChange={(e) => setBarrioCasa(e.target.value)}
                 className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-            />
+                />
             </div>
             <div>
-            <label className="block mb-1 text-sm opacity-80">Departamento (unidad)</label>
-            <input
-                value={barrioDepto}
-                onChange={(e) => setBarrioDepto(e.target.value)}
-                className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-            />
+                <label className="block mb-1 text-sm opacity-80">
+                    Departamento (unidad)
+                </label>
+                <input
+                    value={barrioDepto}
+                    onChange={(e) => setBarrioDepto(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                />
             </div>
             <div>
-            <label className="block mb-1 text-sm opacity-80">Piso</label>
-            <input
-                value={barrioPiso}
-                onChange={(e) => setBarrioPiso(e.target.value)}
-                className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-            />
+                <label className="block mb-1 text-sm opacity-80">Piso</label>
+                <input
+                    value={barrioPiso}
+                    onChange={(e) => setBarrioPiso(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                />
             </div>
-        </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-3 mt-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 mt-4 md:grid-cols-3">
             <div className="md:col-span-2">
-            <label className="block mb-1 text-sm opacity-80">Calle *</label>
-            <input
-                value={calle}
-                onChange={(e) => setCalle(e.target.value)}
-                className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                placeholder="Ej: Av. Siempre Viva"
-            />
+                <label className="block mb-1 text-sm opacity-80">Calle *</label>
+                <input
+                    value={calle}
+                    onChange={(e) => setCalle(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                    placeholder="Ej: Av. Siempre Viva"
+                />
             </div>
             <div>
-            <label className="block mb-1 text-sm opacity-80">Altura *</label>
-            <input
-                value={altura}
-                onChange={(e) => setAltura(e.target.value)}
-                className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
-                placeholder="Ej: 742"
-            />
+                <label className="block mb-1 text-sm opacity-80">Altura *</label>
+                <input
+                    value={altura}
+                    onChange={(e) => setAltura(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#242E38] rounded-xl"
+                    placeholder="Ej: 742"
+                />
             </div>
-        </div>
+            </div>
         </div>
 
         <div className="flex justify-between mt-6">
             <button
-            type="button"
-            onClick={() => onBack?.()}
-            className="cursor-pointer text-xl rounded-full border hover:bg-[#162a3e] px-6 py-1 transition-all font-black bg-[#0E1F30] text-white border-white/10"
+                type="button"
+                onClick={() => onBack?.()}
+                className="cursor-pointer text-xl rounded-full border hover:bg-[#162a3e] px-6 py-1 transition-all font-black bg-[#0E1F30] text.white border-white/10"
             >
                 Atrás
             </button>
             <button
-            type="button"
-            onClick={confirmar}
-            disabled={!canNext}
-            className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
+                type="button"
+                onClick={confirmar}
+                disabled={!canNext}
+                className="px-6 py-1 text-xl rounded-full font-bold bg-[#0D1520] text-[#19F124] border-3 border-[#19F124] disabled:opacity-50 cursor-pointer disabled:cursor-default hover:bg-[#19F124] hover:text-[#0D1520] transition-all disabled:pointer-events-none"
             >
                 Siguiente
             </button>
         </div>
-        </div>
+        </motion.div>
     );
 }

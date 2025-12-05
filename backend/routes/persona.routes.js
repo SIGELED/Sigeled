@@ -18,6 +18,7 @@ import {
     obtenerPerfilesPersona,
     buscarPorDNI,
     buscadorAvanzado,
+    actualizarPersonaBasica
 } from '../controllers/persona.Controller.js';
 import { obtenerPerfiles } from '../models/personaModel.js';
 import { 
@@ -48,7 +49,6 @@ const manejarErroresMulter = (req, res, next) =>
 
 const personaRouter = express.Router();
 
-// Todas las rutas requieren autenticación
 personaRouter.use(verificarToken);
 
 /**
@@ -109,7 +109,9 @@ personaRouter.get('/dom/localidades/:id_dom_localidad/barrios', listarBarrios);
 personaRouter.post('/dom/localidades/:id_dom_localidad/barrios', crearBarrio);
 
 personaRouter.get('/:id_persona/barrios', listarBarriosPersona);
+
 personaRouter.post('/:id_persona/barrios', vincularBarrioPersona);
+
 personaRouter.delete('/:id_persona/barrios/:id_dom_barrio', desvincularBarrioPersona);
 
 /**
@@ -313,7 +315,7 @@ personaRouter.get('/', listarPersonas);
  */
 personaRouter.get('/:id_persona', obtenerPersona);
 
-
+personaRouter.patch('/:id_persona', actualizarPersonaBasica);
 
 /**
  * @swagger
@@ -524,7 +526,7 @@ personaRouter.post('/:id_persona/titulos', tituloValidator, manejarErroresValida
 // Asignar perfil a persona (solo RRHH/Admin)
 personaRouter.post('/asignar-perfil', soloRRHH, asignarPerfil);
 
-personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, soloAdministrador, desasignarPerfil)
+personaRouter.delete('/:id_persona/perfiles/:id_perfil', soloRRHH, desasignarPerfil)
 
 /**
  * @swagger

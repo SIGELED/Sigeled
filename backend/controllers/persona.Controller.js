@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getIdentificacionByPersona, createIdentificacion } from '../models/personaIdentModel.js';
 import { getDomiciliosByPersona, createDomicilio } from '../models/personaDomiModel.js';
 import { getTitulosByPersona, createTitulo } from '../models/personaTituModel.js';
-import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById } from '../models/personaModel.js';
+import { createPersona, desasignarPerfilPersona, getAllPersonas, getPersonaById, updatePersonaBasica } from '../models/personaModel.js';
 import { getPersonasFiltros, asignarPerfilPersona,getPerfilesDePersona, buscarPersonaPorDNI } from '../models/personaModel.js';
 import { ensureProfesorRow, deactivateProfesorIfNoProfile } from '../models/profesorModel.js';
 import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
@@ -175,12 +175,17 @@ export const asignarPerfil = async (req, res) => {
                 });
             }
 
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'PERFIL_CAMBIO',
-                mensaje: `${id_persona}: perfil asignado | ${pf.rows[0]?.nombre || id_perfil}`,
+                mensaje: `${etiquetaPersona}: perfil asignado | ${pf.rows[0]?.nombre || id_perfil}`,
                 link: `/dashboard/usuarios/${usuarioActor}`,
                 meta: { id_persona, id_perfil: perfilId, perfil: pf.rows[0]?.nombre }
-            })
+            });
         } catch (error) {
             console.warn('asignarPerfil notify error:', error.message);
         }
@@ -222,9 +227,15 @@ export const desasignarPerfil = async (req, res) => {
                     meta: { id_perfil: Number(id_perfil), perfil: pfName }
                 });
             }
+
+            const persona = await getPersonaById(id_persona);
+            const etiquetaPersona = persona
+                ? `${persona.apellido}, ${persona.nombre}`
+                : id_persona;
+
             await notifyAdminsRRHH({
                 tipo: 'PERFIL_CAMBIO',
-                mensaje: `${id_persona}: perfil removido | ${pfName || id_perfil}`,
+                mensaje: `${etiquetaPersona}: perfil removido | ${pfName || id_perfil}`,
                 link: `/dashboard/usuarios/${usuarioActor}`,
                 meta: { id_persona, id_perfil: Number(id_perfil), perfil: pfName }
             });
@@ -458,5 +469,96 @@ export const solicitarEliminacionDomicilio = async (req, res) => {
     } catch (error) {
         console.error('solicitarEliminacionDomicilio:', error);
         res.status(500).json({ message: 'Error al solicitar eliminación', detalle: error.message });
+    }
+};
+
+export const actualizarPersonaBasica = async (req, res) => {
+    try {
+        const { id_persona } = req.params;
+
+        const rolesRaw = req.user?.roles || [];
+        const roles = rolesRaw
+            .map((r) => (typeof r === "string" ? r : r?.codigo || r?.nombre))
+            .filter(Boolean)
+            .map((x) => String(x).toUpperCase());
+
+        const isPriv = roles.includes("ADMIN") || roles.includes("RRHH");
+        const idPersonaToken = req.user?.id_persona;
+        const isOwner =
+            idPersonaToken && String(idPersonaToken) === String(id_persona);
+
+        if (!isOwner && !isPriv) {
+            return res
+                .status(403)
+                .json({ message: "No tenés permisos para editar estos datos" });
+        }
+
+        const { nombre, apellido, fecha_nacimiento, sexo, telefono } = req.body;
+        const payload = {};
+
+        if (nombre !== undefined) {
+            if (typeof nombre !== "string" || !nombre.trim()) {
+                return res.status(400).json({ message: "Nombre inválido" });
+            }
+            payload.nombre = nombre.trim();
+        }
+
+        if (apellido !== undefined) {
+            if (typeof apellido !== "string" || !apellido.trim()) {
+                return res.status(400).json({ message: "Apellido inválido" });
+            }
+            payload.apellido = apellido.trim();
+        }
+
+        if (fecha_nacimiento !== undefined) {
+            if (fecha_nacimiento === null || fecha_nacimiento === "") {
+                payload.fecha_nacimiento = null;
+            } else {
+                const d = new Date(fecha_nacimiento);
+                if (Number.isNaN(d.getTime())) {
+                    return res
+                        .status(400)
+                        .json({ message: "Fecha de nacimiento inválida" });
+                }
+                payload.fecha_nacimiento = d.toISOString().slice(0, 10);
+            }
+        }
+
+        if (sexo !== undefined) {
+            if (sexo !== null && typeof sexo !== "string") {
+                return res.status(400).json({ message: "Sexo inválido" });
+            }
+            payload.sexo = sexo;
+        }
+
+        if (telefono !== undefined) {
+            if (telefono !== null && typeof telefono !== "string") {
+                return res.status(400).json({ message: "Teléfono inválido" });
+            }
+            payload.telefono = telefono;
+        }
+
+        if (!Object.keys(payload).length) {
+            return res
+                .status(400)
+                .json({ message: "No se enviaron campos para actualizar" });
+        }
+
+        const personaActualizada = await updatePersonaBasica(id_persona, payload);
+
+        if (!personaActualizada) {
+            return res.status(404).json({ message: "Persona no encontrada" });
+        }
+
+        res.json({
+            message: "Datos actualizados correctamente",
+            persona: personaActualizada,
+        });
+    } catch (error) {
+        console.error("Error en actualizarPersonaBasica:", error);
+        res.status(500).json({
+            message: "Error al actualizar persona",
+            detalle: error.message,
+        });
     }
 };

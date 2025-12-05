@@ -4,8 +4,9 @@ import db from '../models/db.js';
 import { getRolesByUserId } from '../models/roleModel.js';
 import { notifyAdminsRRHH } from '../utils/notify.js';
 import express from 'express';
-import { login, register } from '../controllers/auth.Controller.js';
+import { changePassword, login, register } from '../controllers/auth.Controller.js';
 import { validarRegistro, validarLogin, registerFullValidators, handleValidation } from '../validators/authValidator.js';
+import { verificarToken, requireActivo } from '../middleware/authMiddleware.js';
 
 const authRouter = express.Router();
 
@@ -153,5 +154,7 @@ authRouter.post('/login', validarLogin, login);
 authRouter.post('/register', validarRegistro, register);
 
 authRouter.post('/register-full', registerFullValidators, handleValidation, registerFull);
+
+authRouter.post('/change-password', verificarToken, requireActivo, changePassword);
 
 export default authRouter;

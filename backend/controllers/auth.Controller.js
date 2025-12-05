@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { io } from '../app.js';
 import { createNotificacion, getAdminAndRRHHIds } from '../models/notificacionModel.js';
-import { findUserByEmail, createUser } from '../models/userModel.js';
+import { findUserByEmail, createUser, getUserAuthById, updateUserPassword } from '../models/userModel.js';
 import { getRolesByUserId } from '../models/roleModel.js';
 import { getPerfilesDePersona, getPersonaById } from '../models/personaModel.js';
 import { notifyAdminsRRHH } from '../utils/notify.js';
@@ -109,5 +109,55 @@ export const register = async (req, res) => {
     } catch (error) {
         console.error('Error en el registro:', error);
         res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+export const changePassword = async (req, res) => {
+    try {
+        const userId = req.user?.id_usuario || req.user?.id;
+        const { current_password, new_password } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'No se pudo identificar al usuario.' });
+        }
+
+        if (!current_password || !new_password) {
+            return res.status(400).json({ message: 'Faltan datos requeridos.' });
+        }
+
+        if (new_password.length < 8) {
+            return res.status(400).json({
+                message: 'La nueva contraseña debe tener al menos 8 caracteres.'
+            });
+        }
+
+        const user = await getUserAuthById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+
+        if (!user.password_hash) {
+            return res.status(400).json({
+                message: 'Este usuario no tiene contraseña local configurada.'
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            current_password,
+            user.password_hash
+        );
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'La contraseña actual es incorrecta.' });
+        }
+
+        const newHash = await bcrypt.hash(new_password, 10);
+        await updateUserPassword(user.id_usuario, newHash);
+
+        return res.json({ message: 'Contraseña actualizada correctamente.' });
+    } catch (error) {
+        console.error('Error al cambiar la contraseña:', error);
+        return res.status(500).json({ message: 'Error del servidor' });
     }
 };

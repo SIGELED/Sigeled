@@ -32,7 +32,7 @@ export default function DashboardHome(){
     const fechaActual = getFormattedDate();
 
     return(
-        <div className="p-6 pt-10 space-y-6 pl-15 pr-15">
+        <div className="p-5 space-y-6 pt-7 pl-15 pr-15">
             <header className="flex items-center justify-between">
                 <div>
                     <h1 className="text-5xl font-bold text-white">¡Hola {nombreUsuario}!</h1>

@@ -3,6 +3,9 @@ import { personaService, profileService, roleService, userService } from "../../
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 import { useToast } from "../../components/ToastProvider";
+import logoCarga from "../../assets/svg/logoCarga.svg";
+import LoadingState from "../../components/LoadingState";
+import { motion } from "motion/react";
 
 const UsuariosTable = lazy(() => import('./Usuarios'));
 
@@ -11,6 +14,8 @@ const UsuariosSection = ({user}) =>{
     const [filtros, setFiltros] = useState({ search: '', perfil: '' });
     const [debouncedSearch] = useDebounce(filtros.search, 300);
     const toast = useToast();
+
+    const [togglingId, setTogglingId] = useState(null);
 
     const queryKey = ['usuarios', 'busqueda', debouncedSearch, filtros.perfil];
 
@@ -43,23 +48,39 @@ const UsuariosSection = ({user}) =>{
 
     const toggleUserMutation = useMutation({
         mutationFn: (usuario) => userService.toggleUsuario(usuario.id_usuario),
+
         onMutate: async (usuario) => {
             await queryClient.cancelQueries({ queryKey: queryKey });
             const prev = queryClient.getQueryData(queryKey);
+
             queryClient.setQueryData(queryKey, (list) =>
                 Array.isArray(list)
-                    ? list.map(u => u.id_usuario === usuario.id_usuario ? { ...u, activo: !u.activo } : u)
+                    ? list.map(u =>
+                        u.id_usuario === usuario.id_usuario
+                            ? { ...u, activo: !u.activo }
+                            : u
+                    )
                     : list
             );
+
             return { prev };
         },
-        onError: (_err, _vars, ctx) => {
-            if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+
+        onSuccess: (_data, usuario) => {
+            const accion = usuario.activo ? 'desactivado' : 'activado';
+            const etiqueta = usuario.email || `${usuario.nombre} ${usuario.apellido}` || 'Usuario';
+            toast.success(`${etiqueta} fue ${accion} correctamente`);
         },
+
+        onError: (err, _vars, ctx) => {
+            if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+            toast.error(err?.response?.data?.message || 'Error al cambiar el estado del usuario');
+        },
+
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: queryKey });
         },
-    })
+    });
 
     const handleAssignRole = (id_usuario, id_rol) => {
         assignRoleMutation.mutate({id_usuario, id_rol});
@@ -74,11 +95,11 @@ const UsuariosSection = ({user}) =>{
     }
 
     if (isLoadingRoles || isLoadingProfiles) {
-        return <div>Cargando datos...</div>
+        return <LoadingState />
     }
 
     return (
-        <Suspense fallback={<div>Cargando...</div>}>
+        <Suspense fallback={<LoadingState/>}>
             <UsuariosTable
                 users={usuarios}
                 isLoading={isLoadingUsuarios}

@@ -4,6 +4,7 @@ import { getRolesByUserId } from '../models/roleModel.js';
 import db from '../models/db.js';
 import { getPersonaById } from '../models/personaModel.js';
 import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
+import { sendAccountStatusEmail } from '../utils/email.js';
 
 // Obtener todos los usuarios
 export const getUsers = async (req, res) => {
@@ -90,7 +91,6 @@ export const createUserController = async (req, res) => {
     }
 };
 
-// Desactivar usuario
 export const toggleUser = async (req, res) => {
     try {
         const { id_usuario } = req.params;
@@ -100,8 +100,8 @@ export const toggleUser = async (req, res) => {
             [id_usuario]
         );
 
-        if(resultUser.rows.length === 0){
-            return res.status(404).json({message: 'Usuario no encontrado'});
+        if (resultUser.rows.length === 0) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
         const nuevoEstado = !resultUser.rows[0].activo;
@@ -112,31 +112,57 @@ export const toggleUser = async (req, res) => {
         );
 
         const respUser = resultaUpdate.rows[0];
+
+        let usuarioCompleto = null;
+        try {
+        usuarioCompleto = await getUserById(id_usuario); 
+        } catch (e) {
+        console.warn('toggleUser: no se pudo obtener usuario completo para el email:', e.message);
+        }
+
+        const nombreParaMail =
+        usuarioCompleto?.nombre
+            ? `${usuarioCompleto.nombre} ${usuarioCompleto.apellido || ''}`.trim()
+            : 'Usuario';
         res.json({
-            user: respUser
-        })
+        user: respUser,
+        });
 
         try {
-            await notifyUser(id_usuario, {
-                tipo: nuevoEstado ? 'CUENTA_HABILITADA' : 'CUENTA_DESHABILITADA',
-                mensaje: nuevoEstado ? 'Tu cuenta fue habilitada con éxito' : 'Tu cuenta fue deshabilitada',
-                link: nuevoEstado ? '/login' : null,
-                nivel: nuevoEstado ? 'success' : 'warning',
+        await notifyUser(id_usuario, {
+            tipo: nuevoEstado ? 'CUENTA_HABILITADA' : 'CUENTA_DESHABILITADA',
+            mensaje: nuevoEstado
+            ? 'Tu cuenta fue habilitada con éxito'
+            : 'Tu cuenta fue deshabilitada',
+            link: nuevoEstado ? '/login' : null,
+            nivel: nuevoEstado ? 'success' : 'warning',
+        });
+
+        await notifyAdminsRRHH({
+            tipo: 'USUARIO_TOGGLE',
+            mensaje: `${respUser.email} fue ${nuevoEstado ? 'activado' : 'desactivado'}`,
+            link: `/dashboard/usuarios/${id_usuario}`,
+            meta: { id_usuario, activo: nuevoEstado },
+        });
+
+        if (respUser.email) {
+            await sendAccountStatusEmail({
+            to: respUser.email,
+            nombre: nombreParaMail,
+            estadoActivo: nuevoEstado,
             });
-            await notifyAdminsRRHH({
-                tipo: 'USUARIO_TOGGLE',
-                mensaje: `${respUser.email} fue ${nuevoEstado ? 'activado' : 'desactivado'}`,
-                link: `/dashboard/usuarios/${id_usuario}`,
-                meta: { id_usuario, activo: nuevoEstado }
-            })
+        } else {
+            console.warn(`toggleUser: usuario ${id_usuario} no tiene email, no se envía correo.`);
+        }
         } catch (error) {
-            console.warn('toggleUser notify error:', error.message);
+            console.warn('toggleUser notify/email error:', error.message);
         }
     } catch (error) {
         console.error('Error al cambiar el estado del usuario:', error);
-        res.status(500).json({message:'Error del servidor'});
+        res.status(500).json({ message: 'Error del servidor' });
     }
 };
+
 
 // Obtener roles de un usuario
 export const getUserRoles = async (req, res) => {

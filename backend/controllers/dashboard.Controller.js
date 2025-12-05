@@ -8,7 +8,7 @@ export const getStatsController = async (req, res) => {
         console.error('Error en getStatsController:', error);
         res.status(500).json({
             error: 'Error al obtener estadísticas del dashboard',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 }
@@ -22,7 +22,7 @@ export const getPendientesController = async (req, res) => {
         console.error('Error en getPendientesController:', error);
         res.status(500).json({ 
             error: 'Error al obtener documentos pendientes',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            detalle: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 }
@@ -35,7 +35,7 @@ export const getLegajoEstadosController = async (req, res) => {
         console.error("Error en getLegajoEstadosController:", error);
         res.status(500).json({
             error: "Error al obtener estados de legajo",
-            details:
+            detalle:
             process.env.NODE_ENV === "development" ? error.message : undefined,
         });
     }
@@ -49,7 +49,7 @@ export const getDocumentosEstadosController = async (req, res) => {
         console.error("Error en getDocumentosEstadosController:", error);
         res.status(500).json({
         error: "Error al obtener estados de documentos",
-        details:
+        detalle:
             process.env.NODE_ENV === "development" ? error.message : undefined,
         });
     }

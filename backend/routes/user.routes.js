@@ -12,7 +12,6 @@ import { validarCrearUsuario, validarActualizarUsuario } from '../validators/use
 
 const userRouter = express.Router();
 
-// Todas las rutas requieren autenticación
 userRouter.use(verificarToken);
 
 userRouter.get('/:id_usuario', permitirRoles('ADMIN', 'RRHH'), getUserByIdController)
@@ -30,7 +29,7 @@ userRouter.get('/:id_usuario', permitirRoles('ADMIN', 'RRHH'), getUserByIdContro
  *       200:
  *         description: Lista de usuarios
  */
-userRouter.get('/', permitirRoles('ADMIN'), getUsers);
+userRouter.get('/', permitirRoles('ADMIN', 'RRHH'), getUsers);
 
 /**
  * @swagger
@@ -60,7 +59,7 @@ userRouter.get('/', permitirRoles('ADMIN'), getUsers);
  *       500:
  *         description: Error del servidor
  */
-userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserController);
+userRouter.post('/', permitirRoles('ADMIN', 'RRHH'), validarCrearUsuario, createUserController);
 
 /**
  * @swagger
@@ -85,7 +84,7 @@ userRouter.post('/', permitirRoles('ADMIN'), validarCrearUsuario, createUserCont
  *       500:
  *         description: Error del servidor
  */
-userRouter.put('/:id_usuario/toggle', permitirRoles('ADMIN'), toggleUser);
+userRouter.put('/:id_usuario/toggle', permitirRoles('ADMIN', 'RRHH'), toggleUser);
 
 
 /**
@@ -111,7 +110,7 @@ userRouter.put('/:id_usuario/toggle', permitirRoles('ADMIN'), toggleUser);
  *       500:
  *         description: Error del servidor
  */
-userRouter.get('/:id_usuario', permitirRoles('ADMIN'), getUser)
+userRouter.get('/:id_usuario', permitirRoles('ADMIN', 'RRHH'), getUser)
 
 /**
  * @swagger

@@ -36,12 +36,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const onNewNotification = (notificacion) => {
-      console.log('[Socket.IO] Nueva notificación recibida:', notificacion);
       setNotifications((prev) => [notificacion, ...prev]);
     };
 
-    socket.on('connect', () => console.log('[Socket.IO] Conectado'));
-    socket.on('disconnect', () => console.log('[Socket.IO] Desconectado'));
     socket.on('connect_error', (err) => {
       console.error('[Socket.IO] connect_error:', err?.message || err);
     });
@@ -108,7 +105,6 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
 
     try {
-      // Solo pedir notificaciones si está activo y tenemos id_usuario
       if (userData?.activo === true && userData?.id_usuario) {
         const { data } = await notificacionService.getMisNotificaciones();
         setNotifications(Array.isArray(data) ? data : []);

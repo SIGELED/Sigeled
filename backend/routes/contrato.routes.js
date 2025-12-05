@@ -3,7 +3,6 @@ import {
   listarContratos,
   obtenerContrato,
   obtenerContratoPorExternalId,
-  crearContratoHandler,
   eliminarContrato,
   buscarPersonaPorDni,
   obtenerDetallesProfesor,
@@ -11,18 +10,26 @@ import {
   crearNuevoContratoProfesor,
   listarEmpleadosContratos,
   listarMisContratos,
+  listarPeriodos,
+  listarTarifasPorPersona,
+  crearContratoGeneralHandler,
+  listarPerfilTarifas,
+  actualizarPerfilTarifa
 } from '../controllers/contrato.Controller.js';
-import { verificarToken, soloAdministrador } from '../middleware/authMiddleware.js';
+import { verificarToken, soloAdministrador, soloRRHH } from '../middleware/authMiddleware.js';
 import { getContratoById } from '../models/contratoModel.js';
 import { generateWordDocument, generatePdfDocument } from '../utils/documentGenerator.js';
-import { createContratoValidators, handleValidation } from '../validators/contratoValidator.js';
+import { createContratoValidators, createContratoGeneralValidators, handleValidation } from '../validators/contratoValidator.js';
 import { getCarreras } from '../models/carreraModel.js';
 import { getAnios } from '../models/contratoModel.js';
 
 const contratoRouter = express.Router();
 
-// Aplicar middleware de autenticación a todas las rutas
 contratoRouter.use(verificarToken);
+
+contratoRouter.post('/general/crear', verificarToken, soloRRHH, createContratoGeneralValidators, handleValidation, crearContratoGeneralHandler);
+
+contratoRouter.get('/periodos', verificarToken, soloRRHH, listarPeriodos);
 
 contratoRouter.get('/carreras', async (req, res) => {
   try {
@@ -32,7 +39,7 @@ contratoRouter.get('/carreras', async (req, res) => {
   }
 })
 
-contratoRouter.get('/anios', soloAdministrador, async (req, res) => {
+contratoRouter.get('/anios', soloRRHH, async (req, res) => {
   try {
     res.json(await getAnios());
   } catch (error) {
@@ -40,9 +47,42 @@ contratoRouter.get('/anios', soloAdministrador, async (req, res) => {
   }
 });
 
-contratoRouter.get('/empleados', soloAdministrador, listarEmpleadosContratos);
+contratoRouter.get('/empleados', soloRRHH, listarEmpleadosContratos);
+
+contratoRouter.get("/perfil-tarifas", soloRRHH, listarPerfilTarifas);
+
+contratoRouter.put("/perfil-tarifas/:id_tarifa", soloRRHH, actualizarPerfilTarifa);
 
 contratoRouter.get('/mis-contratos', listarMisContratos);
+
+function puedeVerDetallesProfesor(req, res, next) {
+  const { idPersona } = req.params;
+  const user = req.user;
+
+  if (!user) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  const roles = Array.isArray(user.roles) ? user.roles: [];
+  const esAdmin = roles.some((r) => {
+    const code = String(
+      typeof r === 'string' ? r : r?.codigo ?? r?.nombre ?? ''
+    ).toUpperCase();
+    return code === 'ADMIN' || code === 'RRHH';
+  })
+
+  if(esAdmin) {
+    return next();
+  }
+
+  if(String(user.id_persona) === String(idPersona)){
+    return next();
+  }
+
+  return res.status(403).json({ error: "Acceso denegado" });
+}
+
+contratoRouter.get('/tarifas/:idPersona', puedeVerDetallesProfesor, listarTarifasPorPersona);
 
 /**
  * @swagger
@@ -66,7 +106,7 @@ contratoRouter.get('/mis-contratos', listarMisContratos);
  *       403:
  *         description: Acceso denegado, se requiere rol de administrador
  */
-contratoRouter.get('/', soloAdministrador, listarContratos);
+contratoRouter.get('/', soloRRHH, listarContratos);
 
 /**
  * @swagger
@@ -94,7 +134,7 @@ contratoRouter.get('/', soloAdministrador, listarContratos);
  *       404:
  *         description: Contrato no encontrado
  */
-contratoRouter.get('/external/:external_id', soloAdministrador, obtenerContratoPorExternalId);
+contratoRouter.get('/external/:external_id', soloRRHH, obtenerContratoPorExternalId);
 
 /**
  * @swagger
@@ -119,7 +159,7 @@ contratoRouter.get('/external/:external_id', soloAdministrador, obtenerContratoP
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/profesor/:idPersona/detalles', soloAdministrador, obtenerDetallesProfesor);
+contratoRouter.get('/profesor/:idPersona/detalles', puedeVerDetallesProfesor, obtenerDetallesProfesor);
 
 /**
  * @swagger
@@ -203,7 +243,7 @@ contratoRouter.get('/profesor/:idPersona/detalles', soloAdministrador, obtenerDe
  *       500:
  *         description: Error del servidor
  */
-contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, createContratoValidators, handleValidation, crearNuevoContratoProfesor);
+contratoRouter.post('/profesor/crear', verificarToken, soloRRHH, createContratoValidators, handleValidation, crearNuevoContratoProfesor);
 
 
 // Actualización de contratos deshabilitada: devolvemos 405 para compatibilidad
@@ -237,7 +277,7 @@ contratoRouter.post('/profesor/crear', verificarToken, soloAdministrador, create
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/persona/dni/:dni', soloAdministrador, buscarPersonaPorDni);
+contratoRouter.get('/persona/dni/:dni', soloRRHH, buscarPersonaPorDni);
 
 /**
  * @swagger
@@ -268,7 +308,7 @@ contratoRouter.get('/persona/dni/:dni', soloAdministrador, buscarPersonaPorDni);
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/materias', soloAdministrador, listarMateriasPorCarreraAnio);
+contratoRouter.get('/materias', soloRRHH, listarMateriasPorCarreraAnio);
 
 // La documentación y ruta POST para crear contratos ya está definida arriba
 
@@ -313,7 +353,8 @@ export default contratoRouter;
  *       500:
  *         description: Error al generar el documento
  */
-contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
+
+contratoRouter.get('/:id/export', verificarToken, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { format } = req.query;
@@ -322,7 +363,6 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
       return res.status(400).json({ error: 'Formato no válido. Use "word" o "pdf".' });
     }
 
-    // Get the contract data
     const contrato = await getContratoById(id);
     if (!contrato) {
       return res.status(404).json({ error: 'Contrato no encontrado' });
@@ -342,20 +382,52 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
       fileExtension = 'pdf';
     }
 
+    const apellido =
+      contrato.apellido ||
+      contrato.apellido_persona ||
+      contrato.persona_apellido ||
+      contrato.apellido_docente ||
+      null;
+
+    const nombre =
+      contrato.nombre ||
+      contrato.nombre_persona ||
+      contrato.persona_nombre ||
+      contrato.nombre_docente ||
+      null;
+
+    const nombreCompleto = [apellido, nombre]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    const baseFileName = nombreCompleto
+      ? `CONTRATO DE ${nombreCompleto}`
+      : `CONTRATO-${id}`;
+
+    const safeFileName = `${baseFileName}.${fileExtension}`.replace(/[^\w.\- áéíóúÁÉÍÓÚñÑ]/g, '_');
+
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename=contrato-${id}.${fileExtension}`);
-    res.send(fileContent);
+    res.setHeader('Content-Length', fileContent.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
-    res.send(fileContent);
-
+    return res.end(fileContent); 
   } catch (error) {
     console.error('Error al exportar contrato:', error);
-    res.status(500).json({ 
+
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    return res.status(500).json({
       error: 'Error al generar el documento',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalle: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
+
+
 
 /**
  * @swagger
@@ -384,7 +456,7 @@ contratoRouter.get('/:id/export', verificarToken, async (req, res) => {
  *       401:
  *         description: No autorizado
  */
-contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
+contratoRouter.get('/:id', soloRRHH, obtenerContrato);
 
 /**
  * @swagger
@@ -409,4 +481,4 @@ contratoRouter.get('/:id', soloAdministrador, obtenerContrato);
  *       404:
  *         description: Contrato no encontrado
  */
-contratoRouter.delete('/:id', soloAdministrador, eliminarContrato);
+contratoRouter.delete('/:id', soloRRHH, eliminarContrato);

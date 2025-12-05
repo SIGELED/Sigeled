@@ -37,6 +37,21 @@ export const getAllUsers = async () => {
 };
 
 export const getUsuarioIdPorPersonaId = async (id_persona) => {
-    const res = await db.query('SELECT id_usuario FROM usuarios WHERE id_persona = $1 LIMIT 1', [id_persona]);
+    const res = await db.query('SELECT id_usuario, email FROM usuarios WHERE id_persona = $1 LIMIT 1', [id_persona]);
     return res.rows[0];
 }
+
+export const getUserAuthById = async (id_usuario) => {
+    const res = await db.query(
+        'SELECT id_usuario, email, password_hash, activo FROM usuarios WHERE id_usuario = $1',
+        [id_usuario]
+    );
+    return res.rows[0];
+};
+
+export const updateUserPassword = async (id_usuario, password_hash) => {
+    await db.query(
+        'UPDATE usuarios SET password_hash = $1 WHERE id_usuario = $2',
+        [password_hash, id_usuario]
+    );
+};

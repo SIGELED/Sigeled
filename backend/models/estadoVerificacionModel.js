@@ -16,6 +16,6 @@ export const getEstadoByCodigo = async (codigo) => {
 }
 
 export const getIdEstadoPendiente = async () => {
-    const id = await getIdEstadoByCodigo('PENDIENTE');
-    return id ?? 1;
+    const row = await getEstadoByCodigo('PENDIENTE');
+    return row?.id_estado ?? 1;
 };

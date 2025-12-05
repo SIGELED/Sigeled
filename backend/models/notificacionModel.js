@@ -60,3 +60,24 @@ export const getAdminAndRRHHIds = async () => {
     const { rows } = await db.query(q);
     return rows.map(r => r.id_usuario);
 };
+
+export const markAllAsReadByUser = async (id_usuario) => {
+    const q = ` UPDATE notificaciones
+                SET leido = true
+                WHERE id_usuario = $1
+                    AND leido = false
+                RETURNING *;
+    `;
+    const { rows } = await db.query(q, [id_usuario]);
+    return rows;
+}
+
+export const deleteNotificacion = async (id_notificacion, id_usuario) => {
+    const q = `
+        DELETE FROM notificaciones
+        WHERE id_notificacion = $1 AND id_usuario = $2
+        RETURNING *;
+    `;
+    const { rows } = await db.query(q, [id_notificacion, id_usuario]);
+    return rows[0];
+};

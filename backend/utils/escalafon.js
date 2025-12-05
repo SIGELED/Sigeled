@@ -1,8 +1,11 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
+<<<<<<< HEAD
 /**
  * Formatea una fecha a formato DD/MM/YYYY
  */
+=======
+>>>>>>> origin/main
 function formatearFecha(fecha) {
     if (!fecha) return 'N/A';
     try {
@@ -18,9 +21,12 @@ function formatearFecha(fecha) {
     }
 }
 
+<<<<<<< HEAD
 /**
  * Calcula la edad a partir de una fecha de nacimiento
  */
+=======
+>>>>>>> origin/main
 function calcularEdad(fechaNacimiento) {
     if (!fechaNacimiento) return 'N/A';
     try {
@@ -37,16 +43,23 @@ function calcularEdad(fechaNacimiento) {
     }
 }
 
+<<<<<<< HEAD
 /**
  * Genera el PDF del informe escalafonario
  */
+=======
+>>>>>>> origin/main
 export async function generateInformeEscalafonarioPDF(informe) {
     const pdfDoc = await PDFDocument.create();
     const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
+<<<<<<< HEAD
     // Configuración de página
     const pageWidth = 595.28; // A4
+=======
+    const pageWidth = 595.28; 
+>>>>>>> origin/main
     const pageHeight = 841.89;
     const margin = 50;
     const contentWidth = pageWidth - (margin * 2);
@@ -54,7 +67,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     let page = pdfDoc.addPage([pageWidth, pageHeight]);
     let yPosition = pageHeight - margin;
 
+<<<<<<< HEAD
     // Función auxiliar para agregar texto
+=======
+>>>>>>> origin/main
     const addText = (text, options = {}) => {
         const {
             size = 12,
@@ -66,7 +82,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
 
         const actualFont = bold ? timesRomanBold : font;
 
+<<<<<<< HEAD
         // Si no hay espacio, agregar nueva página
+=======
+>>>>>>> origin/main
         if (yPosition < margin + 50) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
             yPosition = pageHeight - margin;
@@ -83,7 +102,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
         yPosition -= size + 5;
     };
 
+<<<<<<< HEAD
     // Función para agregar línea separadora
+=======
+>>>>>>> origin/main
     const addLine = () => {
         page.drawLine({
             start: { x: margin, y: yPosition },
@@ -94,13 +116,19 @@ export async function generateInformeEscalafonarioPDF(informe) {
         yPosition -= 15;
     };
 
+<<<<<<< HEAD
     // ===== ENCABEZADO =====
+=======
+>>>>>>> origin/main
     addText('INFORME ESCALAFONARIO', { size: 18, bold: true });
     addText(`Generado el: ${formatearFecha(new Date())}`, { size: 10 });
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // ===== DATOS PERSONALES =====
+=======
+>>>>>>> origin/main
     addText('DATOS PERSONALES', { size: 14, bold: true });
     yPosition -= 5;
 
@@ -117,7 +145,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
         addText(`Teléfono: ${informe.telefono}`, { size: 11 });
     }
 
+<<<<<<< HEAD
     // Domicilio
+=======
+>>>>>>> origin/main
     if (informe.calle || informe.localidad || informe.barrio) {
         let domicilio = [];
         if (informe.calle) domicilio.push(informe.calle);
@@ -143,7 +174,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // ===== PERFILES =====
+=======
+>>>>>>> origin/main
     if (informe.perfiles && informe.perfiles.length > 0) {
         addText('PERFILES', { size: 14, bold: true });
         yPosition -= 5;
@@ -154,7 +188,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
         addLine();
     }
 
+<<<<<<< HEAD
     // ===== ANTIGÜEDAD =====
+=======
+>>>>>>> origin/main
     addText('ANTIGÜEDAD', { size: 14, bold: true });
     yPosition -= 5;
 
@@ -171,7 +208,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // ===== TÍTULOS ACADÉMICOS =====
+=======
+>>>>>>> origin/main
     addText('TÍTULOS ACADÉMICOS', { size: 14, bold: true });
     yPosition -= 5;
 
@@ -213,7 +253,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // ===== HISTORIAL DE CONTRATOS =====
+=======
+>>>>>>> origin/main
     addText('HISTORIAL DE CONTRATOS', { size: 14, bold: true });
     yPosition -= 5;
 
@@ -248,7 +291,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
                 addText(`   Monto por hora: $${Number(contrato.monto_hora).toFixed(2)}`, { size: 10, indent: 15 });
             }
 
+<<<<<<< HEAD
             // Materias
+=======
+>>>>>>> origin/main
             if (contrato.materias && contrato.materias.length > 0) {
                 addText(`   Materias:`, { size: 10, indent: 15 });
                 contrato.materias.forEach(materia => {
@@ -265,7 +311,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // ===== DOCUMENTACIÓN ADICIONAL =====
+=======
+>>>>>>> origin/main
     addText('DOCUMENTACIÓN ADICIONAL', { size: 14, bold: true });
     yPosition -= 5;
 
@@ -294,7 +343,10 @@ export async function generateInformeEscalafonarioPDF(informe) {
     yPosition -= 20;
     addLine();
 
+<<<<<<< HEAD
     // ===== PIE DE PÁGINA =====
+=======
+>>>>>>> origin/main
     addText('Este informe es un documento generado automáticamente por el sistema SIGELED.', { 
         size: 9, 
         color: rgb(0.5, 0.5, 0.5) 
@@ -304,14 +356,20 @@ export async function generateInformeEscalafonarioPDF(informe) {
         color: rgb(0.5, 0.5, 0.5) 
     });
 
+<<<<<<< HEAD
     // Serializar el PDF
+=======
+>>>>>>> origin/main
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes);
 }
 
+<<<<<<< HEAD
 /**
  * Genera un reporte de estadísticas en PDF
  */
+=======
+>>>>>>> origin/main
 export async function generateEstadisticasPDF(estadisticas) {
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -354,13 +412,19 @@ export async function generateEstadisticasPDF(estadisticas) {
         yPosition -= 15;
     };
 
+<<<<<<< HEAD
     // Encabezado
+=======
+>>>>>>> origin/main
     addText('REPORTE DE ESTADÍSTICAS - SIGELED', { size: 18, bold: true });
     addText(`Generado el: ${new Date().toLocaleString('es-AR')}`, { size: 10 });
     yPosition -= 10;
     addLine();
 
+<<<<<<< HEAD
     // Estadísticas generales
+=======
+>>>>>>> origin/main
     if (estadisticas.generales) {
         addText('ESTADÍSTICAS GENERALES', { size: 14, bold: true });
         yPosition -= 5;
@@ -381,4 +445,8 @@ export async function generateEstadisticasPDF(estadisticas) {
 
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main

@@ -1,7 +1,5 @@
 import db from './db.js';
 
-// Obtener títulos por persona
-// Consulta con JOIN para obtener datos completos del título, tipo y archivo
 export const getTitulosByPersona = async (id_persona) => {
     const res = await db.query(`
         SELECT 
@@ -21,12 +19,20 @@ export const getTitulosByPersona = async (id_persona) => {
             pt.verificado_por_usuario,
             pt.verificado_en,
             concat_ws(', ', p.apellido, p.nombre) AS persona_nombre,
-            pt.creado_en
+            pt.creado_en,
+            ult.observacion AS observacion 
         FROM personas_titulos pt
-        LEFT JOIN tipos_titulo tt ON pt.id_tipo_titulo = tt.id_tipo_titulo
-        LEFT JOIN archivos a      ON pt.id_archivo = a.id_archivo
+        LEFT JOIN tipos_titulo       tt ON pt.id_tipo_titulo = tt.id_tipo_titulo
+        LEFT JOIN archivos           a  ON pt.id_archivo = a.id_archivo
         LEFT JOIN estado_verificacion ev ON ev.id_estado = pt.id_estado_verificacion
-        LEFT JOIN personas p       ON p.id_persona = pt.id_persona
+        LEFT JOIN personas           p  ON p.id_persona = pt.id_persona
+        LEFT JOIN LATERAL (
+        SELECT v.observacion
+        FROM verificacion_titulos v
+        WHERE v.id_titulo = pt.id_titulo
+        ORDER BY v.verificado_en DESC
+        LIMIT 1
+        ) AS ult ON TRUE
         WHERE pt.id_persona = $1
         ORDER BY pt.creado_en DESC;
     `, [id_persona]);
@@ -41,7 +47,6 @@ export const getTiposTitulo = async () => {
     return rows;
 }
 
-// Crear título
 export const createTitulo = async ({
     id_persona,
     id_tipo_titulo,

@@ -12,6 +12,7 @@ import { notifyUser, notifyAdminsRRHH } from '../utils/notify.js';
 import { getUsuarioIdPorPersonaId } from '../models/userModel.js';
 import { getEstadoById } from '../models/estadoVerificacionModel.js';
 import { deleteArchivo, getArchivoById } from '../models/archivoModel.js';
+import { getIdEstadoPendiente } from '../models/estadoVerificacionModel.js';
 
 const ALLOWED_ROLES = ['ADMIN', 'RRHH', 'ADMINISTRATIVO'];
 
@@ -22,7 +23,6 @@ const isAdminOrRRHH = (req) => {
     return roles.some(r => ALLOWED_ROLES.includes(String(r)));
 };
 
-// Obtener todos los documentos de personas
 export const listarPersonasDocumentos = async (req, res) => {
     try {
         const { id_persona } = req.query;
@@ -37,7 +37,6 @@ export const listarPersonasDocumentos = async (req, res) => {
     }
 };
 
-// Obtener documento de persona por ID
 export const obtenerPersonaDocumento = async (req, res) => {
     try {
         const { id_persona_doc } = req.params;
@@ -111,11 +110,32 @@ export const verificarPersonaDocumento = async (req, res) => {
 
 export const crearPersonaDocumento = async (req, res) => {
     try {
-        const nuevoDocumento = await createPersonaDocumento(req.body);
+        const body = req.body || {};
+
+        if (!body.id_persona) {
+            return res.status(400).json({ message: 'id_persona es obligatorio' });
+        }
+
+        const data = { ...body };
+
+        if (!isAdminOrRRHH(req)) {
+            const idPendiente = await getIdEstadoPendiente();
+            data.id_estado_verificacion = idPendiente;
+            data.verificado_por_usuario = null;
+            data.verificado_en = null;
+        } else if (!data.id_estado_verificacion) {
+            const idPendiente = await getIdEstadoPendiente();
+            data.id_estado_verificacion = idPendiente;
+        }
+
+        const nuevoDocumento = await createPersonaDocumento(data);
         res.status(201).json(nuevoDocumento);
     } catch (error) {
         console.error('Error en crearPersonaDocumento:', error);
-        res.status(500).json({ message: 'Error al crear documento de persona', detalle: error.message });
+        res.status(500).json({
+            message: 'Error al crear documento de persona',
+            detalle: error.message,
+        });
     }
 };
 

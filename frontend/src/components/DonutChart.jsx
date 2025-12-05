@@ -3,14 +3,14 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export default function DonutChart({ items = [], height = 220 }) {
+export default function DonutChart({ items = [], height = 200 }) {
     const dataItems = (items || []).filter((i) => Number(i.value) > 0);
 
     if (!dataItems.length) {
         return (
-        <p className="text-sm text-gray-400">
-            No hay datos suficientes para mostrar el gráfico.
-        </p>
+            <p className="text-sm text-gray-400">
+                No hay datos suficientes para mostrar el gráfico.
+            </p>
         );
     }
 
@@ -22,37 +22,42 @@ export default function DonutChart({ items = [], height = 220 }) {
     const data = {
         labels,
         datasets: [
-        {
-            data: values,
-            backgroundColor: labels.map(
-            (_l, idx) => colors[idx % colors.length]
-            ),
-            borderWidth: 0,
-        },
+            {
+                data: values,
+                backgroundColor: labels.map(
+                    (_l, idx) => colors[idx % colors.length]
+                ),
+                borderWidth: 0,
+            },
         ],
     };
 
     const options = {
-        cutout: "60%",
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "65%",
         plugins: {
-        legend: {
-            position: "bottom",
-            labels: {
-            color: "#e5e7eb",
-            font: { size: 11 },
+            legend: {
+                position: "bottom",
+                labels: {
+                    color: "#e5e7eb",
+                    font: { size: 11 },
+                },
             },
-        },
-        tooltip: {
-            callbacks: {
-            label: (ctx) => `${ctx.label}: ${ctx.parsed}`,
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => `${ctx.label}: ${ctx.parsed}`,
+                },
             },
-        },
         },
     };
 
     return (
-        <div style={{ height }}>
-        <Doughnut data={data} options={options} />
+        <div
+            style={{ height, width: "100%" }}
+            className="max-h-56"
+        >
+            <Doughnut data={data} options={options} />
         </div>
     );
 }

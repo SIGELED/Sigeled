@@ -1,5 +1,11 @@
 import { io } from '../app.js';
-import { getNotificacionesByUsuario, markAsRead, createNotificacion } from "../models/notificacionModel.js";
+import { 
+    getNotificacionesByUsuario, 
+    markAsRead, 
+    createNotificacion, 
+    markAllAsReadByUser,
+    deleteNotificacion
+} from "../models/notificacionModel.js";
 
 export const getMisNotificaciones = async (req,res) => {
     try {
@@ -54,3 +60,48 @@ export const testPush = async (req, res) => {
         res.status(500).json({ message: 'Fallo testPush', detalle: e.message });
     }
 };
+
+export const marcarTodasComoLeidas = async (req, res) => {
+    try {
+        const id_usuario = req.user.id_usuario;
+
+        if(!id_usuario){
+            return res.status(401).json({ message: "ID de usuario no encontrado" });
+        }
+
+        const updated = await markAllAsReadByUser(id_usuario);
+
+        return res.json({
+            message: "Notificaciones marcadas como leídas",
+            total: updated.length,
+        });
+    } catch (error) {
+        console.error("Error en marcarTodasComoLeidas:", error);
+        res.status(500).json({message:"Error al marcar todas las notificaciones como leídas", detalle:error.message})
+    }
+}
+
+export const eliminarNotificacion = async(req, res) => {
+    try {
+        const id_usuario = req.user.id_usuario;
+        const { id_notificacion } = req.params;
+
+        if(!id_usuario) {
+            return res.status(401).json({ message: "ID de usuario no encontrado" });
+        }
+
+        const deleted = await deleteNotificacion(id_notificacion, id_usuario);
+
+        if(!deleted){
+            return res.status(404).json({ message:"Notificación no encontrado" });
+        }
+
+        return res.json({
+            message: "Notificación eliminada",
+            notificacion: deleted,
+        })
+    } catch (error) {
+        console.error("Error en eliminarNotificacion:", error);
+        res.status(500).json({ message: "Error al eliminar la notificación", detalle: error.message});
+    }
+}

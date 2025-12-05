@@ -1,13 +1,11 @@
-// Middleware de autorización para edición/eliminación/verificación de datos de persona
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 
 export function autorizarEdicion(req, res, next) {
-  const usuario = req.usuario; // Se asume que el usuario ya está en req.usuario por el middleware de autenticación
+  const usuario = req.usuario;
   const id_persona = req.params.id_persona;
-  // Solo el propio usuario puede editar/eliminar sus datos
   if (usuario.rol === 'RRHH' || usuario.rol === 'ADMINISTRATIVO') {
-    return next(); // RRHH y Administrativo pueden verificar
+    return next();
   }
   if (usuario.id_usuario && usuario.id_usuario.toString() === id_persona.toString()) {
     return next();
@@ -23,7 +21,6 @@ export function autorizarVerificacion(req, res, next) {
   return res.status(403).json({ error: 'Solo RRHH o Administrativo pueden verificar datos.' });
 }
 
-// Middleware para manejar errores de validación
 export const manejarErroresValidacion = (req, res, next) => {
     const errores = validationResult(req);
     if (!errores.isEmpty()) {

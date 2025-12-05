@@ -11,6 +11,7 @@ import Perfil from './components/Perfil';
 import Revision from './pages/Revision';
 import RegisterArchivos from './pages/RegisterArchivos';
 import OnBoardingRoute from './components/OnBoardingRoute';
+import Notificaciones from './pages/dashboard/Notificaciones';
 
 const queryClient = new QueryClient({
   defaultOptions:{
